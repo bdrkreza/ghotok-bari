@@ -3,8 +3,9 @@ import type { Auth } from "./auth";
 import { placeholderEmail } from "./auth/phone";
 import type { Db } from "./db";
 import { profile, user } from "./db/schema";
+import { submitBiodata } from "./services/biodata";
 import { addEntry } from "./services/ledger";
-import { createProfile } from "./services/profiles";
+import { createProfile, setApproval } from "./services/profiles";
 import { addNote, changeStatus, createProposal } from "./services/proposals";
 import { createSite, getSite } from "./services/site";
 import { today } from "./time";
@@ -122,5 +123,21 @@ export async function seedDemo(db: Db, auth: Auth, headers: Headers): Promise<{ 
   await changeStatus(db, g, p4, "bad", "পাত্রীপক্ষ চাকরিজীবী পাত্র চায়।");
 
   await addEntry(db, g, { kind: "khoroch", amount: "1200", entryDate: daysAgo(5), note: "সাভার যাতায়াত" });
+
+  // what the two families handed in: one biodata still waiting for the ghotok, one already listed
+  const idOf = async (phone: string) => (await db.query.user.findFirst({ where: eq(user.username, phone) }))!.id;
+  await submitBiodata(db, g, await idOf(DEMO_CUSTOMER.phone), {
+    kind: "patri", religion: "islam", maritalStatus: "obibahito", name: "সুমাইয়া আক্তার", fatherName: "মৃত আব্দুল হাই", motherName: "রহিমা বেগম",
+    birthYear: "2003", heightCm: "157", education: "অনার্স (পড়ছে)", profession: "শিক্ষার্থী",
+    village: "কাটাখালী", upazila: "সাভার", district: "ঢাকা", guardianName: "রহিমা বেগম (মা)", guardianPhone: DEMO_CUSTOMER.phone,
+    familyDetails: "১ ভাই ১ বোন। মা গৃহিণী, ভাই ব্যবসা করে।", expectations: "চাকরিজীবী, ধার্মিক; পড়া চালিয়ে যেতে দেবে এমন পরিবার।",
+  });
+  const tanvir = await submitBiodata(db, g, await idOf(DEMO_CUSTOMER_2.phone), {
+    kind: "patro", religion: "islam", maritalStatus: "obibahito", name: "তানভীর হোসেন", fatherName: "মো. জসিম উদ্দিন",
+    birthYear: "1996", heightCm: "173", education: "বিএসসি ইঞ্জিনিয়ারিং", profession: "সফটওয়্যার ইঞ্জিনিয়ার", monthlyIncome: "55000",
+    village: "বোর্ডবাজার", upazila: "গাজীপুর সদর", district: "গাজীপুর", guardianName: "মো. জসিম উদ্দিন (বাবা)", guardianPhone: DEMO_CUSTOMER_2.phone,
+    familyDetails: "২ ভাই। বাবা অবসরপ্রাপ্ত ব্যাংকার, নিজেদের বাড়ি।", expectations: "শিক্ষিত, নম্র; ঢাকা-গাজীপুরের মধ্যে হলে ভালো।",
+  });
+  await setApproval(db, g, tanvir, "approved");
   return { created: true };
 }

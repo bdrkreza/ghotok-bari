@@ -4,18 +4,30 @@ import type { ReactNode } from "react";
 import { ActionForm, Field, Hidden, Select, TextArea } from "@/components/form";
 import { KIND_LABEL, MARITAL, RELIGION, options } from "@/lib/bn";
 import type { Profile, ProfileKind } from "@/lib/db/schema";
+import { submitBiodataAction, updateBiodataAction } from "@/lib/actions/biodata";
 import { createProfileAction, updateProfileAction } from "@/lib/actions/profiles";
 
 const KIND_OF: Record<ProfileKind, string> = { patro: "পাত্রের", patri: "পাত্রীর" };
 
+/** Who is filling the form: the ghotok (full form, their private notes) or a family (their own biodata, no notes). */
+export type Viewer = "admin" | "customer";
+
+const ACTIONS = {
+  admin: { create: createProfileAction, update: updateProfileAction },
+  customer: { create: submitBiodataAction, update: updateBiodataAction },
+};
+
 /** The same long form for a new person and for editing one; `profile` fills it in for editing. */
-export function ProfileForm({ kind, profile, minYear, maxYear }: { kind: ProfileKind; profile?: Profile; minYear: number; maxYear: number }) {
+export function ProfileForm({ kind, profile, minYear, maxYear, viewer = "admin" }: { kind: ProfileKind; profile?: Profile; minYear: number; maxYear: number; viewer?: Viewer }) {
   const edit = !!profile;
   const base: Record<string, string> = profile
     ? Object.fromEntries(Object.entries(profile).map(([k, v]) => [k, v === null || v === undefined ? "" : String(v)]))
     : {};
+  const submit = viewer === "admin"
+    ? (edit ? "সংরক্ষণ করুন" : `${KIND_LABEL[kind]} যোগ করুন`)
+    : (edit ? "সংরক্ষণ করে আবার জমা দিন" : "বায়োডাটা জমা দিন");
   return (
-    <ActionForm action={edit ? updateProfileAction : createProfileAction} submitLabel={edit ? "সংরক্ষণ করুন" : `${KIND_LABEL[kind]} যোগ করুন`}>
+    <ActionForm action={edit ? ACTIONS[viewer].update : ACTIONS[viewer].create} submitLabel={submit}>
       {(echo) => {
         const v = { ...base, ...echo };
         return (
@@ -24,7 +36,8 @@ export function ProfileForm({ kind, profile, minYear, maxYear }: { kind: Profile
             {profile ? <Hidden name="id" value={profile.id} /> : null}
 
             <Section title="পরিচয়">
-              <Field name="name" label={`${KIND_OF[kind]} নাম`} required defaultValue={v.name} autoComplete="off" />
+              <Field name="name" label={`${KIND_OF[kind]} নাম`} required defaultValue={v.name} autoComplete="off"
+                hint={viewer === "customer" ? "নাম শুধু ঘটক দেখবেন; তালিকায় শুধু বায়োডাটা নম্বর যায়।" : undefined} />
               <Field name="fatherName" label="বাবার নাম" defaultValue={v.fatherName} />
               <Field name="motherName" label="মায়ের নাম" defaultValue={v.motherName} />
               <div className="grid grid-cols-2 gap-3">
@@ -41,7 +54,8 @@ export function ProfileForm({ kind, profile, minYear, maxYear }: { kind: Profile
             <Section title="শিক্ষা ও পেশা">
               <Field name="education" label="শিক্ষাগত যোগ্যতা" placeholder="যেমন এইচএসসি, অনার্স" defaultValue={v.education} />
               <Field name="profession" label="পেশা" placeholder="যেমন কৃষি, চাকরি, ব্যবসা" defaultValue={v.profession} />
-              <Field name="monthlyIncome" label="মাসিক আয় (টাকা)" type="number" inputMode="numeric" min="0" defaultValue={v.monthlyIncome} />
+              <Field name="monthlyIncome" label="মাসিক আয় (টাকা)" type="number" inputMode="numeric" min="0" defaultValue={v.monthlyIncome}
+                hint={viewer === "customer" ? "অন্য পরিবার দেখবে না, শুধু ঘটক।" : undefined} />
             </Section>
 
             <Section title="ঠিকানা">
@@ -54,14 +68,16 @@ export function ProfileForm({ kind, profile, minYear, maxYear }: { kind: Profile
 
             <Section title="অভিভাবক">
               <Field name="guardianName" label="অভিভাবকের নাম" defaultValue={v.guardianName} />
-              <Field name="guardianPhone" label="অভিভাবকের মোবাইল" type="tel" inputMode="tel" placeholder="01XXXXXXXXX" defaultValue={v.guardianPhone} />
+              <Field name="guardianPhone" label="অভিভাবকের মোবাইল" type="tel" inputMode="tel" placeholder="01XXXXXXXXX" defaultValue={v.guardianPhone}
+                hint={viewer === "customer" ? "ঘটক এই নম্বরে কথা বলবেন; অন্য কেউ দেখবে না।" : undefined} />
               <TextArea name="familyDetails" label="পরিবারের বিবরণ" placeholder="ভাইবোন, জমিজমা, পারিবারিক অবস্থা…" defaultValue={v.familyDetails} />
             </Section>
 
             <Section title="অন্যান্য">
               <TextArea name="expectations" label="কেমন পাত্র/পাত্রী চান" placeholder="পরিবারের চাওয়া: শিক্ষা, এলাকা, পেশা…" defaultValue={v.expectations} />
-              <Field name="photoUrl" label="ছবির লিংক" type="url" inputMode="url" placeholder="https://…" defaultValue={v.photoUrl} hint="আপাতত ছবির লিংক বসান; সরাসরি আপলোড পরে আসবে।" />
-              <TextArea name="notes" label="ঘটকের নোট" placeholder="শুধু আপনি দেখবেন" defaultValue={v.notes} />
+              <Field name="photoUrl" label="ছবির লিংক" type="url" inputMode="url" placeholder="https://…" defaultValue={v.photoUrl}
+                hint={viewer === "customer" ? "ছবি শুধু ঘটক দেখবেন। আপাতত লিংক বসান; সরাসরি আপলোড পরে আসবে।" : "আপাতত ছবির লিংক বসান; সরাসরি আপলোড পরে আসবে।"} />
+              {viewer === "admin" ? <TextArea name="notes" label="ঘটকের নোট" placeholder="শুধু আপনি দেখবেন" defaultValue={v.notes} /> : null}
             </Section>
           </>
         );

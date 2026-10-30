@@ -48,6 +48,12 @@ export const site = pgTable("site", {
 
 export type ProfileKind = "patro" | "patri";
 export type ProfileStatus = "active" | "engaged" | "married" | "inactive";
+/**
+ * Whether the ghotok has put this biodata in the lists. The ghotok's own entries are "approved" from the start; one a
+ * family hands in waits as "pending", and is "returned" with a note when the ghotok wants it changed. Only approved
+ * people are listed, counted, matched or proposed.
+ */
+export type Approval = "pending" | "approved" | "returned";
 export type Religion = "islam" | "hindu" | "christian" | "buddhist" | "other";
 export type MaritalStatus = "obibahito" | "talakprapto" | "bidhoba";
 
@@ -80,11 +86,19 @@ export const profile = pgTable("profile", {
   /** what kind of match the family is looking for */
   expectations: text("expectations"),
   photoUrl: text("photo_url"),
+  /** the ghotok's private notes; a family never sees or edits these */
   notes: text("notes"),
   status: text("status").$type<ProfileStatus>().notNull().default("active"),
+  /** the family account that wrote this biodata; null when the ghotok did */
+  ownerUserId: text("owner_user_id").references(() => user.id, { onDelete: "set null" }),
+  approval: text("approval").$type<Approval>().notNull().default("approved"),
+  /** what the ghotok asked the family to change, shown to them while the biodata is "returned" */
+  returnNote: text("return_note"),
   ...timestamps,
 }, (t) => [
   index("profile_ghotok_kind_status").on(t.ghotokId, t.kind, t.status),
+  index("profile_ghotok_approval").on(t.ghotokId, t.approval),
+  index("profile_owner").on(t.ownerUserId),
   uniqueIndex("profile_ghotok_kind_code").on(t.ghotokId, t.kind, t.code),
 ]).enableRLS();
 

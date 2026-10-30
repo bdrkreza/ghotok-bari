@@ -36,6 +36,12 @@ const go = async (tab, path) => {
   await tab.goto(`${base}${path}`);
   await settle(tab);
 };
+const follow = async (tab, link, pattern) => {
+  await link.click();
+  await tab.waitForURL(pattern);
+  await settle(tab);
+  return new URL(tab.url()).pathname;
+};
 
 let n = 0;
 const shot = async (tab, name, number = String(++n).padStart(2, "0")) => {
@@ -102,10 +108,7 @@ await shot(page, "dashboard");
 await go(page, "/patro");
 await shot(page, "patro-list");
 
-await page.getByRole("link", { name: /হাসান মাহমুদ/ }).click();
-await page.waitForURL(/\/profiles\/[0-9a-f-]+$/);
-await settle(page);
-const hasanPath = new URL(page.url()).pathname;
+const hasanPath = await follow(page, page.getByRole("link", { name: /হাসান মাহমুদ/ }), /\/profiles\/[0-9a-f-]+$/);
 await shot(page, "profile-hasan");
 
 // switch on the public biodata link for this person (a second run finds it already on) and keep the path for later
@@ -115,18 +118,13 @@ await page.getByLabel("শেয়ার লিংক").waitFor({ timeout: 30_0
 const publicPath = new URL(await page.getByLabel("শেয়ার লিংক").inputValue()).pathname;
 
 await go(page, "/patri");
-await page.getByRole("link", { name: /নাজমা বেগম/ }).click();
-await page.waitForURL(/\/profiles\/[0-9a-f-]+$/);
-await settle(page);
+await follow(page, page.getByRole("link", { name: /নাজমা বেগম/ }), /\/profiles\/[0-9a-f-]+$/);
 await shot(page, "profile-nazma-suggestions");
 
 await go(page, "/proposals");
 await shot(page, "proposals");
 
-await page.getByRole("link", { name: /হাসান মাহমুদ ও ফাতেমা আক্তার/ }).click();
-await page.waitForURL(/\/proposals\/[0-9a-f-]+$/);
-await settle(page);
-const proposalPath = new URL(page.url()).pathname;
+const proposalPath = await follow(page, page.getByRole("link", { name: /হাসান মাহমুদ ও ফাতেমা আক্তার/ }), /\/proposals\/[0-9a-f-]+$/);
 await shot(page, "proposal-detail");
 
 await go(page, "/hisab");
@@ -137,6 +135,12 @@ await shot(page, "new-patri-form");
 
 await go(page, "/proposals/new");
 await shot(page, "new-proposal");
+
+// the biodata a family handed in, waiting for the ghotok, and that person's page with the decision buttons
+await go(page, "/dashboard/approvals");
+await shot(page, "approvals");
+const pendingPath = await follow(page, page.getByRole("link", { name: /সুমাইয়া আক্তার/ }), /\/profiles\/[0-9a-f-]+$/);
+await shot(page, "profile-pending");
 
 await go(page, "/dashboard/customers");
 await shot(page, "customers");
@@ -158,6 +162,8 @@ await webShot(web, "/patro", "patro-list");
 await webShot(web, hasanPath, "profile-hasan");
 await webShot(web, proposalPath, "proposal-detail");
 await webShot(web, "/hisab", "hisab");
+await webShot(web, "/dashboard/approvals", "approvals");
+await webShot(web, pendingPath, "profile-pending");
 await webShot(web, "/dashboard/customers", "customers");
 await webShot(web, "/settings", "settings");
 
@@ -167,14 +173,24 @@ await webShot(web, "/dashboard", "dashboard-dark");
 await web.emulateMedia({ colorScheme: "light" });
 await webShot(web, publicPath, "public-biodata");
 
-// A family's own page: a separate sign-in as a demo customer, phone and web.
+// A family's side: a separate sign-in as the demo customer whose biodata is still waiting, phone and web.
 const customer = watch(await (await browser.newContext(PHONE)).newPage());
 await signIn(customer, "01700000002", "alta1234", "/me");
 await customer.addStyleTag({ content: CAPTURE_CSS });
 await shot(customer, "customer-home");
-const customerWeb = await (await browser.newContext(WIDE)).newPage();
-await signIn(customerWeb, "01700000002", "alta1234", "/me");
+await go(customer, "/me/biodata/new?kind=patri");
+await shot(customer, "customer-new-biodata");
+await go(customer, "/patri");
+await shot(customer, "customer-patri-list");
+const seenPath = await follow(customer, customer.getByRole("link", { name: /বায়োডাটা দেখুন/ }).first(), /\/biodata\/[0-9a-f-]+$/);
+await shot(customer, "customer-biodata");
+await go(customer, "/me");
+await follow(customer, customer.getByRole("link", { name: /সুমাইয়া আক্তার/ }), /\/me\/biodata\/[0-9a-f-]+$/);
+await shot(customer, "customer-my-biodata");
+const customerWeb = await (await browser.newContext({ ...WIDE, storageState: await customer.context().storageState() })).newPage();
 await webShot(customerWeb, "/me", "customer-home");
+await webShot(customerWeb, "/patri", "customer-patri-list");
+await webShot(customerWeb, seenPath, "customer-biodata");
 
 await browser.close();
 

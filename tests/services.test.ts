@@ -10,7 +10,8 @@ import { dashboard } from "@/lib/services/dashboard";
 import { addEntry, listEntries, totals } from "@/lib/services/ledger";
 import { suggestFor } from "@/lib/services/match";
 import { listHref, parseAge } from "@/lib/search";
-import { createProfile, getProfile, listProfiles, places, updateProfile } from "@/lib/services/profiles";
+import { activeCounts, createProfile, getProfile, listProfiles, pendingCount, places, setApproval, submittedProfiles, updateProfile } from "@/lib/services/profiles";
+import { browseBiodata, browseOne, deleteMyBiodata, getMyBiodata, myBiodata, submitBiodata, updateMyBiodata } from "@/lib/services/biodata";
 import { addNote, changeStatus, createProposal, getProposal, listProposals, proposalsFor } from "@/lib/services/proposals";
 import { getShare, publicBiodata, shareBiodata, unshareBiodata } from "@/lib/services/share";
 import { currentYear } from "@/lib/time";
@@ -316,5 +317,68 @@ describe("the site and its roles", () => {
     expect(await code(setRole(app.db, helper, ghotok.id, "customer"))).toBe("owner_role");
     await setRole(app.db, owner, other.id, "customer");
     expect(await roleOf(app.db, other.id)).toBe("customer");
+  });
+});
+
+describe("biodata handed in by families", () => {
+  let family: { id: string; phone: string }, stranger: { id: string }, id: string;
+
+  beforeAll(async () => {
+    family = await app.makeUser("রহিমা বেগম");
+    stranger = await app.makeUser("অন্য পরিবার");
+  });
+
+  it("waits as pending: unlisted, uncounted, unmatched, not shareable, not proposable", async () => {
+    id = await submitBiodata(app.db, ghotok.id, family.id, personForm({ kind: "patri", name: "সুমাইয়া", birthYear: "2003", district: "ঢাকা", upazila: "সাভার", notes: "পরিবার লিখতে পারে না" }));
+    const p = await getMyBiodata(app.db, ghotok.id, family.id, id);
+    expect(p).toMatchObject({ approval: "pending", ownerUserId: family.id, notes: null, code: expect.any(Number) });
+    expect(await code(getMyBiodata(app.db, ghotok.id, stranger.id, id))).toBe("not_found");
+
+    expect((await listProfiles(app.db, ghotok.id, { kind: "patri" })).map((r) => r.id)).not.toContain(id);
+    expect((await listProfiles(app.db, ghotok.id, { kind: "patri", approval: "all" })).map((r) => r.id)).toContain(id);
+    const before = await activeCounts(app.db, ghotok.id);
+    expect((await browseBiodata(app.db, ghotok.id, { kind: "patri" })).map((r) => r.id)).not.toContain(id);
+    expect(await browseOne(app.db, ghotok.id, id)).toBeNull();
+    const patro = await createProfile(app.db, ghotok.id, personForm({ kind: "patro", name: "কোনো পাত্র" }));
+    expect(await code(createProposal(app.db, ghotok.id, { patroId: patro, patriId: id, note: "" }))).toBe("not_approved");
+    const token = await shareBiodata(app.db, ghotok.id, id);
+    expect(await publicBiodata(app.db, token)).toBeNull();
+
+    const waiting = await submittedProfiles(app.db, ghotok.id, "pending");
+    expect(waiting.map((w) => w.profile.id)).toContain(id);
+    expect(waiting.find((w) => w.profile.id === id)?.owner).toEqual({ name: "রহিমা বেগম", phone: family.phone });
+    expect(await pendingCount(app.db, ghotok.id)).toBeGreaterThanOrEqual(1);
+    expect(before.patri).toBe((await activeCounts(app.db, ghotok.id)).patri);
+  });
+
+  it("is listed once approved, shown to families without names or contacts, and goes back to pending when they edit it", async () => {
+    await updateProfile(app.db, ghotok.id, id, { ...personForm({ kind: "patri", name: "সুমাইয়া", birthYear: "2003", district: "ঢাকা", upazila: "সাভার", guardianPhone: "01811111111" }), notes: "ঘটকের গোপন নোট" });
+    await setApproval(app.db, ghotok.id, id, "approved");
+    expect((await getProfile(app.db, ghotok.id, id)).approval).toBe("approved");
+    expect((await listProfiles(app.db, ghotok.id, { kind: "patri" })).map((r) => r.id)).toContain(id);
+
+    const rows = await browseBiodata(app.db, ghotok.id, { kind: "patri", q: "সাভার" });
+    const shown = rows.find((r) => r.id === id)!;
+    expect(shown).toMatchObject({ kind: "patri", district: "ঢাকা", upazila: "সাভার" });
+    const text = JSON.stringify([shown, await browseOne(app.db, ghotok.id, id)]);
+    for (const secret of ["সুমাইয়া", "01811111111", "করিম উদ্দিন", "চরপাড়া", "গোপন নোট", family.id]) expect(text).not.toContain(secret);
+    expect((await browseBiodata(app.db, ghotok.id, { kind: "patri", q: "সুমাইয়া" })).map((r) => r.id)).not.toContain(id); // names are not searchable
+    expect(await code(deleteMyBiodata(app.db, ghotok.id, family.id, id))).toBe("ask_ghotok");
+
+    await updateMyBiodata(app.db, ghotok.id, family.id, id, personForm({ kind: "patri", name: "সুমাইয়া আক্তার", birthYear: "2003", district: "ঢাকা", upazila: "সাভার", notes: "মুছে দেওয়ার চেষ্টা" }));
+    const again = await getProfile(app.db, ghotok.id, id);
+    expect(again).toMatchObject({ approval: "pending", name: "সুমাইয়া আক্তার", notes: "ঘটকের গোপন নোট", returnNote: null });
+    expect(await code(updateMyBiodata(app.db, ghotok.id, stranger.id, id, personForm()))).toBe("not_found");
+  });
+
+  it("can be returned with a note, and then taken back by the family", async () => {
+    await setApproval(app.db, ghotok.id, id, "returned", " জন্ম সাল ঠিক করুন ");
+    expect(await getProfile(app.db, ghotok.id, id)).toMatchObject({ approval: "returned", returnNote: "জন্ম সাল ঠিক করুন" });
+    expect((await submittedProfiles(app.db, ghotok.id, "returned")).map((w) => w.profile.id)).toContain(id);
+    expect((await myBiodata(app.db, ghotok.id, family.id)).map((b) => b.id)).toEqual([id]);
+    expect(await code(deleteMyBiodata(app.db, ghotok.id, stranger.id, id))).toBe("not_found");
+    await deleteMyBiodata(app.db, ghotok.id, family.id, id);
+    expect(await myBiodata(app.db, ghotok.id, family.id)).toEqual([]);
+    expect(await code(setApproval(app.db, ghotok.id, id, "approved"))).toBe("not_found");
   });
 });

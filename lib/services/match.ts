@@ -30,12 +30,13 @@ export function scorePair(patro: Profile, patri: Profile): { score: number; reas
   return { score, reasons };
 }
 
-/** Up to `limit` active people of the other kind, best first, leaving out pairs already proposed. */
+/** Up to `limit` listed, active people of the other kind, best first, leaving out pairs already proposed. */
 export async function suggestFor(db: Db, ghotokId: string, person: Profile, limit = 5): Promise<Suggestion[]> {
   const otherKind = person.kind === "patro" ? "patri" : "patro";
   const [candidates, existing] = await Promise.all([
     db.select().from(profile).where(and(
-      eq(profile.ghotokId, ghotokId), eq(profile.kind, otherKind), eq(profile.status, "active"), eq(profile.religion, person.religion),
+      eq(profile.ghotokId, ghotokId), eq(profile.kind, otherKind), eq(profile.status, "active"), eq(profile.approval, "approved"),
+      eq(profile.religion, person.religion),
     )),
     db.select({ patroId: proposal.patroId, patriId: proposal.patriId }).from(proposal)
       .where(and(eq(proposal.ghotokId, ghotokId), or(eq(proposal.patroId, person.id), eq(proposal.patriId, person.id)))),

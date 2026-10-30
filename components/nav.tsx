@@ -24,12 +24,17 @@ const GHOTOK_TABS: Tab[] = [
   { href: "/hisab", label: "হিসাব", icon: "wallet" },
 ];
 
-/** Only on the wide bar, where there is room: the accounts screen. */
-const GHOTOK_MORE: Tab[] = [{ href: "/dashboard/customers", label: "গ্রাহক", icon: "people" }];
+/** Only on the wide bar, where there is room: the biodata requests and the accounts screen. */
+const GHOTOK_MORE: Tab[] = [
+  { href: "/dashboard/approvals", label: "অনুরোধ", icon: "note" },
+  { href: "/dashboard/customers", label: "গ্রাহক", icon: "people" },
+];
 
-/** A family's screens; the biodata lists join these once families can see them. */
+/** A family's screens. */
 const CUSTOMER_TABS: Tab[] = [
   { href: "/me", label: "হোম", icon: "home" },
+  { href: "/patro", label: "পাত্র", icon: "groom" },
+  { href: "/patri", label: "পাত্রী", icon: "bride" },
   { href: "/settings", label: "সেটিংস", icon: "settings" },
 ];
 

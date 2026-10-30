@@ -1,7 +1,7 @@
 import { and, count, desc, eq, gte, ilike, lte, or, sql, type SQL } from "drizzle-orm";
 import { z } from "zod";
 import type { Db } from "../db";
-import { profile, type MaritalStatus, type Profile, type ProfileKind, type ProfileStatus, type Religion } from "../db/schema";
+import { profile, user, type Approval, type MaritalStatus, type Profile, type ProfileKind, type ProfileStatus, type Religion } from "../db/schema";
 import { AppError } from "../errors";
 import { normalizePhone } from "../auth/phone";
 import type { Place } from "../search";
@@ -62,14 +62,19 @@ export function parseProfile(raw: Record<string, string>) {
   return data;
 }
 
-export async function createProfile(db: Db, ghotokId: string, raw: Record<string, string>): Promise<string> {
+/**
+ * Add a person. Written by the ghotok it is in the lists at once; written by a family (`ownerUserId`) it waits for
+ * the ghotok's approval (lib/services/biodata.ts). The biodata number is handed out either way, so families can
+ * quote it when they call.
+ */
+export async function createProfile(db: Db, ghotokId: string, raw: Record<string, string>, ownerUserId?: string): Promise<string> {
   const data = parseProfile(raw);
   const id = crypto.randomUUID();
-  // the next biodata number for this ghotok and kind. A ghotok adds people one at a time; should two inserts ever
+  // the next biodata number for this ghotok and kind. People are added one at a time; should two inserts ever
   // race, the unique index (ghotok, kind, code) makes one fail instead of handing out the same number twice.
   const [{ next }] = await db.select({ next: sql<number>`coalesce(max(${profile.code}), 0)::int + 1` }).from(profile)
     .where(and(eq(profile.ghotokId, ghotokId), eq(profile.kind, data.kind)));
-  await db.insert(profile).values({ id, ghotokId, code: next, ...data });
+  await db.insert(profile).values({ id, ghotokId, code: next, ...data, ...(ownerUserId ? { ownerUserId, approval: "pending" as const } : {}) });
   return id;
 }
 
@@ -118,10 +123,17 @@ export interface ProfileFilter {
   heightMin?: number;
   heightMax?: number;
   incomeMin?: number;
+  /** which biodata to include; the lists show only approved ones unless told otherwise */
+  approval?: Approval | "all";
+  /** match `q` against upazila and district only (what a family is shown), never the name or village */
+  placesOnly?: boolean;
 }
 
-export async function listProfiles(db: Db, ghotokId: string, filter: ProfileFilter): Promise<Profile[]> {
+/** The WHERE of a list, shared by the ghotok's full rows and the family's view (lib/services/biodata.ts). */
+export function profileWhere(ghotokId: string, filter: ProfileFilter): SQL | undefined {
   const where: SQL[] = [eq(profile.ghotokId, ghotokId), eq(profile.kind, filter.kind)];
+  const approval = filter.approval ?? "approved";
+  if (approval !== "all") where.push(eq(profile.approval, approval));
   if (filter.status && filter.status !== "all") where.push(eq(profile.status, filter.status));
   if (filter.code !== undefined) where.push(eq(profile.code, filter.code));
   // an age band becomes birth-year bounds: someone aged 25 this year was born in (year - 25)
@@ -139,25 +151,65 @@ export async function listProfiles(db: Db, ghotokId: string, filter: ProfileFilt
   if (filter.incomeMin !== undefined) where.push(gte(profile.monthlyIncome, filter.incomeMin));
   if (filter.q) {
     const like = `%${filter.q}%`;
-    const match = or(ilike(profile.name, like), ilike(profile.village, like), ilike(profile.upazila, like), ilike(profile.district, like));
+    const match = filter.placesOnly
+      ? or(ilike(profile.upazila, like), ilike(profile.district, like))
+      : or(ilike(profile.name, like), ilike(profile.village, like), ilike(profile.upazila, like), ilike(profile.district, like));
     if (match) where.push(match);
   }
-  return db.select().from(profile).where(and(...where)).orderBy(desc(profile.updatedAt));
+  return and(...where);
 }
+
+export async function listProfiles(db: Db, ghotokId: string, filter: ProfileFilter): Promise<Profile[]> {
+  return db.select().from(profile).where(profileWhere(ghotokId, filter)).orderBy(desc(profile.updatedAt));
+}
+
+const listed = (ghotokId: string) => and(eq(profile.ghotokId, ghotokId), eq(profile.approval, "approved"));
 
 /** Just enough for a <select> of people to pair up. */
 export async function activeProfiles(db: Db, ghotokId: string, kind: ProfileKind) {
   return db.select({ id: profile.id, name: profile.name, district: profile.district, birthYear: profile.birthYear })
     .from(profile)
-    .where(and(eq(profile.ghotokId, ghotokId), eq(profile.kind, kind), eq(profile.status, "active")))
+    .where(and(listed(ghotokId), eq(profile.kind, kind), eq(profile.status, "active")))
     .orderBy(profile.name);
 }
 
 /** How many patro and patri are still looking, for the dashboard and the front page. */
 export async function activeCounts(db: Db, ghotokId: string): Promise<{ patro: number; patri: number }> {
   const rows = await db.select({ kind: profile.kind, n: count() }).from(profile)
-    .where(and(eq(profile.ghotokId, ghotokId), eq(profile.status, "active"))).groupBy(profile.kind);
+    .where(and(listed(ghotokId), eq(profile.status, "active"))).groupBy(profile.kind);
   return { patro: rows.find((r) => r.kind === "patro")?.n ?? 0, patri: rows.find((r) => r.kind === "patri")?.n ?? 0 };
+}
+
+/* ---------- biodata handed in by families ---------- */
+
+/** Biodata families handed in that wait for the ghotok ("pending"), or were sent back ("returned"); newest first, with who wrote each. */
+export async function submittedProfiles(db: Db, ghotokId: string, approval: "pending" | "returned") {
+  return db.select({ profile, owner: { name: user.name, phone: user.username } }).from(profile)
+    .leftJoin(user, eq(user.id, profile.ownerUserId))
+    .where(and(eq(profile.ghotokId, ghotokId), eq(profile.approval, approval)))
+    .orderBy(desc(profile.updatedAt));
+}
+
+export type SubmittedRow = Awaited<ReturnType<typeof submittedProfiles>>[number];
+
+/** How many biodata wait for the ghotok's decision. */
+export async function pendingCount(db: Db, ghotokId: string): Promise<number> {
+  const [row] = await db.select({ n: count() }).from(profile).where(and(eq(profile.ghotokId, ghotokId), eq(profile.approval, "pending")));
+  return row?.n ?? 0;
+}
+
+/** The family account behind a biodata, for the ghotok's screen; null when the ghotok wrote it. */
+export async function profileOwner(db: Db, ghotokId: string, p: Profile): Promise<{ name: string; phone: string } | null> {
+  if (!p.ownerUserId || p.ghotokId !== ghotokId) return null;
+  const [row] = await db.select({ name: user.name, phone: user.username }).from(user).where(eq(user.id, p.ownerUserId));
+  return row ? { name: row.name, phone: row.phone ?? "" } : null;
+}
+
+/** The ghotok's decision on a biodata: approving puts it in the lists, returning hands it back to the family with a note. */
+export async function setApproval(db: Db, ghotokId: string, id: string, decision: "approved" | "returned", note = ""): Promise<void> {
+  await getProfile(db, ghotokId, id);
+  const change = decision === "approved" ? { approval: "approved" as const, returnNote: null } : { approval: "returned" as const, returnNote: note.trim() || null };
+  await db.update(profile).set(change).where(and(eq(profile.id, id), eq(profile.ghotokId, ghotokId)));
 }
 
 /** Every district and upazila this ghotok has written on someone, as choices for the search bar. */
@@ -166,10 +218,10 @@ export async function places(db: Db, ghotokId: string): Promise<Place[]> {
     .where(eq(profile.ghotokId, ghotokId)).orderBy(profile.district, profile.upazila);
 }
 
-/** The people added or edited most recently, both kinds together, for the dashboard. */
+/** The listed people added or edited most recently, both kinds together, for the dashboard. */
 export async function recentProfiles(db: Db, ghotokId: string, limit = 6) {
   return db.select({ id: profile.id, code: profile.code, kind: profile.kind, name: profile.name, district: profile.district, photoUrl: profile.photoUrl, status: profile.status })
-    .from(profile).where(eq(profile.ghotokId, ghotokId)).orderBy(desc(profile.updatedAt)).limit(limit);
+    .from(profile).where(listed(ghotokId)).orderBy(desc(profile.updatedAt)).limit(limit);
 }
 
 export type RecentProfile = Awaited<ReturnType<typeof recentProfiles>>[number];

@@ -17,6 +17,9 @@ Read README.md for the screens, roles, data model and setup.
   `lib/services/share.ts` (the share token is the credential); `getSite(db)` / `publicSite(db)` in
   `lib/services/site.ts` (the one site row says who the ghotok is); and `lib/services/customers.ts`, which reads the
   user table for admins, every function there calling `assertAdmin` first.
+- A family's own biodata goes through `lib/services/biodata.ts`, scoped to `(db, ghotokId, ownerUserId, ...)`. What a
+  family sees of anyone else is selected through `FAMILY_VIEW` in `lib/services/share.ts` and nothing more; only
+  `approval = "approved"` rows are listed, counted, matched, proposed or shared (`profileWhere` defaults to that).
 - Expected failures throw `AppError(code)` (`lib/errors.ts`); `attempt()` in `lib/form.ts` turns them into a Bangla
   message for the form. Raw error text never reaches the user.
 - Server actions take `(prev: FormState, form: FormData)` and are used through `ActionForm` in `components/form.tsx`.

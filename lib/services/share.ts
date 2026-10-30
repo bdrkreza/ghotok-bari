@@ -32,7 +32,18 @@ export async function unshareBiodata(db: Db, ghotokId: string, profileId: string
   await db.delete(biodataShare).where(and(eq(biodataShare.profileId, profileId), eq(biodataShare.ghotokId, ghotokId)));
 }
 
-/** What a family sees. Left out on purpose: name, photo, parents, guardian, village, income, the ghotok's notes. */
+/**
+ * The columns a family may see of someone else's biodata, decided here once and used by the public link and by the
+ * signed-in lists (lib/services/biodata.ts). Left out on purpose: name, photo, parents, guardian, village, income,
+ * the ghotok's notes, and who handed the biodata in.
+ */
+export const FAMILY_VIEW = {
+  code: profile.code, kind: profile.kind, birthYear: profile.birthYear, heightCm: profile.heightCm, religion: profile.religion,
+  maritalStatus: profile.maritalStatus, education: profile.education, profession: profile.profession, upazila: profile.upazila,
+  district: profile.district, familyDetails: profile.familyDetails, expectations: profile.expectations, status: profile.status,
+};
+
+/** What a family sees from a shared link. */
 export interface PublicBiodata {
   code: number;
   kind: ProfileKind;
@@ -53,21 +64,16 @@ export interface PublicBiodata {
 
 /**
  * The one read in lib/services that is not scoped to a signed-in ghotok: the token is the credential.
- * Null for an unknown or switched-off token, so the page shows the usual 404.
+ * Null for an unknown or switched-off token, or a biodata the ghotok has not approved, so the page shows the usual 404.
  */
 export async function publicBiodata(db: Db, token: string): Promise<PublicBiodata | null> {
   if (!/^[A-Za-z0-9_-]{8,64}$/.test(token)) return null;
   const rows = await db
-    .select({
-      code: profile.code, kind: profile.kind, birthYear: profile.birthYear, heightCm: profile.heightCm, religion: profile.religion,
-      maritalStatus: profile.maritalStatus, education: profile.education, profession: profile.profession, upazila: profile.upazila,
-      district: profile.district, familyDetails: profile.familyDetails, expectations: profile.expectations, status: profile.status,
-      ghotokName: user.name, ghotokPhone: user.username,
-    })
+    .select({ ...FAMILY_VIEW, ghotokName: user.name, ghotokPhone: user.username })
     .from(biodataShare)
     .innerJoin(profile, eq(profile.id, biodataShare.profileId))
     .innerJoin(user, eq(user.id, biodataShare.ghotokId))
-    .where(eq(biodataShare.token, token))
+    .where(and(eq(biodataShare.token, token), eq(profile.approval, "approved")))
     .limit(1);
   const r = rows[0];
   if (!r) return null;

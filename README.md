@@ -1,16 +1,17 @@
 # আলতা (Alta)
 
 A village ghotok's own website. One deployment is one matchmaker's site: families open an account with their
-phone number to look at biodata and, soon, hand in their own; the ghotok runs everything from a dashboard: the
-people they are finding matches for, every proposal and how far the talks have gone, and the money agreed,
-received and spent.
+phone number, look at biodata and hand in their own; the ghotok runs everything from a dashboard: the people they
+are finding matches for, every proposal and how far the talks have gone, and the money agreed, received and spent.
 
 Everyone signs in with a phone number and password. There are two roles. A **customer** (any family that registers)
-sees their own page at `/me`. An **admin** sees the ghotok's side: dashboard, people, proposals, ledger and the list
-of accounts. The ghotok becomes the site's owner and first admin on the one-time `/setup` screen, and can make helpers
-admins from `/dashboard/customers`; the owner can never be demoted. `ADMIN_PHONES` in the environment is a back door
-for the developer, not something the ghotok needs. One codebase serves both a **website** (a top-bar layout on a
-computer) and a **phone app** (installed from the browser onto the home screen); see [Web and mobile](#web-and-mobile).
+has their own page at `/me`, writes biodata there and browses `/patro` and `/patri` with names, photos and contacts
+hidden. An **admin** sees the ghotok's side: dashboard, people, proposals, ledger, the biodata families handed in,
+and the list of accounts. The ghotok becomes the site's owner and first admin on the one-time `/setup` screen, and
+can make helpers admins from `/dashboard/customers`; the owner can never be demoted. `ADMIN_PHONES` in the environment
+is a back door for the developer, not something the ghotok needs. One codebase serves both a **website** (a top-bar
+layout on a computer) and a **phone app** (installed from the browser onto the home screen); see
+[Web and mobile](#web-and-mobile).
 
 ## Screens
 
@@ -19,15 +20,18 @@ computer) and a **phone app** (installed from the browser onto the home screen);
 | `/setup` | first run | Shown while the site has no owner: the ghotok's name, number and password, plus the site's name, address and WhatsApp. Creates the account, the site and the dashboard in one go |
 | `/` | anyone | The front page: the site's name and tagline, the ghotok's words, how many patro/patri are looking, how it works, call and WhatsApp buttons. Signed-in people are sent to their own screen |
 | `/login`, `/register` | anyone | Sign in, or open a family's account (always a customer); on a computer the brand panel sits beside the form |
-| `/me` | customer | The family's page: their biodata (writing one comes next), how the site works, the ghotok's contact |
-| `/dashboard` | admin | Greeting, a search bar into the lists, how many patro/patri are looking, live proposals, money at a glance, recent people |
+| `/me` | customer | The family's page: the biodata they handed in and where each stands (অপেক্ষমাণ / তালিকায় আছে / ফেরত দেওয়া, with the ghotok's note), how the site works, the ghotok's contact |
+| `/me/biodata/new`, `/me/biodata/[id]`, `/me/biodata/[id]/edit` | customer | Write a biodata (the ghotok's form without the private notes), see one's own in full with its approval state, change it (which sends it back for approval), take it back while unlisted |
+| `/patro`, `/patri` | both | Biodata cards with a filter column: status (ghotok only), age, place, religion, marital status, education, profession, height, income (ghotok only). A family sees approved people still looking, by biodata number, no name or photo, and may search places but not names |
+| `/biodata/[id]` | customer | One approved biodata as a family sees it: the same fields as the public link, plus the ghotok's call and WhatsApp buttons to ask about that number |
+| `/dashboard` | admin | Greeting, a search bar into the lists, how many patro/patri are looking, a notice when biodata wait for approval, live proposals, money at a glance, recent people |
+| `/dashboard/approvals` | admin | Biodata families handed in: waiting (অপেক্ষমাণ) and sent back (ফেরত দেওয়া), with who wrote each; opens the person's page |
 | `/dashboard/customers` | admin | Every account: name, number, joined and last seen, role; make a helper an admin or take it back |
-| `/patro`, `/patri` | admin | Biodata cards of grooms and brides, with a filter column: status, age, place, religion, marital status, education, profession, height, income |
-| `/profiles/new?kind=patro` | admin | Add a person (name, age, education, address, guardian, family, expectations) |
-| `/profiles/[id]` | admin | One person: details, their proposals, suggested matches, status, public share link, delete |
+| `/profiles/new?kind=patro` | admin | Add a person (name, age, education, address, guardian, family, expectations); listed at once |
+| `/profiles/[id]` | admin | One person: details, their proposals, suggested matches, status, public share link, delete. For a family's biodata: who handed it in, and the buttons to list it or return it with a note |
 | `/b/[token]` | anyone with the link | Public biodata a ghotok chose to share: biodata number, age, height, religion, marital status, education, profession, upazila and district, family, expectations, and the ghotok's number; no name, photo, parents, guardian phone, village, income or notes |
 | `/proposals` | admin | Every proposal, filtered by stage |
-| `/proposals/new` | admin | Pair one patro with one patri |
+| `/proposals/new` | admin | Pair one patro with one patri (listed people only) |
 | `/proposals/[id]` | admin | Stage changes with a timeline, notes, and the money for this match |
 | `/hisab` | admin | Ledger: agreed fees (চুক্তি), payments received (জমা), own expenses (খরচ) |
 | `/settings` | both | Account and role, install on the phone, light or dark theme, sign out |
@@ -38,24 +42,31 @@ When a proposal reaches বিয়ে ঠিক both people become "engaged"; 
 
 Minimum ages are enforced when a person is added: patro 21, patri 18.
 
+### How a family's biodata moves
+
+A biodata a family writes is **pending** until the ghotok decides: it has a biodata number but is not in the
+lists, not counted, not matched and cannot be proposed. **Approved**, it is a person like any the ghotok added, and
+the ghotok's own notes field stays theirs. **Returned**, the family sees the ghotok's note on `/me` and can fix and
+resubmit. Any change a family makes afterwards puts it back to pending. A family may delete a biodata only while it
+is unlisted; a listed one is removed by the ghotok. What families see of each other is decided in one place,
+`FAMILY_VIEW` in `lib/services/share.ts`, and is the same set of fields the public link shows.
+
 ### Coming next
 
-1. Families write and update their own biodata from `/me`; the ghotok approves it before it appears in the lists;
-   families browse `/patro` and `/patri` with names, photos and contact details hidden.
-2. "আগ্রহ জানান": a family marks interest in a biodata, the ghotok sees it in an inbox and turns it into a proposal;
-   the ghotok resets a family's forgotten password from the accounts list; the front page's words are edited from
-   the dashboard.
+"আগ্রহ জানান": a family marks interest in a biodata, the ghotok sees it in an inbox and turns it into a proposal;
+the ghotok resets a family's forgotten password from the accounts list; the front page's words are edited from the
+dashboard.
 
 ## Web and mobile
 
 The same pages render two layouts, chosen by screen width (Tailwind's `lg` breakpoint, 1024px):
 
 - **Phone and tablet**: one column, a slim top bar and a tab bar along the bottom with the role's everyday screens
-  (five for the ghotok, home and settings for a family). Open the site in Chrome on Android or Safari on iPhone and
-  go to **সেটিংস → ফোনে app হিসেবে রাখুন**: Chrome shows an install button, Safari gets the "Add to Home Screen" steps.
-  Installed, the site opens full-screen with its own icon and splash colour, long-pressing the icon offers
-  নতুন পাত্র / নতুন পাত্রী / হিসাব shortcuts, and losing the connection shows a Bangla "ইন্টারনেট নেই" page instead
-  of a browser error.
+  (dashboard, patro, patri, proposals and ledger for the ghotok; home, patro, patri and settings for a family). Open
+  the site in Chrome on Android or Safari on iPhone and go to **সেটিংস → ফোনে app হিসেবে রাখুন**: Chrome shows an
+  install button, Safari gets the "Add to Home Screen" steps. Installed, the site opens full-screen with its own icon
+  and splash colour, long-pressing the icon offers নতুন পাত্র / নতুন পাত্রী / হিসাব shortcuts, and losing the
+  connection shows a Bangla "ইন্টারনেট নেই" page instead of a browser error.
 - **Computer**: a bar across the top with the site's name, the role's screens and the signed-in name (which opens
   settings); a wider page; and two columns where there is room (dashboard, person, proposal, ledger, front page).
   Forms stay one narrow column. Edge and Chrome offer to install it as a desktop app from the address bar too.
@@ -83,13 +94,13 @@ Captures of every screen live in [docs/screens](docs/screens/) (`npm run screens
 running dev server): phone-sized, full-page captures numbered `01-…`, and laptop-width captures named `web-…`.
 `00-setup` is only captured on a fresh development database, where the setup screen still exists.
 
-| Front page | Dashboard | Person | Family's page |
+| Front page | Dashboard | Approvals | Family's page |
 |---|---|---|---|
-| ![Front page](docs/screens/01-front-page.png) | ![Dashboard](docs/screens/04-dashboard.png) | ![Person](docs/screens/06-profile-hasan.png) | ![Family](docs/screens/17-customer-home.png) |
+| ![Front page](docs/screens/01-front-page.png) | ![Dashboard](docs/screens/04-dashboard.png) | ![Approvals](docs/screens/13-approvals.png) | ![Family](docs/screens/19-customer-home.png) |
 
-| Web: front page | Web: dashboard | Web: accounts |
+| Web: front page | Web: dashboard | Web: a family's list |
 |---|---|---|
-| ![Web front page](docs/screens/web-01-front-page.png) | ![Web dashboard](docs/screens/web-04-dashboard.png) | ![Web accounts](docs/screens/web-09-customers.png) |
+| ![Web front page](docs/screens/web-01-front-page.png) | ![Web dashboard](docs/screens/web-04-dashboard.png) | ![Web family list](docs/screens/web-16-customer-patri-list.png) |
 
 ## Quick start (no database to set up)
 
@@ -101,13 +112,13 @@ npm run dev
 Without a `DATABASE_URL`, the app runs on an embedded Postgres (PGlite) stored in `./.data/alta-dev`; `npm run dev`
 applies the migrations to it first. Open http://localhost:3000: it lands on `/setup`. Either fill the form in as the
 ghotok, or press **ডেমো সাইট ও ডেটা তৈরি করে ঢুকুন** to get the demo site "করিম ঘটক ম্যারেজ মিডিয়া" with its ghotok
-(`01700000000` / `alta1234`), sample people, proposals and ledger entries, and two family accounts
-(`01700000002` and `01700000003`, password `alta1234`). The same button sits on the login page afterwards and only
-adds whatever is missing. Delete the `.data` folder to start over. After adding a migration,
-`node scripts/dev-db.mjs` applies it while `npm run dev` keeps running. `ALTA_DEV_DB_DIR` in `.env.local` moves the
-database to another folder: create it first with `ALTA_DEV_DB_DIR=./.data/alta-fresh node scripts/dev-db.mjs`, then
-set the variable, and the running server switches over. This mode is for local work only; production refuses to
-start without a database.
+(`01700000000` / `alta1234`), sample people, proposals and ledger entries, and two family accounts (password
+`alta1234`): `01700000002`, whose daughter's biodata is still waiting for the ghotok, and `01700000003`, whose son's
+is already listed. The same button sits on the login page afterwards and only adds whatever is missing. Delete the
+`.data` folder to start over. After adding a migration, `node scripts/dev-db.mjs` applies it while `npm run dev`
+keeps running. `ALTA_DEV_DB_DIR` in `.env.local` moves the database to another folder: create it first with
+`ALTA_DEV_DB_DIR=./.data/alta-fresh node scripts/dev-db.mjs`, then set the variable, and the running server switches
+over. This mode is for local work only; production refuses to start without a database.
 
 To try the installed-app behaviour locally, use a production build (`npm run build && npm start`): the service
 worker is not registered by the dev server. Installing needs HTTPS, except on `localhost`.
@@ -147,12 +158,12 @@ npm run dev
 
 ```
 app/            routes; (public) = the front page, (auth) = login, register and setup, offline = no-internet page
-app/(app)/      everything behind sign-in: (ghotok) = the admin side, (customer) = /me, settings = both roles
+app/(app)/      behind sign-in: (ghotok) = the admin side, (customer) = /me and /biodata, patro + patri + settings = both roles
 app/manifest.ts web app manifest for installing on a phone
-components/     UI building blocks and client-side forms; nav.tsx = tab bar + top bar per role, site.tsx = public pieces
+components/     UI building blocks and client-side forms; nav.tsx = tab bar + top bar per role, biodata.tsx = a family's view
 lib/db/         Drizzle connection and schema (site, profile, proposal, ledger; Better Auth's tables in auth-schema.ts)
 lib/auth/       Better Auth setup, roles, session helpers (requireAdmin / requireCustomer), login and setup actions
-lib/services/   all reads and writes, scoped to the site's ghotok, throwing AppError on expected failures
+lib/services/   all reads and writes, scoped to the site's ghotok (biodata.ts also to the family), throwing AppError
 lib/actions/    server actions: validate the form, call a service, redirect or return a Bangla message
 lib/bn.ts       Bangla numerals, money and status labels
 public/         home-screen icons and sw.js (the service worker)

@@ -47,6 +47,17 @@ export default async function HomePage() {
         <Stat icon="check" value={bn(d.fixed)} label="বিয়ে ঠিক / হয়েছে" href="/proposals?status=all" />
       </section>
 
+      {d.pending ? (
+        <Link href="/dashboard/approvals" className="flex items-center gap-4 rounded-2xl border border-warn-line bg-warn p-4 text-warn-ink">
+          <span aria-hidden className="grid size-11 shrink-0 place-items-center rounded-full bg-surface/70"><Icon name="note" size={22} /></span>
+          <span className="min-w-0 flex-1">
+            <span className="block font-bold">{bn(d.pending)}টি বায়োডাটা অনুমোদনের অপেক্ষায়</span>
+            <span className="block text-sm">পরিবার জমা দিয়েছে; দেখে তালিকায় তুলুন বা ফেরত দিন</span>
+          </span>
+          <Icon name="chevronRight" size={18} />
+        </Link>
+      ) : null}
+
       <div className="flex flex-col gap-5 lg:grid lg:grid-cols-[1fr_22rem] lg:items-start lg:gap-8">
         <section className="flex flex-col gap-4">
           <SectionHead eyebrow="চলমান প্রস্তাব" title="আলোচনায় থাকা জুটি" links={[{ href: "/proposals", label: "সব প্রস্তাব দেখুন" }]} />
@@ -99,14 +110,8 @@ export default async function HomePage() {
             </div>
             <Link href="/hisab" className={outlineButton}>পুরো হিসাব দেখুন →</Link>
           </div>
-          <div className="flex items-center gap-4 rounded-2xl border border-line bg-surface p-4">
-            <span aria-hidden className="grid size-11 shrink-0 place-items-center rounded-full bg-primary-soft text-primary"><Icon name="people" size={22} /></span>
-            <span className="min-w-0 flex-1">
-              <span className="block font-bold">গ্রাহক ও অ্যাডমিন</span>
-              <span className="block text-sm text-muted">সাইটে যারা অ্যাকাউন্ট খুলেছেন</span>
-            </span>
-            <Link href="/dashboard/customers" className="shrink-0 text-sm font-bold text-primary">দেখুন →</Link>
-          </div>
+          <LinkCard icon="note" title="বায়োডাটা অনুরোধ" text={d.pending ? `${bn(d.pending)}টি অপেক্ষায়` : "পরিবারের দেওয়া বায়োডাটা; এখন কিছু নেই"} href="/dashboard/approvals" />
+          <LinkCard icon="people" title="গ্রাহক ও অ্যাডমিন" text="সাইটে যারা অ্যাকাউন্ট খুলেছেন" href="/dashboard/customers" />
         </section>
       </div>
 
@@ -165,6 +170,20 @@ function Stat({ icon, value, label, href }: { icon: IconName; value: string; lab
         <span className="truncate text-sm text-muted">{label}</span>
       </span>
     </Link>
+  );
+}
+
+/** A row that opens one of the ghotok's secondary screens. */
+function LinkCard({ icon, title, text, href }: { icon: IconName; title: string; text: string; href: string }) {
+  return (
+    <div className="flex items-center gap-4 rounded-2xl border border-line bg-surface p-4">
+      <span aria-hidden className="grid size-11 shrink-0 place-items-center rounded-full bg-primary-soft text-primary"><Icon name={icon} size={22} /></span>
+      <span className="min-w-0 flex-1">
+        <span className="block font-bold">{title}</span>
+        <span className="block text-sm text-muted">{text}</span>
+      </span>
+      <Link href={href} className="shrink-0 text-sm font-bold text-primary">দেখুন →</Link>
+    </div>
   );
 }
 

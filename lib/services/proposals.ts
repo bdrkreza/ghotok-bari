@@ -23,6 +23,8 @@ export async function createProposal(db: Db, ghotokId: string, input: { patroId:
   if (!input.patroId || !input.patriId) throw new AppError("same_kind");
   const [patro, patri] = await Promise.all([getProfile(db, ghotokId, input.patroId), getProfile(db, ghotokId, input.patriId)]);
   if (patro.kind !== "patro" || patri.kind !== "patri") throw new AppError("same_kind");
+  // a biodata a family handed in is proposed only once the ghotok has approved it
+  if (patro.approval !== "approved" || patri.approval !== "approved") throw new AppError("not_approved");
   const existing = await db.query.proposal.findFirst({ where: and(eq(proposal.patroId, patro.id), eq(proposal.patriId, patri.id)) });
   if (existing) throw new AppError("proposal_exists");
 

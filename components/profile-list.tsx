@@ -4,15 +4,19 @@ import { Avatar } from "./avatar";
 import { FilterPanel } from "./filters";
 import { Icon, type IconName } from "./icons";
 import { Empty, PageHeader, ProfileBadge, primaryButton, quietButton } from "./ui";
-import { requireAdmin } from "@/lib/auth/session";
+import { requireAdmin, requireCustomer } from "@/lib/auth/session";
 import { KIND_LABEL, MARITAL, PROFILE_STATUS, RELIGION, biodataNo, bn, heightLabel } from "@/lib/bn";
 import { getDb } from "@/lib/db";
-import type { Profile, ProfileKind, ProfileStatus } from "@/lib/db/schema";
+import type { MaritalStatus, ProfileKind, ProfileStatus, Religion } from "@/lib/db/schema";
 import {
   AGE_RANGES, HEIGHT_RANGES, INCOME_MINS, ageLabel, heightLabelFor, incomeLabel, listHref, parseAmount, parseBand, parseNo, type ListParams,
 } from "@/lib/search";
+import { browseBiodata } from "@/lib/services/biodata";
 import { MARITAL_STATUSES, RELIGIONS, listProfiles, places } from "@/lib/services/profiles";
 import { ageFromYear } from "@/lib/time";
+
+/** Who is looking: the ghotok sees everyone in full; a family sees approved people without names, photos or contacts. */
+export type Viewer = "admin" | "customer";
 
 const STATUSES: (ProfileStatus | "all")[] = ["active", "all", "engaged", "married", "inactive"];
 const text = (v: string | string[] | undefined) => (typeof v === "string" ? v.trim() : "");
@@ -21,16 +25,35 @@ const pick = <T extends string>(all: readonly T[], v: string): T | undefined => 
 // compact controls for the filter column (the shared Field is sized for forms you fill in)
 const SELECT = "min-h-11 w-full rounded-xl border border-line bg-surface px-3 text-sm outline-none focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/40";
 
-/** The /patro and /patri screens: a filter column, status tabs with the count, and biodata cards. */
-export async function ProfileList({ kind, query }: { kind: ProfileKind; query: Record<string, string | string[] | undefined> }) {
-  const user = await requireAdmin();
+/** What one card needs, whichever viewer: the ghotok's rows carry a name and photo, a family's do not. */
+interface CardRow {
+  id: string;
+  code: number;
+  kind: ProfileKind;
+  name?: string;
+  photoUrl?: string | null;
+  birthYear: number;
+  heightCm: number | null;
+  religion: Religion;
+  maritalStatus: MaritalStatus;
+  education: string | null;
+  profession: string | null;
+  upazila: string | null;
+  district: string;
+  status: ProfileStatus;
+}
+
+/** The /patro and /patri screens: a filter column, status tabs with the count (ghotok only), and biodata cards. */
+export async function ProfileList({ kind, query, viewer }: { kind: ProfileKind; query: Record<string, string | string[] | undefined>; viewer: Viewer }) {
+  const who = viewer === "admin" ? await requireAdmin() : await requireCustomer();
   const p: Required<ListParams> = {
     status: text(query.status), q: text(query.q), no: text(query.no), age: text(query.age), district: text(query.district), upazila: text(query.upazila),
     religion: text(query.religion), marital: text(query.marital), education: text(query.education), profession: text(query.profession),
-    height: text(query.height), income: text(query.income),
+    height: text(query.height), income: viewer === "admin" ? text(query.income) : "",
   };
   // anything malformed in the URL is dropped, so the chips and the query agree
-  const status = pick(STATUSES, p.status) ?? "active";
+  const status = viewer === "admin" ? (pick(STATUSES, p.status) ?? "active") : "active";
+  if (viewer === "customer") p.status = "";
   const no = parseNo(p.no); if (no === undefined) p.no = "";
   const age = parseBand(p.age); if (!age) p.age = "";
   const height = parseBand(p.height); if (!height) p.height = "";
@@ -39,13 +62,15 @@ export async function ProfileList({ kind, query }: { kind: ProfileKind; query: R
   const marital = pick(MARITAL_STATUSES, p.marital); if (!marital) p.marital = "";
 
   const db = getDb();
+  const filter = {
+    kind, q: p.q, code: no, ageMin: age?.min, ageMax: age?.max, district: p.district, upazila: p.upazila,
+    religion, maritalStatus: marital, education: p.education, profession: p.profession, heightMin: height?.min, heightMax: height?.max,
+  };
   const [rows, seen] = await Promise.all([
-    listProfiles(db, user.ghotokId, {
-      kind, q: p.q, code: no, status, ageMin: age?.min, ageMax: age?.max, district: p.district, upazila: p.upazila,
-      religion, maritalStatus: marital, education: p.education, profession: p.profession,
-      heightMin: height?.min, heightMax: height?.max, incomeMin: income,
-    }),
-    places(db, user.ghotokId),
+    viewer === "admin"
+      ? listProfiles(db, who.ghotokId, { ...filter, status, incomeMin: income })
+      : browseBiodata(db, who.ghotokId, filter),
+    places(db, who.ghotokId),
   ]);
   const districts = [...new Set(seen.map((s) => s.district))];
   const upazilas = seen.filter((s): s is { district: string; upazila: string } => Boolean(s.upazila) && (!p.district || s.district === p.district));
@@ -63,24 +88,27 @@ export async function ProfileList({ kind, query }: { kind: ProfileKind; query: R
     ["height", p.height && heightLabelFor(p.height)],
     ["income", p.income && incomeLabel(p.income)],
   ] as [keyof ListParams, string][]).filter(([, label]) => label);
-  const href = (over: Partial<ListParams>) => listHref(kind, { ...p, status, ...over });
+  const href = (over: Partial<ListParams>) => listHref(kind, { ...p, status: viewer === "admin" ? status : "", ...over });
   const without = (key: keyof ListParams) => href({ [key]: "" } as Partial<ListParams>);
-  const clearHref = listHref(kind, { status });
+  const clearHref = listHref(kind, viewer === "admin" ? { status } : {});
+  const addHref = viewer === "admin" ? `/profiles/new?kind=${kind}` : `/me/biodata/new?kind=${kind}`;
 
   return (
     <>
-      <PageHeader title={KIND_LABEL[kind]} sub="বায়োডাটা"
-        action={<Link href={`/profiles/new?kind=${kind}`} className={`${primaryButton} min-h-11 px-3`}><Icon name="plus" size={18} />নতুন</Link>} />
+      <PageHeader title={KIND_LABEL[kind]} sub={viewer === "admin" ? "বায়োডাটা" : "নাম-ছবি গোপন; পছন্দ হলে ঘটককে ফোন করুন"}
+        action={viewer === "admin"
+          ? <Link href={addHref} className={`${primaryButton} min-h-11 px-3`}><Icon name="plus" size={18} />নতুন</Link>
+          : <Link href={addHref} className={`${quietButton} min-h-11 px-3 text-sm`}><Icon name="plus" size={18} />বায়োডাটা দিন</Link>} />
 
       <div className="flex flex-col gap-4 lg:grid lg:grid-cols-[17rem_1fr] lg:items-start lg:gap-6">
         <FilterPanel active={chips.length}>
           <form method="get" action={`/${kind}`} className="flex flex-col" role="search">
-            <input type="hidden" name="status" value={status} />
+            {viewer === "admin" ? <input type="hidden" name="status" value={status} /> : null}
             <div className="p-4">
               <label htmlFor="q" className="sr-only">খুঁজুন</label>
               <div className="relative">
                 <Icon name="search" size={18} className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-muted" />
-                <input id="q" name="q" defaultValue={p.q} placeholder="নাম, গ্রাম বা জেলা…" inputMode="search" className={`${SELECT} pl-10`} />
+                <input id="q" name="q" defaultValue={p.q} placeholder={viewer === "admin" ? "নাম, গ্রাম বা জেলা…" : "উপজেলা বা জেলা…"} inputMode="search" className={`${SELECT} pl-10`} />
               </div>
             </div>
             <Group icon="groom" title="প্রাথমিক" open>
@@ -89,7 +117,7 @@ export async function ProfileList({ kind, query }: { kind: ProfileKind; query: R
                 <span className="text-xs font-bold text-muted">কাকে খুঁজছেন</span>
                 <div className="grid grid-cols-2 gap-1.5">
                   {(["patro", "patri"] as const).map((k) => (
-                    <Link key={k} href={listHref(k, { ...p, status })} aria-current={k === kind ? "page" : undefined}
+                    <Link key={k} href={listHref(k, { ...p, status: viewer === "admin" ? status : "" })} aria-current={k === kind ? "page" : undefined}
                       className={`inline-flex min-h-10 items-center justify-center rounded-xl text-sm font-bold ${k === kind ? "bg-primary text-on-primary" : "bg-sunk text-ink"}`}>
                       {KIND_LABEL[k]}
                     </Link>
@@ -111,7 +139,8 @@ export async function ProfileList({ kind, query }: { kind: ProfileKind; query: R
             </Group>
             <Group icon="ruler" title="ব্যক্তিগত" open={Boolean(p.height || p.income)}>
               <Select name="height" label="উচ্চতা" value={p.height} blank="যেকোনো" options={HEIGHT_RANGES} />
-              <Select name="income" label="মাসিক আয়" value={p.income} blank="যেকোনো" options={INCOME_MINS} />
+              {/* income is not shown to families, so they cannot filter by it either */}
+              {viewer === "admin" ? <Select name="income" label="মাসিক আয়" value={p.income} blank="যেকোনো" options={INCOME_MINS} /> : null}
             </Group>
             <div className="grid grid-cols-2 gap-2 border-t border-line bg-surface p-3 lg:sticky lg:bottom-0">
               <Link href={clearHref} className="inline-flex min-h-11 items-center justify-center rounded-xl border border-primary text-sm font-bold text-primary">ফিল্টার মুছুন</Link>
@@ -122,18 +151,20 @@ export async function ProfileList({ kind, query }: { kind: ProfileKind; query: R
 
         <section className="flex min-w-0 flex-col gap-4">
           <div className="rounded-2xl border border-line bg-surface">
-            <nav aria-label="অবস্থা" className="flex gap-1 overflow-x-auto px-2">
-              {STATUSES.map((s) => {
-                const on = s === status;
-                return (
-                  <Link key={s} href={href({ status: s })} aria-current={on ? "page" : undefined}
-                    className={`-mb-px shrink-0 border-b-2 px-3 py-3 text-sm font-bold ${on ? "border-primary text-primary" : "border-transparent text-muted hover:text-ink"}`}>
-                    {s === "all" ? "সব" : PROFILE_STATUS[s].label}
-                  </Link>
-                );
-              })}
-            </nav>
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-line px-4 py-3 text-sm text-muted">
+            {viewer === "admin" ? (
+              <nav aria-label="অবস্থা" className="flex gap-1 overflow-x-auto px-2">
+                {STATUSES.map((s) => {
+                  const on = s === status;
+                  return (
+                    <Link key={s} href={href({ status: s })} aria-current={on ? "page" : undefined}
+                      className={`-mb-px shrink-0 border-b-2 px-3 py-3 text-sm font-bold ${on ? "border-primary text-primary" : "border-transparent text-muted hover:text-ink"}`}>
+                      {s === "all" ? "সব" : PROFILE_STATUS[s].label}
+                    </Link>
+                  );
+                })}
+              </nav>
+            ) : null}
+            <div className={`flex flex-wrap items-center gap-x-3 gap-y-2 px-4 py-3 text-sm text-muted ${viewer === "admin" ? "border-t border-line" : ""}`}>
               <span className="flex items-center gap-2"><Icon name="people" size={18} className="text-primary" /><span className="font-bold text-primary">{bn(rows.length)}</span>{" "}জন পাওয়া গেছে</span>
               {chips.map(([key, label]) => (
                 <Link key={key} href={without(key)} aria-label={`${label} ছাঁকনি সরান`}
@@ -147,13 +178,13 @@ export async function ProfileList({ kind, query }: { kind: ProfileKind; query: R
 
           {rows.length ? (
             <ul className="grid gap-4 sm:grid-cols-2">
-              {rows.map((r) => <BiodataCard key={r.id} p={r} />)}
+              {rows.map((r) => <BiodataCard key={r.id} p={r} viewer={viewer} />)}
             </ul>
           ) : (
             <Empty action={chips.length
               ? <Link href={clearHref} className={quietButton}>ফিল্টার মুছুন</Link>
-              : <Link href={`/profiles/new?kind=${kind}`} className={primaryButton}><Icon name="plus" size={18} />{KIND_LABEL[kind]} যোগ করুন</Link>}>
-              {chips.length ? "এই ছাঁকনিতে কাউকে পাওয়া যায়নি।" : `এখনো কোনো ${KIND_LABEL[kind]} যোগ করা হয়নি।`}
+              : viewer === "admin" ? <Link href={addHref} className={primaryButton}><Icon name="plus" size={18} />{KIND_LABEL[kind]} যোগ করুন</Link> : null}>
+              {chips.length ? "এই ছাঁকনিতে কাউকে পাওয়া যায়নি।" : viewer === "admin" ? `এখনো কোনো ${KIND_LABEL[kind]} যোগ করা হয়নি।` : `এখনো কোনো ${KIND_LABEL[kind]} তালিকায় নেই।`}
             </Empty>
           )}
         </section>
@@ -162,8 +193,14 @@ export async function ProfileList({ kind, query }: { kind: ProfileKind; query: R
   );
 }
 
-/** One person as a biodata card: picture and code on the left, the facts a family asks first on the right. */
-function BiodataCard({ p }: { p: Profile }) {
+/**
+ * One person as a biodata card: picture and number on the left, the facts a family asks first on the right.
+ * For the ghotok the title is the name and the photo shows; for a family the number is the title and the picture is
+ * always the silhouette.
+ */
+function BiodataCard({ p, viewer }: { p: CardRow; viewer: Viewer }) {
+  const no = biodataNo(p.kind, p.code);
+  const title = viewer === "admin" && p.name ? p.name : no;
   const facts: [IconName, string][] = [
     ["calendar", `${bn(ageFromYear(p.birthYear))} বছর`],
     ["location", [p.upazila, p.district].filter(Boolean).join(", ")],
@@ -175,13 +212,13 @@ function BiodataCard({ p }: { p: Profile }) {
   return (
     <li className="grid grid-cols-[6.5rem_1fr] overflow-hidden rounded-2xl border border-line bg-surface sm:grid-cols-[7.5rem_1fr]">
       <div className="flex flex-col items-center justify-center gap-3 bg-sunk p-3">
-        <Avatar kind={p.kind} photoUrl={p.photoUrl} className="size-18 sm:size-20" />
-        <span className="rounded-full bg-surface px-2.5 py-0.5 text-xs font-bold text-muted">{biodataNo(p.kind, p.code)}</span>
+        <Avatar kind={p.kind} photoUrl={viewer === "admin" ? p.photoUrl : null} className="size-18 sm:size-20" />
+        <span className="rounded-full bg-surface px-2.5 py-0.5 text-xs font-bold text-muted">{viewer === "admin" ? no : RELIGION[p.religion]}</span>
       </div>
       <div className="flex min-w-0 flex-col gap-2.5 p-4">
         <div className="flex items-start justify-between gap-2">
-          <h2 className="min-w-0 truncate font-display text-base font-bold">{p.name}</h2>
-          <ProfileBadge status={p.status} />
+          <h2 className="min-w-0 truncate font-display text-base font-bold">{title}</h2>
+          {viewer === "admin" ? <ProfileBadge status={p.status} /> : null}
         </div>
         <ul className="flex flex-col gap-1.5 text-sm">
           {facts.map(([icon, value]) => (
@@ -192,8 +229,8 @@ function BiodataCard({ p }: { p: Profile }) {
           ))}
         </ul>
         <div className="mt-auto flex justify-end pt-1">
-          {/* the name goes into the link's spoken label, so twelve "বায়োডাটা" links are still told apart */}
-          <Link href={`/profiles/${p.id}`} aria-label={`${p.name}: বায়োডাটা দেখুন`}
+          {/* the title goes into the link's spoken label, so twelve "বায়োডাটা" links are still told apart */}
+          <Link href={viewer === "admin" ? `/profiles/${p.id}` : `/biodata/${p.id}`} aria-label={`${title}: বায়োডাটা দেখুন`}
             className="inline-flex min-h-9 items-center gap-1 rounded-full bg-primary-soft px-3.5 text-sm font-bold text-primary">
             বায়োডাটা<Icon name="chevronRight" size={16} />
           </Link>

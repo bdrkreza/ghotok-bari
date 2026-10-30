@@ -60,10 +60,15 @@ export async function requireAdmin(): Promise<AdminSession> {
   return { ...user, ghotokId: s.ghotokId };
 }
 
-/** The customer's side (/me). An admin who lands here is sent to the dashboard. */
-export async function requireCustomer(): Promise<SessionUser> {
+/** A family's account, plus the ghotok whose site this is: their biodata hang off that id, under their own user id. */
+export interface CustomerSession extends SessionUser {
+  ghotokId: string;
+}
+
+/** The customer's side (/me and the lists). An admin who lands here is sent to the dashboard. */
+export async function requireCustomer(): Promise<CustomerSession> {
   const user = await requireUser();
   if (user.role === "admin") redirect("/dashboard");
-  await requireSite();
-  return user;
+  const s = await requireSite();
+  return { ...user, ghotokId: s.ghotokId };
 }

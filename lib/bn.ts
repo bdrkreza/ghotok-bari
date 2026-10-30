@@ -1,5 +1,5 @@
 // Bangla text helpers: numerals, money and the labels for every status code.
-import type { LedgerKind, MaritalStatus, ProfileKind, ProfileStatus, ProposalStatus, Religion } from "./db/schema";
+import type { Approval, LedgerKind, MaritalStatus, ProfileKind, ProfileStatus, ProposalStatus, Religion } from "./db/schema";
 
 const DIGITS = "০১২৩৪৫৬৭৮৯";
 
@@ -26,6 +26,13 @@ export const PROFILE_STATUS: Record<ProfileStatus, { label: string; tone: "mint"
   engaged: { label: "বিয়ে ঠিক", tone: "mango" },
   married: { label: "বিয়ে হয়েছে", tone: "sky" },
   inactive: { label: "বন্ধ", tone: "coral" },
+};
+
+/** Where a family's biodata stands with the ghotok. */
+export const APPROVAL: Record<Approval, { label: string; tone: "mint" | "mango" | "sky" | "lilac" | "coral" }> = {
+  pending: { label: "অপেক্ষমাণ", tone: "mango" },
+  approved: { label: "তালিকায় আছে", tone: "mint" },
+  returned: { label: "ফেরত দেওয়া", tone: "coral" },
 };
 
 export const PROPOSAL_STATUS: Record<ProposalStatus, { label: string; tone: "mint" | "mango" | "sky" | "lilac" | "coral" }> = {

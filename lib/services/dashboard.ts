@@ -3,7 +3,7 @@ import type { Db } from "../db";
 import { proposal } from "../db/schema";
 import type { Place } from "../search";
 import { totals, type Totals } from "./ledger";
-import { activeCounts, places, recentProfiles, type RecentProfile } from "./profiles";
+import { activeCounts, pendingCount, places, recentProfiles, type RecentProfile } from "./profiles";
 import { LIVE, listProposals, type ProposalRow } from "./proposals";
 
 export interface Dashboard {
@@ -11,6 +11,8 @@ export interface Dashboard {
   patri: number;
   live: number;
   fixed: number;
+  /** biodata families handed in that wait for the ghotok */
+  pending: number;
   money: Totals;
   recent: ProposalRow[];
   /** the latest people, for the "সাম্প্রতিক প্রোফাইল" row */
@@ -20,10 +22,11 @@ export interface Dashboard {
 }
 
 export async function dashboard(db: Db, ghotokId: string): Promise<Dashboard> {
-  const [counts, live, fixed, money, recent, people, seen] = await Promise.all([
+  const [counts, live, fixed, pending, money, recent, people, seen] = await Promise.all([
     activeCounts(db, ghotokId),
     db.select({ n: count() }).from(proposal).where(and(eq(proposal.ghotokId, ghotokId), inArray(proposal.status, LIVE))),
     db.select({ n: count() }).from(proposal).where(and(eq(proposal.ghotokId, ghotokId), inArray(proposal.status, ["thik_hoyeche", "biye_hoyeche"]))),
+    pendingCount(db, ghotokId),
     totals(db, ghotokId),
     listProposals(db, ghotokId, "live"),
     recentProfiles(db, ghotokId),
@@ -33,6 +36,7 @@ export async function dashboard(db: Db, ghotokId: string): Promise<Dashboard> {
     ...counts,
     live: live[0]?.n ?? 0,
     fixed: fixed[0]?.n ?? 0,
+    pending,
     money,
     recent: recent.slice(0, 5),
     people,
