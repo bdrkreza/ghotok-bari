@@ -1,0 +1,149 @@
+@import "tailwindcss";
+
+/* Design tokens. "Alta" is the red dye on a bride's feet, so the one accent colour is a deep alta red on a quiet,
+   paper-like ground. Text is a navy charcoal and the greys are neutral, so the red carries the brand on its own.
+   Colour otherwise carries meaning (pos = money in, neg = owes / danger) and the pale tints are kept for small
+   status badges: light enough to sit in a row of text, with ink dark enough to read. */
+:root {
+  --bg: #f8f6f3;
+  --surface: #ffffff;
+  --sunk: #f0ede8;
+  --ink: #1f2333;
+  --muted: #6b7183;
+  --line: #e6e2dc;
+  --primary: #b3213a;
+  --on-primary: #ffffff;
+  --primary-soft: #fbe8ec;
+  --warn: #fff8eb;
+  --warn-line: #f1dfb6;
+  --warn-ink: #86500a;
+  --mango: #fdeed2;
+  --mango-ink: #7a4d08;
+  --mint: #dcf3e6;
+  --mint-ink: #0f5f3c;
+  --sky: #e1ebfa;
+  --sky-ink: #1f3f8f;
+  --lilac: #e8e5fa;
+  --lilac-ink: #4538a6;
+  --coral: #fbe4e0;
+  --coral-ink: #8c2f24;
+  --pos: #0f7a4b;
+  --neg: #b42318;
+  --neg-soft: #fdecea;
+  --pos-soft: #e6f5ec;
+  /* The brand panel beside the sign-in forms: a deeper alta, on which the mark and text are white. */
+  --panel: #7b2a46;
+  --on-panel: #ffffff;
+  --panel-soft: #fbe8ec;
+}
+
+/* Dark follows the phone, unless a theme was picked in settings: data-theme on <html>, see lib/theme.ts. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #14161d;
+    --surface: #1c1f29;
+    --sunk: #262a37;
+    --ink: #eef0f5;
+    --muted: #a2a9bb;
+    --line: #2e3242;
+    --primary: #ff8296;
+    --on-primary: #14161d;
+    --primary-soft: #45202c;
+    --warn: #2b2415;
+    --warn-line: #4b3d1c;
+    --warn-ink: #ffd18a;
+    --neg-soft: #3b1f1c;
+    --pos-soft: #143024;
+    --mango: #3b3014;
+    --mango-ink: #ffd27d;
+    --mint: #12301f;
+    --mint-ink: #9ee2bd;
+    --sky: #172741;
+    --sky-ink: #a9c9fb;
+    --lilac: #262349;
+    --lilac-ink: #d6cdff;
+    --coral: #3d1c18;
+    --coral-ink: #ffb7a7;
+    --pos: #5dd49a;
+    --neg: #ff8d7b;
+    color-scheme: dark;
+  }
+}
+
+:root[data-theme="dark"] {
+  --bg: #14161d;
+  --surface: #1c1f29;
+  --sunk: #262a37;
+  --ink: #eef0f5;
+  --muted: #a2a9bb;
+  --line: #2e3242;
+  --primary: #ff8296;
+  --on-primary: #14161d;
+  --primary-soft: #45202c;
+  --warn: #2b2415;
+  --warn-line: #4b3d1c;
+  --warn-ink: #ffd18a;
+  --neg-soft: #3b1f1c;
+  --pos-soft: #143024;
+  --mango: #3b3014;
+  --mango-ink: #ffd27d;
+  --mint: #12301f;
+  --mint-ink: #9ee2bd;
+  --sky: #172741;
+  --sky-ink: #a9c9fb;
+  --lilac: #262349;
+  --lilac-ink: #d6cdff;
+  --coral: #3d1c18;
+  --coral-ink: #ffb7a7;
+  --pos: #5dd49a;
+  --neg: #ff8d7b;
+  color-scheme: dark;
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-sunk: var(--sunk);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-primary: var(--primary);
+  --color-on-primary: var(--on-primary);
+  --color-primary-soft: var(--primary-soft);
+  --color-warn: var(--warn);
+  --color-warn-line: var(--warn-line);
+  --color-warn-ink: var(--warn-ink);
+  --color-neg-soft: var(--neg-soft);
+  --color-pos-soft: var(--pos-soft);
+  --color-panel: var(--panel);
+  --color-on-panel: var(--on-panel);
+  --color-panel-soft: var(--panel-soft);
+  --color-mango: var(--mango);
+  --color-mango-ink: var(--mango-ink);
+  --color-mint: var(--mint);
+  --color-mint-ink: var(--mint-ink);
+  --color-sky: var(--sky);
+  --color-sky-ink: var(--sky-ink);
+  --color-lilac: var(--lilac);
+  --color-lilac-ink: var(--lilac-ink);
+  --color-coral: var(--coral);
+  --color-coral-ink: var(--coral-ink);
+  --color-pos: var(--pos);
+  --color-neg: var(--neg);
+  --font-sans: "Hind Siliguri", system-ui, sans-serif;
+  --font-display: "Baloo Da 2", "Hind Siliguri", system-ui, sans-serif;
+}
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+}
+
+/* Native date inputs and selects pick up the page colours. */
+input, select, textarea {
+  color: inherit;
+}
