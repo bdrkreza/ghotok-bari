@@ -1,4 +1,4 @@
-import { and, desc, eq, gte, ilike, lte, or, sql, type SQL } from "drizzle-orm";
+import { and, count, desc, eq, gte, ilike, lte, or, sql, type SQL } from "drizzle-orm";
 import { z } from "zod";
 import type { Db } from "../db";
 import { profile, type MaritalStatus, type Profile, type ProfileKind, type ProfileStatus, type Religion } from "../db/schema";
@@ -151,6 +151,13 @@ export async function activeProfiles(db: Db, ghotokId: string, kind: ProfileKind
     .from(profile)
     .where(and(eq(profile.ghotokId, ghotokId), eq(profile.kind, kind), eq(profile.status, "active")))
     .orderBy(profile.name);
+}
+
+/** How many patro and patri are still looking, for the dashboard and the front page. */
+export async function activeCounts(db: Db, ghotokId: string): Promise<{ patro: number; patri: number }> {
+  const rows = await db.select({ kind: profile.kind, n: count() }).from(profile)
+    .where(and(eq(profile.ghotokId, ghotokId), eq(profile.status, "active"))).groupBy(profile.kind);
+  return { patro: rows.find((r) => r.kind === "patro")?.n ?? 0, patri: rows.find((r) => r.kind === "patri")?.n ?? 0 };
 }
 
 /** Every district and upazila this ghotok has written on someone, as choices for the search bar. */

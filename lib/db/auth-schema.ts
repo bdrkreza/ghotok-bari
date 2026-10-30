@@ -3,8 +3,11 @@
 import { relations } from "drizzle-orm";
 import { boolean, index, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 
-/** "ghotok" runs their own ledger; "admin" also sees every ghotok at /admin (counts, never their people). */
-export type Role = "ghotok" | "admin";
+/**
+ * "customer": a family that signed up to look at biodata and hand in their own; "admin": the ghotok (the site's owner,
+ * `site.ghotok_id`) and anyone they made an admin, who run the whole site.
+ */
+export type Role = "customer" | "admin";
 
 export const user = pgTable("user", {
   id: text("id").primaryKey(),
@@ -16,8 +19,8 @@ export const user = pgTable("user", {
   updatedAt: timestamp("updated_at").defaultNow().$onUpdate(() => new Date()).notNull(),
   username: text("username").unique(),
   displayUsername: text("display_username"),
-  /** set by another admin from /admin; ADMIN_PHONES in the environment makes the first admins without touching this */
-  role: text("role").$type<Role>().notNull().default("ghotok"),
+  /** changed by an admin from /dashboard/customers; the site's owner and ADMIN_PHONES are admins whatever this says */
+  role: text("role").$type<Role>().notNull().default("customer"),
 }).enableRLS();
 
 export const session = pgTable("session", {

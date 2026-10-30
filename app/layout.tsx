@@ -9,17 +9,23 @@ import "@fontsource/baloo-da-2/800.css";
 import "./globals.css";
 import { ServiceWorker } from "@/components/pwa";
 import { ThemeSync } from "@/components/theme";
+import { currentSite } from "@/lib/auth/session";
 import { THEME_BOOT_SCRIPT } from "@/lib/theme";
 
-export const metadata: Metadata = {
-  title: { default: "আলতা", template: "%s · আলতা" },
-  applicationName: "আলতা",
-  description: "গ্রামের ঘটকের ডিজিটাল খাতা: পাত্র-পাত্রী, প্রস্তাব আর হিসাব এক জায়গায়।",
-  // the phone-app side: app/manifest.ts and the icons in public/ (npm run icons)
-  manifest: "/manifest.webmanifest",
-  icons: { apple: "/apple-icon.png" },
-  appleWebApp: { capable: true, title: "আলতা", statusBarStyle: "default" },
-};
+/** The browser tab carries the ghotok's site name once the site exists; "আলতা" before that and if the database is away. */
+export async function generateMetadata(): Promise<Metadata> {
+  const site = await currentSite().catch(() => null);
+  const name = site?.name ?? "আলতা";
+  return {
+    title: { default: name, template: `%s · ${name}` },
+    applicationName: name,
+    description: "ঘটকের নিজের ওয়েবসাইট: পাত্র-পাত্রীর বায়োডাটা, প্রস্তাব আর হিসাব এক জায়গায়।",
+    // the phone-app side: app/manifest.ts and the icons in public/ (npm run icons)
+    manifest: "/manifest.webmanifest",
+    icons: { apple: "/apple-icon.png" },
+    appleWebApp: { capable: true, title: name, statusBarStyle: "default" },
+  };
+}
 
 export const viewport: Viewport = {
   themeColor: [

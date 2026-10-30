@@ -6,10 +6,10 @@ import { getAuth } from "../auth";
 import { getDb, usingDevDb } from "../db";
 import { seedDemo } from "../demo";
 
-/** Development only: create the demo ghotok with sample data and sign in as them. */
+/** Development only: create the demo site, its ghotok with sample data and two customer accounts, and sign in as the ghotok. */
 export async function seedDemoAction(): Promise<void> {
   if (process.env.NODE_ENV === "production" || !usingDevDb()) redirect("/login");
   // either way the browser is now signed in as the demo ghotok
   await seedDemo(getDb(), getAuth(), await headers());
-  redirect("/");
+  redirect("/dashboard");
 }

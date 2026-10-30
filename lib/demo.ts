@@ -2,17 +2,19 @@ import { eq } from "drizzle-orm";
 import type { Auth } from "./auth";
 import { placeholderEmail } from "./auth/phone";
 import type { Db } from "./db";
-import { user } from "./db/schema";
+import { profile, user } from "./db/schema";
 import { addEntry } from "./services/ledger";
 import { createProfile } from "./services/profiles";
 import { addNote, changeStatus, createProposal } from "./services/proposals";
+import { createSite, getSite } from "./services/site";
 import { today } from "./time";
 
-/** The account the demo data belongs to. Only ever created on the embedded development database. */
+/** The ghotok the demo site belongs to. Only ever created on the embedded development database. */
 export const DEMO = { name: "আব্দুল করিম ঘটক", phone: "01700000000", password: "alta1234" };
-/** A demo admin, to see /admin; and a second ghotok, so the admin list has more than one row. */
-export const DEMO_ADMIN = { name: "আলতা অ্যাডমিন", phone: "01700000009", password: "alta1234" };
-const DEMO_OTHER = { name: "রহিমা বেগম ঘটক", phone: "01700000002", password: "alta1234" };
+export const DEMO_SITE = { name: "করিম ঘটক ম্যারেজ মিডিয়া", address: "বাঁশবাড়িয়া, সাভার, ঢাকা", whatsapp: "" };
+/** Two families with accounts, so the customer side and the accounts list have something on them. */
+export const DEMO_CUSTOMER = { name: "রহিমা বেগম", phone: "01700000002", password: "alta1234" };
+const DEMO_CUSTOMER_2 = { name: "মো. জসিম উদ্দিন", phone: "01700000003", password: "alta1234" };
 
 const daysAgo = (n: number) => {
   const d = new Date();
@@ -21,9 +23,9 @@ const daysAgo = (n: number) => {
 };
 
 /**
- * Fills a fresh development database with one ghotok and a realistic week of work, so every screen has
- * something on it, plus a demo admin and a second ghotok. Signs the demo ghotok in (Better Auth sets the cookie). Run again,
- * it only adds whichever demo accounts are missing and signs the ghotok in.
+ * Fills a fresh development database with the demo site, its ghotok and a realistic week of work, so every screen
+ * has something on it, plus two customer accounts. Signs the demo ghotok in (Better Auth sets the cookie). Run
+ * again, it only adds whatever is missing and signs the ghotok in.
  */
 export async function seedDemo(db: Db, auth: Auth, headers: Headers): Promise<{ created: boolean }> {
   const exists = async (phone: string) => Boolean(await db.query.user.findFirst({ where: eq(user.username, phone) }));
@@ -34,22 +36,16 @@ export async function seedDemo(db: Db, auth: Auth, headers: Headers): Promise<{ 
     if (!row) throw new Error("demo sign-up failed");
     return row.id;
   };
-  // Every sign-up sets the cookie, so the other accounts go first and the browser ends up as the demo ghotok.
-  if (!(await exists(DEMO_ADMIN.phone))) {
-    const adminId = await signUp(DEMO_ADMIN);
-    await db.update(user).set({ role: "admin" }).where(eq(user.id, adminId));
-  }
-  if (!(await exists(DEMO_OTHER.phone))) {
-    const otherId = await signUp(DEMO_OTHER);
-    await createProfile(db, otherId, { kind: "patri", religion: "islam", maritalStatus: "obibahito", name: "সালমা আক্তার", birthYear: "2001", district: "টাঙ্গাইল", upazila: "মির্জাপুর", education: "এইচএসসি" });
-    await createProfile(db, otherId, { kind: "patro", religion: "islam", maritalStatus: "obibahito", name: "মাহবুব আলম", birthYear: "1993", district: "টাঙ্গাইল", upazila: "সখীপুর", profession: "ব্যবসা" });
-  }
-  if (await exists(DEMO.phone)) {
-    // seeded earlier, perhaps before the accounts above existed: just sign the browser in as the demo ghotok
-    await auth.api.signInUsername({ body: { username: DEMO.phone, password: DEMO.password }, headers }).catch(() => undefined);
-    return { created: false };
-  }
-  const g = await signUp(DEMO);
+  // Every sign-up sets the cookie, so the families go first and the browser ends up as the demo ghotok.
+  for (const c of [DEMO_CUSTOMER, DEMO_CUSTOMER_2]) if (!(await exists(c.phone))) await signUp(c);
+
+  const seen = await db.query.user.findFirst({ where: eq(user.username, DEMO.phone) });
+  const g = seen?.id ?? (await signUp(DEMO));
+  if (seen) await auth.api.signInUsername({ body: { username: DEMO.phone, password: DEMO.password }, headers }).catch(() => undefined);
+  // the site, owned by the demo ghotok (which also makes them an admin), unless /setup was already done by hand
+  if (!(await getSite(db))) await createSite(db, g, DEMO_SITE);
+  // the sample people, unless the ghotok already has some (made at /setup with the demo number, or seeded earlier)
+  if (await db.query.profile.findFirst({ where: eq(profile.ghotokId, g) })) return { created: false };
 
   const person = (kind: "patro" | "patri", over: Record<string, string>) =>
     createProfile(db, g, { kind, religion: "islam", maritalStatus: "obibahito", ...over });

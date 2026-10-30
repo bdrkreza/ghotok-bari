@@ -11,7 +11,9 @@ export type AppErrorCode =
   | "bad_transition"
   | "amount_required"
   | "forbidden"
-  | "self_role";
+  | "self_role"
+  | "owner_role"
+  | "site_exists";
 
 export class AppError extends Error {
   constructor(public readonly code: AppErrorCode, detail?: string) {
@@ -31,6 +33,8 @@ export function messageFor(code: AppErrorCode): string {
     case "bad_transition": return "এই অবস্থা থেকে এখানে যাওয়া যায় না।";
     case "amount_required": return "টাকার পরিমাণ দিন।";
     case "forbidden": return "এই কাজের অনুমতি আপনার নেই।";
-    case "self_role": return "নিজের ভূমিকা নিজে বদলানো যায় না; অন্য একজন অ্যাডমিনকে বলুন।";
+    case "self_role": return "নিজের ভূমিকা নিজে বদলানো যায় না।";
+    case "owner_role": return "সাইটের মালিক ঘটক সবসময় অ্যাডমিন থাকেন।";
+    case "site_exists": return "এই সাইট আগেই চালু করা হয়েছে। লগইন করুন।";
   }
 }

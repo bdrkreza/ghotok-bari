@@ -10,8 +10,9 @@ export * from "./auth-schema";
 // - Dates are Dhaka dates stored as `date` and handled as "YYYY-MM-DD" strings.
 // - Every table has RLS enabled and no policies: the app connects as the table owner,
 //   while the Supabase auto-generated API can read nothing.
-// - Every row belongs to one ghotok (`ghotok_id` = Better Auth user id), so several ghotoks
-//   can share one database without seeing each other's people.
+// - Every row belongs to one ghotok (`ghotok_id` = Better Auth user id of the site's owner). A deployment is one
+//   ghotok's website (the `site` row), but the column keeps the data of several ghotoks apart should one database
+//   ever serve more than one site.
 
 const id = () => uuid("id").primaryKey();
 const day = (name: string) => date(name, { mode: "string" });
@@ -19,6 +20,29 @@ const timestamps = {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
 };
+
+/* ---------- the site ---------- */
+
+/**
+ * The one row that makes this deployment a ghotok's website: whose it is and what the front page says. Created once
+ * from /setup; until it exists every screen sends visitors there. `id` is always 1, so a second row cannot be inserted.
+ */
+export const site = pgTable("site", {
+  id: integer("id").primaryKey().default(1),
+  /** the ghotok who owns the site; every profile, proposal and ledger entry hangs off this id */
+  ghotokId: text("ghotok_id").notNull().unique().references(() => user.id, { onDelete: "restrict" }),
+  /** what the site is called, e.g. "করিম ঘটক ম্যারেজ মিডিয়া" */
+  name: text("name").notNull(),
+  /** one line under the name on the front page; null shows a stock line */
+  tagline: text("tagline"),
+  /** a paragraph about the ghotok; null shows stock text */
+  about: text("about"),
+  /** village, upazila, district, as the ghotok writes it */
+  address: text("address"),
+  /** 01XXXXXXXXX; null means the ghotok's login number */
+  whatsapp: text("whatsapp"),
+  ...timestamps,
+}).enableRLS();
 
 /* ---------- people ---------- */
 
@@ -146,6 +170,7 @@ export const ledgerEntryRelations = relations(ledgerEntry, ({ one }) => ({
   proposal: one(proposal, { fields: [ledgerEntry.proposalId], references: [proposal.id] }),
 }));
 
+export type Site = typeof site.$inferSelect;
 export type Profile = typeof profile.$inferSelect;
 export type Proposal = typeof proposal.$inferSelect;
 export type ProposalEvent = typeof proposalEvent.$inferSelect;

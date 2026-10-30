@@ -36,11 +36,11 @@ export async function register(deps: Deps, input: { name: string; phone: string;
   if (!password.safeParse(input.password).success) return fail("weak_password");
 
   try {
-    await deps.auth.api.signUpEmail({
+    const res = await deps.auth.api.signUpEmail({
       body: { name: parsedName.data, email: placeholderEmail(phone), password: input.password, username: phone },
       headers: deps.headers,
     });
-    return { ok: true };
+    return { ok: true, userId: (res as { user?: { id: string } } | null)?.user?.id };
   } catch (e) {
     const code = errorCode(e);
     if (/USERNAME|USER_ALREADY_EXISTS|EMAIL/.test(code)) return fail("phone_taken");

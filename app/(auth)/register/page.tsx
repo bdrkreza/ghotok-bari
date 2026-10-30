@@ -1,17 +1,20 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { getSessionUser } from "@/lib/auth/session";
+import { getSessionUser, homeFor, requireSite } from "@/lib/auth/session";
 import { RegisterForm } from "../forms";
 import { AuthCard, AuthHeading } from "../ui";
 
 export const metadata: Metadata = { title: "রেজিস্টার" };
 
+/** A family's account: everyone who signs up here is a customer. */
 export default async function RegisterPage() {
-  if (await getSessionUser()) redirect("/");
+  await requireSite();
+  const user = await getSessionUser();
+  if (user) redirect(homeFor(user.role));
   return (
     <>
-      <AuthHeading title="নতুন খাতা খুলুন" sub="আপনার পাত্র-পাত্রী আর হিসাব শুধু আপনিই দেখবেন" />
+      <AuthHeading title="অ্যাকাউন্ট খুলুন" sub="পাত্র-পাত্রী দেখতে আর নিজের বায়োডাটা দিতে" />
       <AuthCard>
         <RegisterForm />
       </AuthCard>

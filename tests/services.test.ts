@@ -3,7 +3,9 @@ import { login } from "@/lib/auth/service";
 import { roleOf } from "@/lib/auth/roles";
 import { AppError } from "@/lib/errors";
 import { biodataNo, bnNumber, initial, initials, taka } from "@/lib/bn";
-import { listGhotoks, platformStats, setRole } from "@/lib/services/admin";
+import type { AdminSession } from "@/lib/auth/session";
+import { listCustomers, setRole } from "@/lib/services/customers";
+import { DEFAULT_TAGLINE, createSite, getSite, publicSite, updateSite } from "@/lib/services/site";
 import { dashboard } from "@/lib/services/dashboard";
 import { addEntry, listEntries, totals } from "@/lib/services/ledger";
 import { suggestFor } from "@/lib/services/match";
@@ -22,12 +24,12 @@ const code = async (p: Promise<unknown>) => {
 
 let app: App;
 let ghotok: { id: string; phone: string; password: string };
-let other: { id: string };
+let other: { id: string; phone: string };
 
 beforeAll(async () => {
   app = await createTestApp();
-  ghotok = await app.makeGhotok("আব্দুল ঘটক");
-  other = await app.makeGhotok("অন্য ঘটক");
+  ghotok = await app.makeUser("আব্দুল ঘটক");
+  other = await app.makeUser("অন্য ঘটক");
 });
 
 describe("sign-in", () => {
@@ -268,43 +270,51 @@ describe("sharing a biodata", () => {
   });
 });
 
-describe("roles and the admin view", () => {
-  const as = (id: string, phone: string, role: "ghotok" | "admin"): { id: string; name: string; phone: string; role: "ghotok" | "admin" } => ({ id, name: "x", phone, role });
+describe("the site and its roles", () => {
+  const as = (u: { id: string; phone: string }, role: "customer" | "admin", ghotokId: string): AdminSession => ({ id: u.id, name: "x", phone: u.phone, role, ghotokId });
 
-  it("is ghotok by default, admin through ADMIN_PHONES, and keeps the admin view locked", async () => {
-    expect(await roleOf(app.db, ghotok.id)).toBe("ghotok");
+  it("has no site before setup; everyone is a customer, and ADMIN_PHONES lifts an account to admin", async () => {
+    expect(await getSite(app.db)).toBeNull();
+    expect(await publicSite(app.db)).toBeNull();
+    expect(await roleOf(app.db, ghotok.id)).toBe("customer");
     process.env.ADMIN_PHONES = ` ${ghotok.phone} , nonsense`;
     expect(await roleOf(app.db, ghotok.id)).toBe("admin");
-    expect(await roleOf(app.db, other.id)).toBe("ghotok");
+    expect(await roleOf(app.db, other.id)).toBe("customer");
     delete process.env.ADMIN_PHONES;
-    expect(await roleOf(app.db, ghotok.id)).toBe("ghotok");
-    expect(await code(platformStats(app.db, as(other.id, "0", "ghotok")))).toBe("forbidden");
-    expect(await code(listGhotoks(app.db, as(other.id, "0", "ghotok")))).toBe("forbidden");
+    expect(await roleOf(app.db, ghotok.id)).toBe("customer");
   });
 
-  it("counts across ghotoks and lets an admin promote others, never themselves", async () => {
-    await setRole(app.db, as(ghotok.id, ghotok.phone, "admin"), other.id, "admin");
-    expect(await roleOf(app.db, other.id)).toBe("admin");
-    const admin = as(other.id, "0", "admin");
-
-    const stats = await platformStats(app.db, admin);
-    expect(stats.ghotoks).toBe(2);
-    expect(stats.marriages).toBeGreaterThanOrEqual(1);
-    expect(stats.joma).toBe(5000);
-
-    const rows = await listGhotoks(app.db, admin);
-    expect(rows.map((r) => r.id).sort()).toEqual([ghotok.id, other.id].sort());
-    const mine = rows.find((r) => r.id === ghotok.id)!;
-    expect(mine.profiles).toBeGreaterThan(5);
-    expect(mine.joma).toBe(5000);
-    expect(mine.role).toBe("ghotok");
-    expect((await listGhotoks(app.db, admin, "অন্য")).map((r) => r.id)).toEqual([other.id]);
-
-    expect(await code(setRole(app.db, admin, other.id, "ghotok"))).toBe("self_role");
-    expect(await code(setRole(app.db, admin, "no-such-id", "admin"))).toBe("not_found");
-    await setRole(app.db, admin, ghotok.id, "admin");
+  it("is set up once, making the ghotok owner and admin, and gives the front page its words and counts", async () => {
+    expect(await code(createSite(app.db, ghotok.id, { name: "x" }))).toBe("invalid_input");
+    await createSite(app.db, ghotok.id, { name: "করিম ঘটক ম্যারেজ মিডিয়া", address: "সাভার, ঢাকা", whatsapp: "+880 1712-345678" });
+    expect(await code(createSite(app.db, other.id, { name: "দ্বিতীয় সাইট" }))).toBe("site_exists");
     expect(await roleOf(app.db, ghotok.id)).toBe("admin");
-    await setRole(app.db, admin, ghotok.id, "ghotok");
-    expect(await roleOf(app.db, ghotok.id)).toBe("ghotok");
+    expect(await roleOf(app.db, other.id)).toBe("customer");
+
+    const pub = await publicSite(app.db);
+    expect(pub).toMatchObject({ name: "করিম ঘটক ম্যারেজ মিডিয়া", address: "সাভার, ঢাকা", whatsapp: "01712345678", phone: ghotok.phone, ghotokName: "আব্দুল ঘটক", tagline: DEFAULT_TAGLINE });
+    expect(pub!.patro).toBeGreaterThan(0);
+    await updateSite(app.db, ghotok.id, { name: "করিম ঘটক ম্যারেজ মিডিয়া", tagline: "নতুন লাইন" });
+    expect((await publicSite(app.db))!.tagline).toBe("নতুন লাইন");
+    expect(await code(updateSite(app.db, other.id, { name: "হ্যাক" }))).toBe("forbidden");
+  });
+
+  it("lists every account for an admin, who can make helpers admins but never themselves or the owner", async () => {
+    const owner = as(ghotok, "admin", ghotok.id);
+    expect(await code(listCustomers(app.db, as(other, "customer", ghotok.id)))).toBe("forbidden");
+    const rows = await listCustomers(app.db, owner);
+    expect(rows.map((r) => r.id).sort()).toEqual([ghotok.id, other.id].sort());
+    expect(rows.find((r) => r.id === ghotok.id)).toMatchObject({ owner: true, role: "admin", envAdmin: false });
+    expect(rows.find((r) => r.id === other.id)).toMatchObject({ owner: false, role: "customer" });
+    expect((await listCustomers(app.db, owner, "অন্য")).map((r) => r.id)).toEqual([other.id]);
+
+    expect(await code(setRole(app.db, owner, ghotok.id, "customer"))).toBe("self_role");
+    expect(await code(setRole(app.db, owner, "no-such-id", "admin"))).toBe("not_found");
+    await setRole(app.db, owner, other.id, "admin");
+    expect(await roleOf(app.db, other.id)).toBe("admin");
+    const helper = as(other, "admin", ghotok.id);
+    expect(await code(setRole(app.db, helper, ghotok.id, "customer"))).toBe("owner_role");
+    await setRole(app.db, owner, other.id, "customer");
+    expect(await roleOf(app.db, other.id)).toBe("customer");
   });
 });

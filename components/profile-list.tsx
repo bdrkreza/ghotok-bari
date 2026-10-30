@@ -4,7 +4,7 @@ import { Avatar } from "./avatar";
 import { FilterPanel } from "./filters";
 import { Icon, type IconName } from "./icons";
 import { Empty, PageHeader, ProfileBadge, primaryButton, quietButton } from "./ui";
-import { requireUser } from "@/lib/auth/session";
+import { requireAdmin } from "@/lib/auth/session";
 import { KIND_LABEL, MARITAL, PROFILE_STATUS, RELIGION, biodataNo, bn, heightLabel } from "@/lib/bn";
 import { getDb } from "@/lib/db";
 import type { Profile, ProfileKind, ProfileStatus } from "@/lib/db/schema";
@@ -23,7 +23,7 @@ const SELECT = "min-h-11 w-full rounded-xl border border-line bg-surface px-3 te
 
 /** The /patro and /patri screens: a filter column, status tabs with the count, and biodata cards. */
 export async function ProfileList({ kind, query }: { kind: ProfileKind; query: Record<string, string | string[] | undefined> }) {
-  const user = await requireUser();
+  const user = await requireAdmin();
   const p: Required<ListParams> = {
     status: text(query.status), q: text(query.q), no: text(query.no), age: text(query.age), district: text(query.district), upazila: text(query.upazila),
     religion: text(query.religion), marital: text(query.marital), education: text(query.education), profession: text(query.profession),
@@ -40,12 +40,12 @@ export async function ProfileList({ kind, query }: { kind: ProfileKind; query: R
 
   const db = getDb();
   const [rows, seen] = await Promise.all([
-    listProfiles(db, user.id, {
+    listProfiles(db, user.ghotokId, {
       kind, q: p.q, code: no, status, ageMin: age?.min, ageMax: age?.max, district: p.district, upazila: p.upazila,
       religion, maritalStatus: marital, education: p.education, profession: p.profession,
       heightMin: height?.min, heightMax: height?.max, incomeMin: income,
     }),
-    places(db, user.id),
+    places(db, user.ghotokId),
   ]);
   const districts = [...new Set(seen.map((s) => s.district))];
   const upazilas = seen.filter((s): s is { district: string; upazila: string } => Boolean(s.upazila) && (!p.district || s.district === p.district));

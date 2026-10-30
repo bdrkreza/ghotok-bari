@@ -18,19 +18,19 @@ export async function createTestDb() {
   return { db: db as unknown as Db, client };
 }
 
-/** Database plus an auth instance and a helper that signs up ghotoks through the real sign-up path. */
+/** Database plus an auth instance and a helper that signs accounts up through the real sign-up path. */
 export async function createTestApp() {
   const { db, client } = await createTestDb();
   const auth = createAuth(db, { secret: "test-secret-test-secret-test-secret", baseURL: "http://localhost:3000", nextCookies: false });
   let n = 0;
-  async function makeGhotok(name: string, password = "password-123") {
+  async function makeUser(name: string, password = "password-123") {
     const phone = `017${String(10_000_000 + n++).padStart(8, "0")}`;
     const result = await register({ auth, headers: new Headers() }, { name, phone, password });
     if (!result.ok) throw new Error(`sign-up failed: ${result.code}`);
     const [row] = await db.select().from(schema.user).where(eq(schema.user.username, phone));
     return { id: row.id, name, phone, password };
   }
-  return { db, client, auth, makeGhotok };
+  return { db, client, auth, makeUser };
 }
 
 /** A complete, valid form for a person; override what the test cares about. */
