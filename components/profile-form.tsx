@@ -2,7 +2,8 @@
 
 import type { ReactNode } from "react";
 import { ActionForm, Field, Hidden, Select, TextArea } from "@/components/form";
-import { KIND_LABEL, MARITAL, RELIGION, options } from "@/lib/bn";
+import { Icon } from "@/components/icons";
+import { KIND_LABEL, MARITAL, RELIGION, bn, options } from "@/lib/bn";
 import type { Profile, ProfileKind } from "@/lib/db/schema";
 import { submitBiodataAction, updateBiodataAction } from "@/lib/actions/biodata";
 import { createProfileAction, updateProfileAction } from "@/lib/actions/profiles";
@@ -17,17 +18,31 @@ const ACTIONS = {
   customer: { create: submitBiodataAction, update: updateBiodataAction },
 };
 
-/** The same long form for a new person and for editing one; `profile` fills it in for editing. */
+/** Beside a field's label on the family's form: whether other families get to see it. */
+function Seen({ by }: { by: "all" | "ghotok" }) {
+  return by === "all" ? (
+    <span className="inline-flex items-center gap-1 rounded-full bg-mint px-2 py-0.5 text-[11px] font-bold text-mint-ink"><Icon name="eye" size={12} />তালিকায় দেখা যায়</span>
+  ) : (
+    <span className="inline-flex items-center gap-1 rounded-full bg-sunk px-2 py-0.5 text-[11px] font-bold text-muted"><Icon name="lock" size={12} />শুধু ঘটক</span>
+  );
+}
+
+/**
+ * The same long form for a new person and for editing one; `profile` fills it in for editing. Five numbered
+ * sections, fields side by side where the screen allows, and for a family a chip on every field saying who sees it.
+ */
 export function ProfileForm({ kind, profile, minYear, maxYear, viewer = "admin" }: { kind: ProfileKind; profile?: Profile; minYear: number; maxYear: number; viewer?: Viewer }) {
   const edit = !!profile;
+  const family = viewer === "customer";
   const base: Record<string, string> = profile
     ? Object.fromEntries(Object.entries(profile).map(([k, v]) => [k, v === null || v === undefined ? "" : String(v)]))
     : {};
-  const submit = viewer === "admin"
-    ? (edit ? "সংরক্ষণ করুন" : `${KIND_LABEL[kind]} যোগ করুন`)
-    : (edit ? "সংরক্ষণ করে আবার জমা দিন" : "বায়োডাটা জমা দিন");
+  const submit = family
+    ? (edit ? "সংরক্ষণ করে আবার জমা দিন" : "বায়োডাটা জমা দিন")
+    : (edit ? "সংরক্ষণ করুন" : `${KIND_LABEL[kind]} যোগ করুন`);
+  const seen = (by: "all" | "ghotok") => (family ? <Seen by={by} /> : undefined);
   return (
-    <ActionForm action={edit ? ACTIONS[viewer].update : ACTIONS[viewer].create} submitLabel={submit}>
+    <ActionForm action={edit ? ACTIONS[viewer].update : ACTIONS[viewer].create} submitLabel={submit} pendingLabel={family ? "জমা হচ্ছে…" : undefined}>
       {(echo) => {
         const v = { ...base, ...echo };
         return (
@@ -35,50 +50,60 @@ export function ProfileForm({ kind, profile, minYear, maxYear, viewer = "admin" 
             <Hidden name="kind" value={kind} />
             {profile ? <Hidden name="id" value={profile.id} /> : null}
 
-            <Section title="পরিচয়">
-              <Field name="name" label={`${KIND_OF[kind]} নাম`} required defaultValue={v.name} autoComplete="off"
-                hint={viewer === "customer" ? "নাম শুধু ঘটক দেখবেন; তালিকায় শুধু বায়োডাটা নম্বর যায়।" : undefined} />
-              <Field name="fatherName" label="বাবার নাম" defaultValue={v.fatherName} />
-              <Field name="motherName" label="মায়ের নাম" defaultValue={v.motherName} />
-              <div className="grid grid-cols-2 gap-3">
-                <Field name="birthYear" label="জন্ম সাল" required type="number" inputMode="numeric" min={String(minYear)} max={String(maxYear)} placeholder="যেমন 1998" defaultValue={v.birthYear}
-                  hint={kind === "patro" ? "বয়স কমপক্ষে ২১" : "বয়স কমপক্ষে ১৮"} />
-                <Field name="heightCm" label="উচ্চতা (সেমি)" type="number" inputMode="numeric" min="100" max="250" placeholder="যেমন 165" defaultValue={v.heightCm} hint="৫ ফুট ≈ ১৫২ সেমি" />
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <Select name="religion" label="ধর্ম" options={options(RELIGION)} defaultValue={v.religion || "islam"} />
-                <Select name="maritalStatus" label="বৈবাহিক অবস্থা" options={options(MARITAL)} defaultValue={v.maritalStatus || "obibahito"} />
-              </div>
+            <Section n={1} title="পরিচয়" hint="নাম আর জন্ম সাল লাগবেই; বাকিটা জানা থাকলে লিখুন।">
+              <Wide>
+                <Field name="name" label={`${KIND_OF[kind]} নাম`} required defaultValue={v.name} autoComplete="off" placeholder="পূর্ণ নাম" tag={seen("ghotok")} />
+              </Wide>
+              <Field name="fatherName" label="বাবার নাম" defaultValue={v.fatherName} tag={seen("ghotok")} />
+              <Field name="motherName" label="মায়ের নাম" defaultValue={v.motherName} tag={seen("ghotok")} />
+              <Field name="birthYear" label="জন্ম সাল" required type="number" inputMode="numeric" min={String(minYear)} max={String(maxYear)} placeholder="যেমন 1998" defaultValue={v.birthYear}
+                hint={`বয়স এখান থেকেই হিসাব হয়; ${kind === "patro" ? "কমপক্ষে ২১" : "কমপক্ষে ১৮"} বছর`} tag={seen("all")} />
+              <Field name="heightCm" label="উচ্চতা (সেমি)" type="number" inputMode="numeric" min="100" max="250" placeholder="যেমন 165" defaultValue={v.heightCm} hint="৫ ফুট ≈ ১৫২ সেমি, ৫ ফুট ৬ ≈ ১৬৮" tag={seen("all")} />
+              <Select name="religion" label="ধর্ম" options={options(RELIGION)} defaultValue={v.religion || "islam"} tag={seen("all")} />
+              <Select name="maritalStatus" label="বৈবাহিক অবস্থা" options={options(MARITAL)} defaultValue={v.maritalStatus || "obibahito"} tag={seen("all")} />
             </Section>
 
-            <Section title="শিক্ষা ও পেশা">
-              <Field name="education" label="শিক্ষাগত যোগ্যতা" placeholder="যেমন এইচএসসি, অনার্স" defaultValue={v.education} />
-              <Field name="profession" label="পেশা" placeholder="যেমন কৃষি, চাকরি, ব্যবসা" defaultValue={v.profession} />
-              <Field name="monthlyIncome" label="মাসিক আয় (টাকা)" type="number" inputMode="numeric" min="0" defaultValue={v.monthlyIncome}
-                hint={viewer === "customer" ? "অন্য পরিবার দেখবে না, শুধু ঘটক।" : undefined} />
+            <Section n={2} title="শিক্ষা ও পেশা">
+              <Field name="education" label="শিক্ষাগত যোগ্যতা" placeholder="যেমন এইচএসসি, অনার্স" defaultValue={v.education} tag={seen("all")} />
+              <Field name="profession" label="পেশা" placeholder="যেমন কৃষি, চাকরি, ব্যবসা" defaultValue={v.profession} tag={seen("all")} />
+              <Field name="monthlyIncome" label="মাসিক আয় (টাকা)" type="number" inputMode="numeric" min="0" placeholder="যেমন 25000" defaultValue={v.monthlyIncome} tag={seen("ghotok")} />
             </Section>
 
-            <Section title="ঠিকানা">
-              <Field name="village" label="গ্রাম" defaultValue={v.village} />
-              <div className="grid grid-cols-2 gap-3">
-                <Field name="upazila" label="উপজেলা" defaultValue={v.upazila} />
-                <Field name="district" label="জেলা" required defaultValue={v.district} />
-              </div>
+            <Section n={3} title="ঠিকানা" hint="জেলা লাগবেই; উপজেলা দিলে কাছাকাছি মিল খুঁজতে সুবিধা।">
+              <Field name="village" label="গ্রাম" defaultValue={v.village} tag={seen("ghotok")} />
+              <Field name="upazila" label="উপজেলা" defaultValue={v.upazila} tag={seen("all")} />
+              <Field name="district" label="জেলা" required defaultValue={v.district} tag={seen("all")} />
             </Section>
 
-            <Section title="অভিভাবক">
-              <Field name="guardianName" label="অভিভাবকের নাম" defaultValue={v.guardianName} />
-              <Field name="guardianPhone" label="অভিভাবকের মোবাইল" type="tel" inputMode="tel" placeholder="01XXXXXXXXX" defaultValue={v.guardianPhone}
-                hint={viewer === "customer" ? "ঘটক এই নম্বরে কথা বলবেন; অন্য কেউ দেখবে না।" : undefined} />
-              <TextArea name="familyDetails" label="পরিবারের বিবরণ" placeholder="ভাইবোন, জমিজমা, পারিবারিক অবস্থা…" defaultValue={v.familyDetails} />
+            <Section n={4} title="অভিভাবক ও পরিবার" hint={family ? "ঘটক এই নম্বরে কথা বলবেন; অন্য কেউ দেখবে না।" : undefined}>
+              <Field name="guardianName" label="অভিভাবকের নাম" placeholder="যেমন মো. রহিম (বাবা)" defaultValue={v.guardianName} tag={seen("ghotok")} />
+              <Field name="guardianPhone" label="অভিভাবকের মোবাইল" type="tel" inputMode="tel" placeholder="01XXXXXXXXX" defaultValue={v.guardianPhone} tag={seen("ghotok")} />
+              <Wide>
+                <TextArea name="familyDetails" label="পরিবারের বিবরণ" placeholder="ভাইবোন, জমিজমা, পারিবারিক অবস্থা…" defaultValue={v.familyDetails} tag={seen("all")} />
+              </Wide>
             </Section>
 
-            <Section title="অন্যান্য">
-              <TextArea name="expectations" label="কেমন পাত্র/পাত্রী চান" placeholder="পরিবারের চাওয়া: শিক্ষা, এলাকা, পেশা…" defaultValue={v.expectations} />
-              <Field name="photoUrl" label="ছবির লিংক" type="url" inputMode="url" placeholder="https://…" defaultValue={v.photoUrl}
-                hint={viewer === "customer" ? "ছবি শুধু ঘটক দেখবেন। আপাতত লিংক বসান; সরাসরি আপলোড পরে আসবে।" : "আপাতত ছবির লিংক বসান; সরাসরি আপলোড পরে আসবে।"} />
-              {viewer === "admin" ? <TextArea name="notes" label="ঘটকের নোট" placeholder="শুধু আপনি দেখবেন" defaultValue={v.notes} /> : null}
+            <Section n={5} title="প্রত্যাশা ও ছবি" hint={family ? "প্রত্যাশা স্পষ্ট লিখলে ঘটক ভালো মিল খুঁজতে পারেন।" : undefined}>
+              <Wide>
+                <TextArea name="expectations" label="কেমন পাত্র/পাত্রী চান" placeholder="পরিবারের চাওয়া: শিক্ষা, এলাকা, পেশা…" defaultValue={v.expectations} tag={seen("all")} />
+              </Wide>
+              <Wide>
+                <Field name="photoUrl" label="ছবির লিংক" type="url" inputMode="url" placeholder="https://…" defaultValue={v.photoUrl}
+                  hint="আপাতত ছবির লিংক বসান; সরাসরি আপলোড পরে আসবে।" tag={seen("ghotok")} />
+              </Wide>
+              {family ? null : (
+                <Wide>
+                  <TextArea name="notes" label="ঘটকের নোট" placeholder="শুধু আপনি দেখবেন" defaultValue={v.notes} />
+                </Wide>
+              )}
             </Section>
+
+            {family ? (
+              <p className="flex items-start gap-2 text-sm text-muted">
+                <Icon name="shield" size={16} className="mt-0.5 shrink-0 text-primary" />
+                জমা দিলে ঘটক দেখে তালিকায় তুলবেন; তার আগে অন্য কেউ দেখবে না। পরে যেকোনো সময় বদলানো যাবে।
+              </p>
+            ) : null}
           </>
         );
       }}
@@ -86,11 +111,24 @@ export function ProfileForm({ kind, profile, minYear, maxYear, viewer = "admin" 
   );
 }
 
-function Section({ title, children }: { title: string; children: ReactNode }) {
+/** A numbered part of the form; its fields sit two to a row from `sm` up. */
+function Section({ n, title, hint, children }: { n: number; title: string; hint?: string; children: ReactNode }) {
   return (
-    <fieldset className="flex flex-col gap-3 rounded-2xl border border-line bg-surface p-4">
-      <legend className="px-1 text-sm font-bold text-primary">{title}</legend>
-      {children}
+    <fieldset className="flex flex-col gap-4 rounded-3xl border border-line bg-surface p-4 lg:p-6">
+      <legend className="sr-only">{title}</legend>
+      <div className="flex items-start gap-3">
+        <span aria-hidden className="grid size-9 shrink-0 place-items-center rounded-full bg-primary-soft font-display text-base font-bold text-primary">{bn(n)}</span>
+        <div className="min-w-0">
+          <p className="font-display text-base font-bold">{title}</p>
+          {hint ? <p className="text-sm text-muted">{hint}</p> : null}
+        </div>
+      </div>
+      <div className="grid gap-4 sm:grid-cols-2">{children}</div>
     </fieldset>
   );
+}
+
+/** A field that takes the whole row. */
+function Wide({ children }: { children: ReactNode }) {
+  return <div className="sm:col-span-2">{children}</div>;
 }

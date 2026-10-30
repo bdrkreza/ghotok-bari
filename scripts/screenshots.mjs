@@ -7,8 +7,9 @@ import { chromium } from "playwright-core";
 const base = process.env.BASE_URL ?? "http://localhost:3000";
 const out = process.env.OUT_DIR ?? "docs/screens";
 mkdirSync(out, { recursive: true });
-// Drop the previous run's captures so renumbered screens leave no stale files behind.
-for (const f of readdirSync(out)) if (/^(web-)?[0-9]{2}-.*[.]png$/.test(f)) rmSync(`${out}/${f}`);
+// Drop the previous run's captures so renumbered screens leave no stale files behind. The 00 (setup) captures
+// stay: they can only be retaken on a fresh database, where the setup screen still exists.
+for (const f of readdirSync(out)) if (/^(web-)?(0[1-9]|[1-9][0-9])-.*[.]png$/.test(f)) rmSync(`${out}/${f}`);
 
 const browser = await launch();
 const PHONE = { viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, locale: "bn-BD" };

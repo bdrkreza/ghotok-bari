@@ -24,9 +24,11 @@ interface FieldProps {
   placeholder?: string;
   hint?: string;
   defaultValue?: string;
+  /** a small chip after the label, e.g. who gets to see this field */
+  tag?: ReactNode;
 }
 
-export function Field({ name, label, type = "text", hint, required = false, id = name, ...rest }: FieldProps) {
+export function Field({ name, label, type = "text", hint, required = false, id = name, tag, ...rest }: FieldProps) {
   // a password can be shown, so a typing slip on a phone is seen before it is sent
   const [shown, setShown] = useState(false);
   const isPassword = type === "password";
@@ -44,7 +46,7 @@ export function Field({ name, label, type = "text", hint, required = false, id =
   );
   return (
     <div className="flex flex-col gap-1">
-      <label htmlFor={id} className="text-sm font-bold text-muted">{label}{required ? <span className="text-neg"> *</span> : null}</label>
+      <label htmlFor={id} className="text-sm font-bold text-muted">{label}{required ? <span className="text-neg"> *</span> : null}{tag ? <span className="ml-2 inline-flex align-middle">{tag}</span> : null}</label>
       {isPassword ? (
         <div className="relative">
           {input}
@@ -62,12 +64,12 @@ export function Field({ name, label, type = "text", hint, required = false, id =
   );
 }
 
-export function TextArea({ name, label, hint, defaultValue, placeholder, rows = 3, required = false, id = name }: {
-  name: string; id?: string; label: string; hint?: string; defaultValue?: string; placeholder?: string; rows?: number; required?: boolean;
+export function TextArea({ name, label, hint, defaultValue, placeholder, rows = 3, required = false, id = name, tag }: {
+  name: string; id?: string; label: string; hint?: string; defaultValue?: string; placeholder?: string; rows?: number; required?: boolean; tag?: ReactNode;
 }) {
   return (
     <div className="flex flex-col gap-1">
-      <label htmlFor={id} className="text-sm font-bold text-muted">{label}</label>
+      <label htmlFor={id} className="text-sm font-bold text-muted">{label}{tag ? <span className="ml-2 inline-flex align-middle">{tag}</span> : null}</label>
       <textarea id={id} name={name} rows={rows} defaultValue={defaultValue} placeholder={placeholder} required={required}
         className={`${inputClass} py-3 leading-relaxed`} />
       {hint ? <p className="text-sm text-muted">{hint}</p> : null}
@@ -85,12 +87,13 @@ interface SelectProps {
   /** an empty first choice, e.g. "বেছে নিন" */
   placeholder?: string;
   required?: boolean;
+  tag?: ReactNode;
 }
 
-export function Select({ name, label, options, hint, defaultValue, placeholder, required = false, id = name }: SelectProps) {
+export function Select({ name, label, options, hint, defaultValue, placeholder, required = false, id = name, tag }: SelectProps) {
   return (
     <div className="flex flex-col gap-1">
-      <label htmlFor={id} className="text-sm font-bold text-muted">{label}{required ? <span className="text-neg"> *</span> : null}</label>
+      <label htmlFor={id} className="text-sm font-bold text-muted">{label}{required ? <span className="text-neg"> *</span> : null}{tag ? <span className="ml-2 inline-flex align-middle">{tag}</span> : null}</label>
       <select id={id} name={name} defaultValue={defaultValue ?? (placeholder ? "" : undefined)} required={required} className={`${inputClass} px-3`}>
         {placeholder ? <option value="">{placeholder}</option> : null}
         {options.map(([v, text]) => <option key={v} value={v}>{text}</option>)}

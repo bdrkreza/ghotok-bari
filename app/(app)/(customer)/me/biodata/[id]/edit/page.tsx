@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { BiodataFormAside } from "@/components/biodata";
 import { ProfileForm } from "@/components/profile-form";
 import { PageHeader } from "@/components/ui";
 import { requireCustomer } from "@/lib/auth/session";
@@ -6,6 +7,7 @@ import { getDb } from "@/lib/db";
 import { orNotFound } from "@/lib/not-found";
 import { getMyBiodata } from "@/lib/services/biodata";
 import { MIN_AGE } from "@/lib/services/profiles";
+import { publicSite } from "@/lib/services/site";
 import { currentYear } from "@/lib/time";
 
 export const metadata: Metadata = { title: "বায়োডাটা বদলান" };
@@ -13,13 +15,15 @@ export const metadata: Metadata = { title: "বায়োডাটা বদ�
 export default async function EditMyBiodataPage(props: PageProps<"/me/biodata/[id]/edit">) {
   const me = await requireCustomer();
   const { id } = await props.params;
-  const p = await orNotFound(getMyBiodata(getDb(), me.ghotokId, me.id, id));
+  const db = getDb();
+  const [p, site] = await Promise.all([orNotFound(getMyBiodata(db, me.ghotokId, me.id, id)), publicSite(db)]);
   const year = currentYear();
   return (
     <>
       <PageHeader title={p.name} back={`/me/biodata/${p.id}`} sub="বদলে জমা দিলে ঘটক আবার দেখে তালিকায় তুলবেন" />
-      <div className="lg:max-w-2xl">
+      <div className="flex flex-col gap-5 lg:grid lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start lg:gap-8">
         <ProfileForm kind={p.kind} profile={p} minYear={year - 100} maxYear={year - MIN_AGE[p.kind]} viewer="customer" />
+        <BiodataFormAside site={site} />
       </div>
     </>
   );

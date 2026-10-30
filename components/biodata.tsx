@@ -1,10 +1,50 @@
 import type { ReactNode } from "react";
 import { Avatar } from "./avatar";
 import { Icon, type IconName } from "./icons";
-import { ProfileBadge } from "./ui";
+import { ContactButtons } from "./site";
+import { Card, ProfileBadge } from "./ui";
 import { MARITAL, RELIGION, biodataNo, bn, heightLabel } from "@/lib/bn";
 import type { MaritalStatus, ProfileKind, ProfileStatus, Religion } from "@/lib/db/schema";
+import type { PublicSite } from "@/lib/services/site";
 import { ageFromYear } from "@/lib/time";
+
+const TIPS = [
+  "যতটুকু জানেন ততটুকুই লিখুন; পরে যেকোনো সময় বদলানো যায়।",
+  "জন্ম সাল ঠিক দিন, বয়স এখান থেকেই হিসাব হয়।",
+  "প্রত্যাশা স্পষ্ট লিখলে ঘটক ভালো মিল খুঁজতে পারেন।",
+];
+
+/** Beside the family's biodata form on a wide screen: how to fill it in, who sees what, and the ghotok to call. */
+export function BiodataFormAside({ site }: { site: PublicSite | null }) {
+  return (
+    <aside className="flex flex-col gap-4 lg:sticky lg:top-24">
+      <Card title="কীভাবে লিখবেন">
+        <ul className="flex flex-col gap-2 text-sm text-muted">
+          {TIPS.map((t) => (
+            <li key={t} className="flex items-start gap-2"><Icon name="check" size={16} className="mt-0.5 shrink-0 text-pos" />{t}</li>
+          ))}
+        </ul>
+      </Card>
+      <Card title="কে কী দেখে">
+        <p className="flex items-start gap-2 text-sm">
+          <span className="mt-0.5 inline-flex shrink-0 items-center gap-1 rounded-full bg-mint px-2 py-0.5 text-[11px] font-bold text-mint-ink"><Icon name="eye" size={12} />তালিকায় দেখা যায়</span>
+          <span className="text-muted">বয়স, উচ্চতা, ধর্ম, বৈবাহিক অবস্থা, শিক্ষা, পেশা, উপজেলা-জেলা, পরিবার, প্রত্যাশা</span>
+        </p>
+        <p className="flex items-start gap-2 text-sm">
+          <span className="mt-0.5 inline-flex shrink-0 items-center gap-1 rounded-full bg-sunk px-2 py-0.5 text-[11px] font-bold text-muted"><Icon name="lock" size={12} />শুধু ঘটক</span>
+          <span className="text-muted">নাম, ছবি, বাবা-মা, অভিভাবকের নম্বর, গ্রাম, আয়</span>
+        </p>
+        <p className="text-sm text-muted">তালিকায় নাম নয়, শুধু বায়োডাটা নম্বর যায়; আগ্রহী পরিবার ঘটককে সেই নম্বর বলে।</p>
+      </Card>
+      {site ? (
+        <Card title="আটকে গেলে">
+          <p className="text-sm text-muted">{site.ghotokName} ফোনে শুনে নিজেই লিখে দিতে পারেন।</p>
+          <ContactButtons phone={site.phone} whatsapp={site.whatsapp} />
+        </Card>
+      ) : null}
+    </aside>
+  );
+}
 
 /** The fields a family may see of someone else's biodata (FAMILY_VIEW in lib/services/share.ts). */
 export interface FamilyView {
