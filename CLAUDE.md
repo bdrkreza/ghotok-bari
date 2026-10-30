@@ -20,6 +20,9 @@ Read README.md for the screens, roles, data model and setup.
 - A family's own biodata goes through `lib/services/biodata.ts`, scoped to `(db, ghotokId, ownerUserId, ...)`. What a
   family sees of anyone else is selected through `FAMILY_VIEW` in `lib/services/share.ts` and nothing more; only
   `approval = "approved"` rows are listed, counted, matched, proposed or shared (`profileWhere` defaults to that).
+- "ফাইল থেকে ভরুন" (`components/biodata-import.tsx`) only pre-fills the form. Without `ANTHROPIC_API_KEY` everything
+  runs in the browser (`lib/biodata-import/extract.ts` + the pure, tested `parse.ts`); with it, `lib/actions/import.ts`
+  sends the file to Claude (`lib/biodata-import/ai.ts`). Keep the two paths returning the same `Imported` fields.
 - Expected failures throw `AppError(code)` (`lib/errors.ts`); `attempt()` in `lib/form.ts` turns them into a Bangla
   message for the form. Raw error text never reaches the user.
 - Server actions take `(prev: FormState, form: FormData)` and are used through `ActionForm` in `components/form.tsx`.

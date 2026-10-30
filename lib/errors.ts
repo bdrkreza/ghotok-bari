@@ -15,7 +15,9 @@ export type AppErrorCode =
   | "owner_role"
   | "site_exists"
   | "not_approved"
-  | "ask_ghotok";
+  | "ask_ghotok"
+  | "import_failed"
+  | "file_too_big";
 
 export class AppError extends Error {
   constructor(public readonly code: AppErrorCode, detail?: string) {
@@ -40,5 +42,7 @@ export function messageFor(code: AppErrorCode): string {
     case "site_exists": return "এই সাইট আগেই চালু করা হয়েছে। লগইন করুন।";
     case "not_approved": return "এই বায়োডাটা এখনো তালিকায় ওঠেনি; আগে অনুমোদন দিন।";
     case "ask_ghotok": return "তালিকায় থাকা বায়োডাটা সরাতে ঘটককে ফোন করুন।";
+    case "import_failed": return "ফাইলটি পড়া গেল না। অন্য ছবি দিন, বা ঘরগুলো নিজে ভরুন।";
+    case "file_too_big": return "ফাইল ১০ মেগাবাইটের বেশি; ছোট করে দিন।";
   }
 }

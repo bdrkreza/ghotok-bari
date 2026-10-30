@@ -51,6 +51,24 @@ resubmit. Any change a family makes afterwards puts it back to pending. A family
 is unlisted; a listed one is removed by the ghotok. What families see of each other is decided in one place,
 `FAMILY_VIEW` in `lib/services/share.ts`, and is the same set of fields the public link shows.
 
+### Filling the form from a file
+
+Families usually already have a biodata: a Word file, a PDF, or a photo of a printed sheet. "ফাইল থেকে ভরুন" on the
+new-biodata form (a family's and the ghotok's) fills the fields from it; the person then checks and submits. Two
+paths, chosen by whether `ANTHROPIC_API_KEY` is set:
+
+- **Free, in the browser** (no key): Word and PDF text is read exactly (`mammoth`, `pdf.js`); a photo, or a PDF that
+  is only a scan, goes through OCR in the page (Tesseract.js, Bangla + English, loading its language data from its
+  CDN on first use). Then `lib/biodata-import/parse.ts` maps labels and sections to fields by rules: "Name"/"নাম",
+  "Date of Birth" to the year, 5'3" to centimetres, the permanent address split into village / upazila / district
+  with the district's English spelling turned into Bangla, parents, siblings, "About me". Nothing leaves the phone.
+- **With a key**: the file goes to Claude (`claude-opus-5-5` unless `BIODATA_AI_MODEL` says otherwise) through a
+  server action, which returns the same fields in the same shape (structured output). Handwriting, unusual layouts
+  and prose read far better; roughly 1-2 taka per biodata. The file is read and forgotten, never stored.
+
+Fields that came from the file carry a "ফাইল থেকে" chip. Blood group, weight and complexion have no fields of their
+own and land in পরিবারের বিবরণ as short lines. Nothing is ever submitted automatically.
+
 ### Coming next
 
 "আগ্রহ জানান": a family marks interest in a biodata, the ghotok sees it in an inbox and turns it into a proposal;

@@ -5,6 +5,7 @@ import { Icon } from "@/components/icons";
 import { ProfileForm } from "@/components/profile-form";
 import { PageHeader } from "@/components/ui";
 import { requireCustomer } from "@/lib/auth/session";
+import { aiAvailable } from "@/lib/biodata-import/ai";
 import { KIND_LABEL } from "@/lib/bn";
 import { getDb } from "@/lib/db";
 import { MIN_AGE } from "@/lib/services/profiles";
@@ -38,7 +39,7 @@ export default async function NewBiodataPage(props: PageProps<"/me/biodata/new">
               ))}
             </div>
           </div>
-          <ProfileForm kind={kind} minYear={year - 100} maxYear={year - MIN_AGE[kind]} viewer="customer" />
+          <ProfileForm kind={kind} minYear={year - 100} maxYear={year - MIN_AGE[kind]} viewer="customer" importable ai={aiAvailable()} />
         </div>
         <BiodataFormAside site={site} />
       </div>
