@@ -12,7 +12,7 @@ export type AuthErrorCode =
   | "wrong_credentials"
   | "unknown";
 
-export type AuthResult = { ok: true } | { ok: false; code: AuthErrorCode };
+export type AuthResult = { ok: true; userId?: string } | { ok: false; code: AuthErrorCode };
 
 const fail = (code: AuthErrorCode): AuthResult => ({ ok: false, code });
 
@@ -57,8 +57,8 @@ export async function login(deps: Deps, input: { phone: string; password: string
   // the response never reveals whether an account exists.
   if (!phone || !input.password) return fail("wrong_credentials");
   try {
-    await deps.auth.api.signInUsername({ body: { username: phone, password: input.password, rememberMe: input.remember ?? true }, headers: deps.headers });
-    return { ok: true };
+    const res = await deps.auth.api.signInUsername({ body: { username: phone, password: input.password, rememberMe: input.remember ?? true }, headers: deps.headers });
+    return { ok: true, userId: (res as { user?: { id: string } } | null)?.user?.id };
   } catch (e) {
     if (e instanceof APIError) return fail("wrong_credentials");
     console.error("login failed", e);

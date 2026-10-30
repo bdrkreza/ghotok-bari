@@ -9,7 +9,8 @@ Village matchmaker (ghotok) ledger. Read README.md for the screens, data model a
 - UI text is Bangla, written directly in JSX. Numbers shown to the user go through `bn()` / `taka()` in `lib/bn.ts`.
 - Every read and write lives in `lib/services/*`, takes `(db, ghotokId, ...)` and is scoped to that ghotok. Pages and
   actions never query tables directly. One exception: `publicBiodata(db, token)` in
-  `lib/services/share.ts`, where the share token is the credential.
+  `lib/services/share.ts`, where the share token is the credential; and `lib/services/admin.ts` reads across ghotoks
+  for the admin role, every function there calling `assertAdmin` first.
 - Expected failures throw `AppError(code)` (`lib/errors.ts`); `attempt()` in `lib/form.ts` turns them into a Bangla
   message for the form. Raw error text never reaches the user.
 - Server actions take `(prev: FormState, form: FormData)` and are used through `ActionForm` in `components/form.tsx`.

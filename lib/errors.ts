@@ -9,7 +9,9 @@ export type AppErrorCode =
   | "same_kind"
   | "proposal_exists"
   | "bad_transition"
-  | "amount_required";
+  | "amount_required"
+  | "forbidden"
+  | "self_role";
 
 export class AppError extends Error {
   constructor(public readonly code: AppErrorCode, detail?: string) {
@@ -28,5 +30,7 @@ export function messageFor(code: AppErrorCode): string {
     case "proposal_exists": return "এই পাত্র-পাত্রীর প্রস্তাব আগেই দেওয়া আছে।";
     case "bad_transition": return "এই অবস্থা থেকে এখানে যাওয়া যায় না।";
     case "amount_required": return "টাকার পরিমাণ দিন।";
+    case "forbidden": return "এই কাজের অনুমতি আপনার নেই।";
+    case "self_role": return "নিজের ভূমিকা নিজে বদলানো যায় না; অন্য একজন অ্যাডমিনকে বলুন।";
   }
 }

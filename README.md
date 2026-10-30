@@ -4,7 +4,8 @@
 every proposal and how far the talks have gone, and the money agreed, received and spent.
 
 Each ghotok signs in with a phone number and password and sees only their own records. Several ghotoks can share
-one deployment. One codebase serves both a **website** (a top-bar layout on a computer) and a **phone app**
+one deployment. An **admin** role sees every ghotok's counts and money totals at `/admin` (never their people); the first
+admins are named in `ADMIN_PHONES`, and an admin can make others admins from that page. One codebase serves both a **website** (a top-bar layout on a computer) and a **phone app**
 (installed from the browser onto the home screen); see [Web and mobile](#web-and-mobile).
 
 ## Screens
@@ -22,6 +23,7 @@ one deployment. One codebase serves both a **website** (a top-bar layout on a co
 | `/proposals/[id]` | Stage changes with a timeline, notes, and the money for this match |
 | `/hisab` | Ledger: agreed fees (চুক্তি), payments received (জমা), own expenses (খরচ) |
 | `/settings` | Account, install on the phone, light or dark theme, sign out |
+| `/admin` | Admin only: ghotoks, people, proposals and marriages in total, money across all ledgers, every ghotok with their counts, make or unmake admins |
 | `/offline` | What the installed app shows when there is no internet |
 
 Proposal stages: প্রস্তাব দেওয়া → দেখাশোনা → কথা চলছে → বিয়ে ঠিক → বিয়ে হয়েছে, or বাদ at any point.
@@ -81,7 +83,8 @@ npm run dev
 
 Without a `DATABASE_URL`, the app runs on an embedded Postgres (PGlite) stored in `./.data/alta-dev`; `npm run dev`
 applies the migrations to it first. Open http://localhost:3000 and press **ডেমো ডেটা তৈরি করে ঢুকুন** on the login
-page to get a demo ghotok (`01700000000` / `alta1234`) with sample people, proposals and ledger entries. Delete the
+page to get a demo ghotok (`01700000000` / `alta1234`) with sample people, proposals and ledger entries, a second
+ghotok, and a demo admin (`01700000009` / `alta1234`) for `/admin`. Delete the
 `.data` folder to start over. After adding a migration, `node scripts/dev-db.mjs` applies it while `npm run dev` keeps running. `ALTA_DEV_DB_DIR` in `.env.local` moves the database to another folder: create it first with `ALTA_DEV_DB_DIR=./.data/alta-fresh node scripts/dev-db.mjs`, then set the variable, and the running server switches over. This mode is for local work only; production refuses to start without a database.
 
 To try the installed-app behaviour locally, use a production build (`npm run build && npm start`): the service

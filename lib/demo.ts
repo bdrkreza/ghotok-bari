@@ -10,6 +10,9 @@ import { today } from "./time";
 
 /** The account the demo data belongs to. Only ever created on the embedded development database. */
 export const DEMO = { name: "আব্দুল করিম ঘটক", phone: "01700000000", password: "alta1234" };
+/** A demo admin, to see /admin; and a second ghotok, so the admin list has more than one row. */
+export const DEMO_ADMIN = { name: "আলতা অ্যাডমিন", phone: "01700000009", password: "alta1234" };
+const DEMO_OTHER = { name: "রহিমা বেগম ঘটক", phone: "01700000002", password: "alta1234" };
 
 const daysAgo = (n: number) => {
   const d = new Date();
@@ -19,19 +22,34 @@ const daysAgo = (n: number) => {
 
 /**
  * Fills a fresh development database with one ghotok and a realistic week of work, so every screen has
- * something on it. Signs that ghotok in (Better Auth sets the cookie). Does nothing if the account exists.
+ * something on it, plus a demo admin and a second ghotok. Signs the demo ghotok in (Better Auth sets the cookie). Run again,
+ * it only adds whichever demo accounts are missing and signs the ghotok in.
  */
 export async function seedDemo(db: Db, auth: Auth, headers: Headers): Promise<{ created: boolean }> {
-  const existing = await db.query.user.findFirst({ where: eq(user.username, DEMO.phone) });
-  if (existing) return { created: false };
+  const exists = async (phone: string) => Boolean(await db.query.user.findFirst({ where: eq(user.username, phone) }));
 
-  await auth.api.signUpEmail({
-    body: { name: DEMO.name, email: placeholderEmail(DEMO.phone), password: DEMO.password, username: DEMO.phone },
-    headers,
-  });
-  const me = await db.query.user.findFirst({ where: eq(user.username, DEMO.phone) });
-  if (!me) throw new Error("demo sign-up failed");
-  const g = me.id;
+  const signUp = async (acct: { name: string; phone: string; password: string }) => {
+    await auth.api.signUpEmail({ body: { name: acct.name, email: placeholderEmail(acct.phone), password: acct.password, username: acct.phone }, headers });
+    const row = await db.query.user.findFirst({ where: eq(user.username, acct.phone) });
+    if (!row) throw new Error("demo sign-up failed");
+    return row.id;
+  };
+  // Every sign-up sets the cookie, so the other accounts go first and the browser ends up as the demo ghotok.
+  if (!(await exists(DEMO_ADMIN.phone))) {
+    const adminId = await signUp(DEMO_ADMIN);
+    await db.update(user).set({ role: "admin" }).where(eq(user.id, adminId));
+  }
+  if (!(await exists(DEMO_OTHER.phone))) {
+    const otherId = await signUp(DEMO_OTHER);
+    await createProfile(db, otherId, { kind: "patri", religion: "islam", maritalStatus: "obibahito", name: "সালমা আক্তার", birthYear: "2001", district: "টাঙ্গাইল", upazila: "মির্জাপুর", education: "এইচএসসি" });
+    await createProfile(db, otherId, { kind: "patro", religion: "islam", maritalStatus: "obibahito", name: "মাহবুব আলম", birthYear: "1993", district: "টাঙ্গাইল", upazila: "সখীপুর", profession: "ব্যবসা" });
+  }
+  if (await exists(DEMO.phone)) {
+    // seeded earlier, perhaps before the accounts above existed: just sign the browser in as the demo ghotok
+    await auth.api.signInUsername({ body: { username: DEMO.phone, password: DEMO.password }, headers }).catch(() => undefined);
+    return { created: false };
+  }
+  const g = await signUp(DEMO);
 
   const person = (kind: "patro" | "patri", over: Record<string, string>) =>
     createProfile(db, g, { kind, religion: "islam", maritalStatus: "obibahito", ...over });

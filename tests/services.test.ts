@@ -1,7 +1,9 @@
 import { beforeAll, describe, expect, it } from "vitest";
 import { login } from "@/lib/auth/service";
+import { roleOf } from "@/lib/auth/roles";
 import { AppError } from "@/lib/errors";
 import { biodataNo, bnNumber, initial, initials, taka } from "@/lib/bn";
+import { listGhotoks, platformStats, setRole } from "@/lib/services/admin";
 import { dashboard } from "@/lib/services/dashboard";
 import { addEntry, listEntries, totals } from "@/lib/services/ledger";
 import { suggestFor } from "@/lib/services/match";
@@ -32,8 +34,8 @@ describe("sign-in", () => {
   it("accepts the phone in any common spelling, and only with the right password", async () => {
     const deps = { auth: app.auth, headers: new Headers() };
     expect(await login(deps, { phone: ghotok.phone, password: "wrong-password" })).toEqual({ ok: false, code: "wrong_credentials" });
-    expect(await login(deps, { phone: `+880 ${ghotok.phone.slice(1, 5)}-${ghotok.phone.slice(5)}`, password: ghotok.password })).toEqual({ ok: true });
-    expect(await login(deps, { phone: ghotok.phone, password: ghotok.password, remember: false })).toEqual({ ok: true });
+    expect(await login(deps, { phone: `+880 ${ghotok.phone.slice(1, 5)}-${ghotok.phone.slice(5)}`, password: ghotok.password })).toMatchObject({ ok: true });
+    expect(await login(deps, { phone: ghotok.phone, password: ghotok.password, remember: false })).toMatchObject({ ok: true });
   });
 });
 
@@ -263,5 +265,46 @@ describe("sharing a biodata", () => {
     await unshareBiodata(app.db, ghotok.id, id);
     expect(await publicBiodata(app.db, token)).toBeNull();
     expect(await getShare(app.db, ghotok.id, id)).toBeNull();
+  });
+});
+
+describe("roles and the admin view", () => {
+  const as = (id: string, phone: string, role: "ghotok" | "admin"): { id: string; name: string; phone: string; role: "ghotok" | "admin" } => ({ id, name: "x", phone, role });
+
+  it("is ghotok by default, admin through ADMIN_PHONES, and keeps the admin view locked", async () => {
+    expect(await roleOf(app.db, ghotok.id)).toBe("ghotok");
+    process.env.ADMIN_PHONES = ` ${ghotok.phone} , nonsense`;
+    expect(await roleOf(app.db, ghotok.id)).toBe("admin");
+    expect(await roleOf(app.db, other.id)).toBe("ghotok");
+    delete process.env.ADMIN_PHONES;
+    expect(await roleOf(app.db, ghotok.id)).toBe("ghotok");
+    expect(await code(platformStats(app.db, as(other.id, "0", "ghotok")))).toBe("forbidden");
+    expect(await code(listGhotoks(app.db, as(other.id, "0", "ghotok")))).toBe("forbidden");
+  });
+
+  it("counts across ghotoks and lets an admin promote others, never themselves", async () => {
+    await setRole(app.db, as(ghotok.id, ghotok.phone, "admin"), other.id, "admin");
+    expect(await roleOf(app.db, other.id)).toBe("admin");
+    const admin = as(other.id, "0", "admin");
+
+    const stats = await platformStats(app.db, admin);
+    expect(stats.ghotoks).toBe(2);
+    expect(stats.marriages).toBeGreaterThanOrEqual(1);
+    expect(stats.joma).toBe(5000);
+
+    const rows = await listGhotoks(app.db, admin);
+    expect(rows.map((r) => r.id).sort()).toEqual([ghotok.id, other.id].sort());
+    const mine = rows.find((r) => r.id === ghotok.id)!;
+    expect(mine.profiles).toBeGreaterThan(5);
+    expect(mine.joma).toBe(5000);
+    expect(mine.role).toBe("ghotok");
+    expect((await listGhotoks(app.db, admin, "অন্য")).map((r) => r.id)).toEqual([other.id]);
+
+    expect(await code(setRole(app.db, admin, other.id, "ghotok"))).toBe("self_role");
+    expect(await code(setRole(app.db, admin, "no-such-id", "admin"))).toBe("not_found");
+    await setRole(app.db, admin, ghotok.id, "admin");
+    expect(await roleOf(app.db, ghotok.id)).toBe("admin");
+    await setRole(app.db, admin, ghotok.id, "ghotok");
+    expect(await roleOf(app.db, ghotok.id)).toBe("ghotok");
   });
 });

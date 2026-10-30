@@ -6,15 +6,14 @@ import { quietButton } from "@/components/ui";
 import { seedDemoAction } from "@/lib/actions/demo";
 import { getSessionUser } from "@/lib/auth/session";
 import { usingDevDb } from "@/lib/db";
-import { DEMO } from "@/lib/demo";
+import { DEMO, DEMO_ADMIN } from "@/lib/demo";
 import { LoginForm } from "../forms";
 import { AuthCard, AuthHeading, Or } from "../ui";
 
 export const metadata: Metadata = { title: "লগইন" };
 
-export default async function LoginPage(props: PageProps<"/login">) {
+export default async function LoginPage() {
   if (await getSessionUser()) redirect("/");
-  const query = await props.searchParams;
   const dev = process.env.NODE_ENV !== "production" && usingDevDb();
   return (
     <>
@@ -28,8 +27,7 @@ export default async function LoginPage(props: PageProps<"/login">) {
               <button type="submit" className={`${quietButton} w-full`}><Icon name="sparkle" size={18} />ডেমো ডেটা তৈরি করে ঢুকুন</button>
             </form>
             <p className="text-center text-sm text-muted">
-              Development: ডেমো অ্যাকাউন্ট <span className="font-mono font-bold">{DEMO.phone}</span> / <span className="font-mono font-bold">{DEMO.password}</span>
-              {query.demo === "exists" ? " আগেই তৈরি আছে, উপরে লগইন করুন।" : null}
+              Development: ঘটক <span className="font-mono font-bold">{DEMO.phone}</span> / <span className="font-mono font-bold">{DEMO.password}</span>, অ্যাডমিন <span className="font-mono font-bold">{DEMO_ADMIN.phone}</span> / <span className="font-mono font-bold">{DEMO_ADMIN.password}</span>
             </p>
           </>
         ) : null}

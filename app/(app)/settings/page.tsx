@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { Icon } from "@/components/icons";
 import { InstallCard } from "@/components/pwa";
 import { ThemeCard } from "@/components/theme";
@@ -22,6 +23,12 @@ export default async function SettingsPage() {
           </form>
         </Card>
         <ThemeCard />
+        {user.role === "admin" ? (
+          <Card title="অ্যাডমিন">
+            <p className="text-sm text-muted">আপনি অ্যাডমিন: সব ঘটকের সংখ্যা, টাকার মোট আর তালিকা দেখতে পারেন।</p>
+            <Link href="/admin" className={quietButton}><Icon name="shield" size={18} />অ্যাডমিন ড্যাশবোর্ড</Link>
+          </Card>
+        ) : null}
         <InstallCard />
         <Card title="আলতা সম্পর্কে">
           <p className="text-sm text-muted">

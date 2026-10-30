@@ -3,6 +3,9 @@
 import { relations } from "drizzle-orm";
 import { boolean, index, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 
+/** "ghotok" runs their own ledger; "admin" also sees every ghotok at /admin (counts, never their people). */
+export type Role = "ghotok" | "admin";
+
 export const user = pgTable("user", {
   id: text("id").primaryKey(),
   name: text("name").notNull(),
@@ -13,6 +16,8 @@ export const user = pgTable("user", {
   updatedAt: timestamp("updated_at").defaultNow().$onUpdate(() => new Date()).notNull(),
   username: text("username").unique(),
   displayUsername: text("display_username"),
+  /** set by another admin from /admin; ADMIN_PHONES in the environment makes the first admins without touching this */
+  role: text("role").$type<Role>().notNull().default("ghotok"),
 }).enableRLS();
 
 export const session = pgTable("session", {

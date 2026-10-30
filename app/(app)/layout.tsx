@@ -10,7 +10,7 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
   const user = await requireUser();
   return (
     <div className="flex min-h-dvh flex-col">
-      <TopNav userName={user.name} />
+      <TopNav userName={user.name} admin={user.role === "admin"} />
       <header className="sticky top-0 z-10 border-b border-line bg-bg/90 backdrop-blur lg:hidden">
         <div className="mx-auto flex h-14 max-w-md items-center justify-between px-4">
           <Link href="/" className="flex items-center gap-2 font-display text-lg font-extrabold">
@@ -18,6 +18,9 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
             আলতা
           </Link>
           <div className="flex items-center gap-1">
+            {user.role === "admin" ? (
+              <Link href="/admin" aria-label="অ্যাডমিন" className="grid size-10 place-items-center rounded-full border border-line text-primary"><Icon name="shield" size={20} /></Link>
+            ) : null}
             <ThemeButton />
             <Link href="/settings" className="flex items-center gap-2 rounded-xl px-2 py-1 text-sm font-semibold text-muted">
               <span className="max-w-32 truncate">{user.name}</span>

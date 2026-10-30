@@ -2,8 +2,10 @@
 
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { getDb } from "../db";
 import type { FormState } from "../form";
 import { getAuth } from "./index";
+import { roleOf } from "./roles";
 import { authMessage, login, register } from "./service";
 
 const text = (form: FormData, key: string) => String(form.get(key) ?? "");
@@ -22,7 +24,9 @@ export async function loginAction(_prev: FormState, form: FormData): Promise<For
   const remember = form.get("remember") === "on";
   const result = await login(await deps(), { ...values, password: text(form, "password"), remember });
   if (!result.ok) return { error: authMessage(result.code), values };
-  redirect("/");
+  // admins land on the platform view, everyone else on their own ledger
+  const role = result.userId ? await roleOf(getDb(), result.userId) : "ghotok";
+  redirect(role === "admin" ? "/admin" : "/");
 }
 
 export async function logoutAction(): Promise<void> {

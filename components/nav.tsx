@@ -44,7 +44,7 @@ export function Nav() {
 }
 
 /** Web: a bar across the top with the mark, the same five screens and who is signed in (opens settings). Only on wide screens (lg). */
-export function TopNav({ userName }: { userName: string }) {
+export function TopNav({ userName, admin = false }: { userName: string; admin?: boolean }) {
   const active = useActive();
   const settingsOn = active("/settings");
   return (
@@ -67,6 +67,12 @@ export function TopNav({ userName }: { userName: string }) {
               </Link>
             );
           })}
+          {admin ? (
+            <Link href="/admin" aria-current={active("/admin") ? "page" : undefined}
+              className={`flex items-center gap-1.5 border-b-2 px-3.5 font-bold ${active("/admin") ? "border-primary text-primary" : "border-transparent text-muted hover:text-ink"}`}>
+              <Icon name="shield" size={18} />অ্যাডমিন
+            </Link>
+          ) : null}
         </nav>
         <ThemeButton className="my-auto" />
         <Link href="/settings" aria-current={settingsOn ? "page" : undefined}

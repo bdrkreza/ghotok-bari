@@ -143,6 +143,25 @@ await webShot(web, "/", "home-dark");
 await web.emulateMedia({ colorScheme: "light" });
 await webShot(web, publicPath, "public-biodata");
 
+// The admin dashboard: a separate sign-in as the demo admin, phone and web.
+const signIn = async (tab, phone, password, landing) => {
+  await tab.goto(`${base}/login`);
+  await tab.fill("#phone", phone);
+  await tab.fill("#password", password);
+  await tab.getByRole("button", { name: "লগইন করুন" }).click();
+  await tab.waitForURL((u) => u.pathname === landing, { timeout: 60_000 });
+  await tab.waitForLoadState("networkidle");
+};
+const adminPhone = await (await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, locale: "bn-BD" })).newPage();
+await signIn(adminPhone, "01700000009", "alta1234", "/admin");
+await adminPhone.addStyleTag({ content: CAPTURE_CSS });
+const adminFile = `${out}/${String(++n).padStart(2, "0")}-admin.png`;
+await adminPhone.screenshot({ path: adminFile, fullPage: true });
+console.log(adminFile);
+const adminWeb = await (await browser.newContext(WIDE)).newPage();
+await signIn(adminWeb, "01700000009", "alta1234", "/admin");
+await webShot(adminWeb, "/admin", "admin");
+
 await browser.close();
 
 async function launch() {

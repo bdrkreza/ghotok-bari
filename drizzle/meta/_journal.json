@@ -15,6 +15,13 @@
       "when": 1793364256586,
       "tag": "0001_mixed_virginia_dare",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1793367638024,
+      "tag": "0002_clumsy_whirlwind",
+      "breakpoints": true
     }
   ]
 }
