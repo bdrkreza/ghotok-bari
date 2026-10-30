@@ -32,6 +32,7 @@ export default async function MePage() {
           {pending ? `আপনার ${bn(pending)}টি বায়োডাটা ঘটক দেখছেন।` : "আপনার বায়োডাটা দিলে ঘটক মিলিয়ে দেখবেন।"}
         </p>
         <div className="grid grid-cols-2 gap-3 sm:flex">
+          <Link href="/me/biodata/new" className={`${primaryButton} col-span-2 sm:col-span-1`}><Icon name="plus" size={18} />বায়োডাটা জমা দিন</Link>
           <Link href="/patro" className={outlineButton}>পাত্র দেখুন</Link>
           <Link href="/patri" className={outlineButton}>পাত্রী দেখুন</Link>
         </div>
@@ -70,12 +71,15 @@ export default async function MePage() {
             </ul>
           ) : (
             <Empty action={
-              <div className="grid grid-cols-2 gap-3">
-                <Link href="/me/biodata/new?kind=patro" className={outlineButton}><Icon name="plus" size={18} />পাত্রের</Link>
-                <Link href="/me/biodata/new?kind=patri" className={primaryButton}><Icon name="plus" size={18} />পাত্রীর</Link>
+              <div className="flex flex-col gap-2">
+                <p className="text-sm font-bold text-ink">কার বায়োডাটা দেবেন?</p>
+                <div className="grid grid-cols-2 gap-3">
+                  <Link href="/me/biodata/new?kind=patro" className={outlineButton}><Icon name="groom" size={18} />পাত্রের বায়োডাটা</Link>
+                  <Link href="/me/biodata/new?kind=patri" className={primaryButton}><Icon name="bride" size={18} />পাত্রীর বায়োডাটা</Link>
+                </div>
               </div>
             }>
-              এখনো কোনো বায়োডাটা দেওয়া হয়নি। নিজের বা পরিবারের কারও জন্য বায়োডাটা দিন; ঘটক দেখে তালিকায় তুলবেন।
+              এখনো কোনো বায়োডাটা দেওয়া হয়নি। নিজের বা পরিবারের কারও জন্য দিন; ঘটক দেখে তালিকায় তুলবেন।
             </Empty>
           )}
           <HowItWorks />
