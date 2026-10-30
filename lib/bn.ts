@@ -81,3 +81,6 @@ export function initial(name: string): string {
 
 /** First letters of the first two words: "আব্দুল করিম ঘটক" -> "আক" */
 export const initials = (name: string) => name.trim().split(/\s+/).filter(Boolean).slice(0, 2).map(initial).join("") || "?";
+
+/** The biodata number as families hear it: ("patri", 7) -> "পাত্রী-৭" */
+export const biodataNo = (kind: ProfileKind, code: number) => `${KIND_LABEL[kind]}-${bn(code)}`;

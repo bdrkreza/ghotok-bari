@@ -88,6 +88,12 @@ await settle();
 const hasanPath = new URL(page.url()).pathname;
 await shot("profile-hasan");
 
+// switch on the public biodata link for this person (a second run finds it already on) and keep the path for later
+const makeLink = page.getByRole("button", { name: "শেয়ার লিংক তৈরি করুন" });
+if (await makeLink.count()) await makeLink.click();
+await page.getByLabel("শেয়ার লিংক").waitFor({ timeout: 30_000 });
+const publicPath = new URL(await page.getByLabel("শেয়ার লিংক").inputValue()).pathname;
+
 await go("/patri");
 await page.getByRole("link", { name: /নাজমা বেগম/ }).click();
 await page.waitForURL(/\/profiles\/[0-9a-f-]+$/);
@@ -118,6 +124,10 @@ await shot("settings");
 await go("/offline");
 await shot("offline");
 
+// what a family sees from the shared link (public: the cookie jar makes no difference, and the web captures below still need it)
+await go(publicPath);
+await shot("public-biodata");
+
 // The signed-in screens at laptop width, in a second tab that shares the sign-in cookies.
 const web = await (await browser.newContext({ ...WIDE, storageState: await context.storageState() })).newPage();
 await webShot(web, "/", "home");
@@ -130,6 +140,8 @@ await webShot(web, "/settings", "settings");
 // the dashboard again with the computer set to dark
 await web.emulateMedia({ colorScheme: "dark" });
 await webShot(web, "/", "home-dark");
+await web.emulateMedia({ colorScheme: "light" });
+await webShot(web, publicPath, "public-biodata");
 
 await browser.close();
 

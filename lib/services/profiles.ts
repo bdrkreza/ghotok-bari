@@ -1,4 +1,4 @@
-import { and, desc, eq, gte, ilike, lte, or, type SQL } from "drizzle-orm";
+import { and, desc, eq, gte, ilike, lte, or, sql, type SQL } from "drizzle-orm";
 import { z } from "zod";
 import type { Db } from "../db";
 import { profile, type MaritalStatus, type Profile, type ProfileKind, type ProfileStatus, type Religion } from "../db/schema";
@@ -65,7 +65,11 @@ export function parseProfile(raw: Record<string, string>) {
 export async function createProfile(db: Db, ghotokId: string, raw: Record<string, string>): Promise<string> {
   const data = parseProfile(raw);
   const id = crypto.randomUUID();
-  await db.insert(profile).values({ id, ghotokId, ...data });
+  // the next biodata number for this ghotok and kind. A ghotok adds people one at a time; should two inserts ever
+  // race, the unique index (ghotok, kind, code) makes one fail instead of handing out the same number twice.
+  const [{ next }] = await db.select({ next: sql<number>`coalesce(max(${profile.code}), 0)::int + 1` }).from(profile)
+    .where(and(eq(profile.ghotokId, ghotokId), eq(profile.kind, data.kind)));
+  await db.insert(profile).values({ id, ghotokId, code: next, ...data });
   return id;
 }
 
@@ -97,6 +101,8 @@ export interface ProfileFilter {
   /** matches name, village, upazila or district */
   q?: string;
   status?: ProfileStatus | "all";
+  /** the biodata number, exact */
+  code?: number;
   /** an age band in whole years, both ends inclusive */
   ageMin?: number;
   ageMax?: number;
@@ -117,6 +123,7 @@ export interface ProfileFilter {
 export async function listProfiles(db: Db, ghotokId: string, filter: ProfileFilter): Promise<Profile[]> {
   const where: SQL[] = [eq(profile.ghotokId, ghotokId), eq(profile.kind, filter.kind)];
   if (filter.status && filter.status !== "all") where.push(eq(profile.status, filter.status));
+  if (filter.code !== undefined) where.push(eq(profile.code, filter.code));
   // an age band becomes birth-year bounds: someone aged 25 this year was born in (year - 25)
   const year = currentYear();
   if (filter.ageMin !== undefined) where.push(lte(profile.birthYear, year - filter.ageMin));
@@ -154,7 +161,7 @@ export async function places(db: Db, ghotokId: string): Promise<Place[]> {
 
 /** The people added or edited most recently, both kinds together, for the dashboard. */
 export async function recentProfiles(db: Db, ghotokId: string, limit = 6) {
-  return db.select({ id: profile.id, kind: profile.kind, name: profile.name, district: profile.district, photoUrl: profile.photoUrl, status: profile.status })
+  return db.select({ id: profile.id, code: profile.code, kind: profile.kind, name: profile.name, district: profile.district, photoUrl: profile.photoUrl, status: profile.status })
     .from(profile).where(eq(profile.ghotokId, ghotokId)).orderBy(desc(profile.updatedAt)).limit(limit);
 }
 

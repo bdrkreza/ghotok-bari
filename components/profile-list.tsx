@@ -5,11 +5,11 @@ import { FilterPanel } from "./filters";
 import { Icon, type IconName } from "./icons";
 import { Empty, PageHeader, ProfileBadge, primaryButton, quietButton } from "./ui";
 import { requireUser } from "@/lib/auth/session";
-import { KIND_LABEL, MARITAL, PROFILE_STATUS, RELIGION, bn, heightLabel } from "@/lib/bn";
+import { KIND_LABEL, MARITAL, PROFILE_STATUS, RELIGION, biodataNo, bn, heightLabel } from "@/lib/bn";
 import { getDb } from "@/lib/db";
 import type { Profile, ProfileKind, ProfileStatus } from "@/lib/db/schema";
 import {
-  AGE_RANGES, HEIGHT_RANGES, INCOME_MINS, ageLabel, heightLabelFor, incomeLabel, listHref, parseAmount, parseBand, type ListParams,
+  AGE_RANGES, HEIGHT_RANGES, INCOME_MINS, ageLabel, heightLabelFor, incomeLabel, listHref, parseAmount, parseBand, parseNo, type ListParams,
 } from "@/lib/search";
 import { MARITAL_STATUSES, RELIGIONS, listProfiles, places } from "@/lib/services/profiles";
 import { ageFromYear } from "@/lib/time";
@@ -17,8 +17,6 @@ import { ageFromYear } from "@/lib/time";
 const STATUSES: (ProfileStatus | "all")[] = ["active", "all", "engaged", "married", "inactive"];
 const text = (v: string | string[] | undefined) => (typeof v === "string" ? v.trim() : "");
 const pick = <T extends string>(all: readonly T[], v: string): T | undefined => ((all as readonly string[]).includes(v) ? (v as T) : undefined);
-/** A short code from the row id, so a family can be told "বায়োডাটা 3F9A2C" without a name. */
-const shortCode = (id: string) => id.slice(0, 6).toUpperCase();
 
 // compact controls for the filter column (the shared Field is sized for forms you fill in)
 const SELECT = "min-h-11 w-full rounded-xl border border-line bg-surface px-3 text-sm outline-none focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/40";
@@ -27,12 +25,13 @@ const SELECT = "min-h-11 w-full rounded-xl border border-line bg-surface px-3 te
 export async function ProfileList({ kind, query }: { kind: ProfileKind; query: Record<string, string | string[] | undefined> }) {
   const user = await requireUser();
   const p: Required<ListParams> = {
-    status: text(query.status), q: text(query.q), age: text(query.age), district: text(query.district), upazila: text(query.upazila),
+    status: text(query.status), q: text(query.q), no: text(query.no), age: text(query.age), district: text(query.district), upazila: text(query.upazila),
     religion: text(query.religion), marital: text(query.marital), education: text(query.education), profession: text(query.profession),
     height: text(query.height), income: text(query.income),
   };
   // anything malformed in the URL is dropped, so the chips and the query agree
   const status = pick(STATUSES, p.status) ?? "active";
+  const no = parseNo(p.no); if (no === undefined) p.no = "";
   const age = parseBand(p.age); if (!age) p.age = "";
   const height = parseBand(p.height); if (!height) p.height = "";
   const income = parseAmount(p.income); if (income === undefined) p.income = "";
@@ -42,7 +41,7 @@ export async function ProfileList({ kind, query }: { kind: ProfileKind; query: R
   const db = getDb();
   const [rows, seen] = await Promise.all([
     listProfiles(db, user.id, {
-      kind, q: p.q, status, ageMin: age?.min, ageMax: age?.max, district: p.district, upazila: p.upazila,
+      kind, q: p.q, code: no, status, ageMin: age?.min, ageMax: age?.max, district: p.district, upazila: p.upazila,
       religion, maritalStatus: marital, education: p.education, profession: p.profession,
       heightMin: height?.min, heightMax: height?.max, incomeMin: income,
     }),
@@ -53,6 +52,7 @@ export async function ProfileList({ kind, query }: { kind: ProfileKind; query: R
 
   const chips = ([
     ["q", p.q && `“${p.q}”`],
+    ["no", no === undefined ? "" : `নম্বর ${bn(no)}`],
     ["age", p.age && `${ageLabel(p.age)} বছর`],
     ["district", p.district],
     ["upazila", p.upazila],
@@ -84,6 +84,7 @@ export async function ProfileList({ kind, query }: { kind: ProfileKind; query: R
               </div>
             </div>
             <Group icon="groom" title="প্রাথমিক" open>
+              <TextField name="no" label="বায়োডাটা নম্বর" value={p.no} placeholder="যেমন: ১২" />
               <div className="flex flex-col gap-1">
                 <span className="text-xs font-bold text-muted">কাকে খুঁজছেন</span>
                 <div className="grid grid-cols-2 gap-1.5">
@@ -175,7 +176,7 @@ function BiodataCard({ p }: { p: Profile }) {
     <li className="grid grid-cols-[6.5rem_1fr] overflow-hidden rounded-2xl border border-line bg-surface sm:grid-cols-[7.5rem_1fr]">
       <div className="flex flex-col items-center justify-center gap-3 bg-sunk p-3">
         <Avatar kind={p.kind} photoUrl={p.photoUrl} className="size-18 sm:size-20" />
-        <span className="rounded-full bg-surface px-2.5 py-0.5 font-mono text-[11px] font-bold tracking-wide text-muted">{shortCode(p.id)}</span>
+        <span className="rounded-full bg-surface px-2.5 py-0.5 text-xs font-bold text-muted">{biodataNo(p.kind, p.code)}</span>
       </div>
       <div className="flex min-w-0 flex-col gap-2.5 p-4">
         <div className="flex items-start justify-between gap-2">

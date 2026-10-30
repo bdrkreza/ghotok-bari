@@ -32,6 +32,8 @@ export const profile = pgTable("profile", {
   id: id(),
   ghotokId: text("ghotok_id").notNull().references(() => user.id, { onDelete: "cascade" }),
   kind: text("kind").$type<ProfileKind>().notNull(),
+  /** the biodata number families are told: counts up from 1 per ghotok and kind ("পাত্র-১২"), set on insert */
+  code: integer("code").notNull(),
   name: text("name").notNull(),
   fatherName: text("father_name"),
   motherName: text("mother_name"),
@@ -57,7 +59,21 @@ export const profile = pgTable("profile", {
   notes: text("notes"),
   status: text("status").$type<ProfileStatus>().notNull().default("active"),
   ...timestamps,
-}, (t) => [index("profile_ghotok_kind_status").on(t.ghotokId, t.kind, t.status)]).enableRLS();
+}, (t) => [
+  index("profile_ghotok_kind_status").on(t.ghotokId, t.kind, t.status),
+  uniqueIndex("profile_ghotok_kind_code").on(t.ghotokId, t.kind, t.code),
+]).enableRLS();
+
+/**
+ * A public, read-only biodata link the ghotok hands to a family: /b/<token>. The token is the only credential, so it
+ * is random and long enough to guess at nobody. One link per person; deleting the row switches the link off.
+ */
+export const biodataShare = pgTable("biodata_share", {
+  token: text("token").primaryKey(),
+  ghotokId: text("ghotok_id").notNull().references(() => user.id, { onDelete: "cascade" }),
+  profileId: uuid("profile_id").notNull().unique().references(() => profile.id, { onDelete: "cascade" }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}).enableRLS();
 
 /* ---------- proposals ---------- */
 
@@ -134,3 +150,4 @@ export type Profile = typeof profile.$inferSelect;
 export type Proposal = typeof proposal.$inferSelect;
 export type ProposalEvent = typeof proposalEvent.$inferSelect;
 export type LedgerEntry = typeof ledgerEntry.$inferSelect;
+export type BiodataShare = typeof biodataShare.$inferSelect;

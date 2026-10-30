@@ -47,6 +47,12 @@ export const parseAge = parseBand;
 export const parseAmount = (value: string | undefined): number | undefined =>
   /^\d{1,9}$/.test(value ?? "") ? Number(value) : undefined;
 
+/** A biodata number as typed: "পাত্রী-৭", "৭" or "7" -> 7; nothing numeric -> undefined */
+export function parseNo(value: string | undefined): number | undefined {
+  const digits = (value ?? "").replace(/[০-৯]/g, (d) => String("০১২৩৪৫৬৭৮৯".indexOf(d))).replace(/\D/g, "");
+  return digits && digits.length <= 9 ? Number(digits) : undefined;
+}
+
 const label = (ranges: readonly { value: string; label: string }[], value: string) => ranges.find((r) => r.value === value)?.label ?? bn(value);
 /** The band as the ghotok reads it: "১৮ – ২৫" */
 export const ageLabel = (value: string) => label(AGE_RANGES, value);
@@ -60,6 +66,8 @@ export interface Place { district: string; upazila: string | null }
 export interface ListParams {
   status?: string;
   q?: string;
+  /** biodata number */
+  no?: string;
   age?: string;
   district?: string;
   upazila?: string;

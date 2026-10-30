@@ -15,7 +15,8 @@ one deployment. One codebase serves both a **website** (a top-bar layout on a co
 | `/` | Dashboard: greeting, a search bar into the lists, how many patro/patri are looking, live proposals, money at a glance, recent people |
 | `/patro`, `/patri` | Biodata cards of grooms and brides, with a filter column: status, age, place, religion, marital status, education, profession, height, income |
 | `/profiles/new?kind=patro` | Add a person (name, age, education, address, guardian, family, expectations) |
-| `/profiles/[id]` | One person: details, their proposals, suggested matches, status, delete |
+| `/profiles/[id]` | One person: details, their proposals, suggested matches, status, public share link, delete |
+| `/b/[token]` | Public biodata a ghotok chose to share: biodata number, age, height, religion, marital status, education, profession, upazila and district, family, expectations, and the ghotok's number; no name, photo, parents, guardian phone, village, income or notes. Switched on and off from the person's page |
 | `/proposals` | Every proposal, filtered by stage |
 | `/proposals/new` | Pair one patro with one patri |
 | `/proposals/[id]` | Stage changes with a timeline, notes, and the money for this match |
@@ -81,7 +82,7 @@ npm run dev
 Without a `DATABASE_URL`, the app runs on an embedded Postgres (PGlite) stored in `./.data/alta-dev`; `npm run dev`
 applies the migrations to it first. Open http://localhost:3000 and press **ডেমো ডেটা তৈরি করে ঢুকুন** on the login
 page to get a demo ghotok (`01700000000` / `alta1234`) with sample people, proposals and ledger entries. Delete the
-`.data` folder to start over. This mode is for local work only; production refuses to start without a database.
+`.data` folder to start over. After adding a migration, `node scripts/dev-db.mjs` applies it while `npm run dev` keeps running. `ALTA_DEV_DB_DIR` in `.env.local` moves the database to another folder: create it first with `ALTA_DEV_DB_DIR=./.data/alta-fresh node scripts/dev-db.mjs`, then set the variable, and the running server switches over. This mode is for local work only; production refuses to start without a database.
 
 To try the installed-app behaviour locally, use a production build (`npm run build && npm start`): the service
 worker is not registered by the dev server. Installing needs HTTPS, except on `localhost`.

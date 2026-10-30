@@ -1,13 +1,14 @@
 import { beforeAll, describe, expect, it } from "vitest";
 import { login } from "@/lib/auth/service";
 import { AppError } from "@/lib/errors";
-import { bnNumber, initial, initials, taka } from "@/lib/bn";
+import { biodataNo, bnNumber, initial, initials, taka } from "@/lib/bn";
 import { dashboard } from "@/lib/services/dashboard";
 import { addEntry, listEntries, totals } from "@/lib/services/ledger";
 import { suggestFor } from "@/lib/services/match";
 import { listHref, parseAge } from "@/lib/search";
 import { createProfile, getProfile, listProfiles, places, updateProfile } from "@/lib/services/profiles";
 import { addNote, changeStatus, createProposal, getProposal, listProposals, proposalsFor } from "@/lib/services/proposals";
+import { getShare, publicBiodata, shareBiodata, unshareBiodata } from "@/lib/services/share";
 import { currentYear } from "@/lib/time";
 import { createTestApp, personForm } from "./testdb";
 
@@ -100,6 +101,16 @@ describe("people", () => {
     expect(await names({ incomeMin: 26000 })).toEqual(["লম্বা শিক্ষক"]);
     expect(await names({ profession: "শিক্ষক" })).toEqual(["লম্বা শিক্ষক"]);
     expect((await names({ education: "এইচএসসি" })).length).toBeGreaterThan(1);
+  });
+
+  it("numbers people per kind as they are added, separately for each ghotok", async () => {
+    const a = await getProfile(app.db, ghotok.id, await createProfile(app.db, ghotok.id, personForm({ kind: "patri", name: "নম্বর ক" })));
+    const b = await getProfile(app.db, ghotok.id, await createProfile(app.db, ghotok.id, personForm({ kind: "patri", name: "নম্বর খ" })));
+    expect(b.code).toBe(a.code + 1);
+    const first = await getProfile(app.db, other.id, await createProfile(app.db, other.id, personForm({ kind: "patri", name: "অন্যের প্রথম" })));
+    expect(first.code).toBe(1);
+    expect((await listProfiles(app.db, ghotok.id, { kind: "patri", code: b.code })).map((p) => p.name)).toEqual(["নম্বর খ"]);
+    expect(biodataNo("patri", 7)).toBe("পাত্রী-৭");
   });
 });
 
@@ -227,5 +238,30 @@ describe("search bar", () => {
     expect(initial("রুমা খাতুন")).toBe("রু");
     expect(initials("আব্দুল করিম ঘটক")).toBe("আক");
     expect(initials("  ")).toBe("?");
+  });
+});
+
+describe("sharing a biodata", () => {
+  it("shows only the agreed fields behind a random token, and stops when switched off", async () => {
+    const id = await createProfile(app.db, ghotok.id, personForm({
+      kind: "patri", name: "গোপন নাম", guardianPhone: "01811111111", monthlyIncome: "12000", notes: "ব্যক্তিগত নোট", familyDetails: "সম্ভ্রান্ত পরিবার", heightCm: "160",
+    }));
+    expect(await getShare(app.db, ghotok.id, id)).toBeNull();
+    const token = await shareBiodata(app.db, ghotok.id, id);
+    expect(token).toMatch(/^[A-Za-z0-9_-]{12}$/);
+    expect(await shareBiodata(app.db, ghotok.id, id)).toBe(token); // a second switch-on keeps the same link
+    expect(await code(shareBiodata(app.db, other.id, id))).toBe("not_found");
+
+    const pub = await publicBiodata(app.db, token);
+    expect(pub).toMatchObject({ kind: "patri", heightCm: 160, familyDetails: "সম্ভ্রান্ত পরিবার", district: "কুমিল্লা", ghotok: { name: "আব্দুল ঘটক", phone: ghotok.phone } });
+    const shown = JSON.stringify(pub);
+    for (const secret of ["গোপন নাম", "01811111111", "12000", "ব্যক্তিগত নোট", "চরপাড়া", "করিম উদ্দিন"]) expect(shown).not.toContain(secret);
+    expect(await publicBiodata(app.db, "nope")).toBeNull();
+
+    await unshareBiodata(app.db, other.id, id); // another ghotok's switch does nothing
+    expect(await publicBiodata(app.db, token)).not.toBeNull();
+    await unshareBiodata(app.db, ghotok.id, id);
+    expect(await publicBiodata(app.db, token)).toBeNull();
+    expect(await getShare(app.db, ghotok.id, id)).toBeNull();
   });
 });

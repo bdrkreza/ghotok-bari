@@ -33,7 +33,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="bn" className="h-full antialiased" suppressHydrationWarning>
       <body className="min-h-full font-sans">
-        {/* applies a saved light/dark choice before anything paints; see lib/theme.ts */}
+        {/* Applies a saved light/dark choice before anything paints (lib/theme.ts). It runs as the HTML is parsed; React
+            only hydrates it. The dev warning about scripts in components appears solely when a server render fails and
+            React has to draw the page on the client, where this would not run anyway (ThemeSync then applies the theme). */}
         <script dangerouslySetInnerHTML={{ __html: THEME_BOOT_SCRIPT }} />
         {children}
         <ServiceWorker />

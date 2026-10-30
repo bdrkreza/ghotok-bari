@@ -44,10 +44,12 @@ export function createAuth(db: Db, opts: AuthOptions = {}) {
 
 export type Auth = ReturnType<typeof createAuth>;
 
-let cached: Auth | undefined;
+let cached: { db: Db; auth: Auth } | undefined;
 
-/** Built on first use, so importing this file needs neither a database nor secrets. */
+/** Built on first use, so importing this file needs neither a database nor secrets. Rebuilt when the database handle
+ *  changes, which happens when the embedded dev database is reopened after a migration (lib/db/index.ts). */
 export function getAuth(): Auth {
-  cached ??= createAuth(getDb());
-  return cached;
+  const db = getDb();
+  if (cached?.db !== db) cached = { db, auth: createAuth(db) };
+  return cached.auth;
 }

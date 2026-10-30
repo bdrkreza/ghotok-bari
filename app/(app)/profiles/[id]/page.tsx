@@ -1,14 +1,17 @@
 import Link from "next/link";
 import { Icon } from "@/components/icons";
 import { DeleteProfileForm, ProfileStatusForm } from "@/components/proposal-forms";
+import { ShareCard } from "@/components/share";
 import { Badge, Card, Empty, Facts, PageHeader, ProfileBadge, ProposalBadge, RowLink, primaryButton, quietButton } from "@/components/ui";
 import { requireUser } from "@/lib/auth/session";
-import { KIND_LABEL, MARITAL, RELIGION, bn, heightLabel, taka } from "@/lib/bn";
+import { MARITAL, RELIGION, biodataNo, bn, heightLabel, taka, KIND_LABEL } from "@/lib/bn";
 import { getDb } from "@/lib/db";
 import { orNotFound } from "@/lib/not-found";
+import { siteOrigin } from "@/lib/origin";
 import { suggestFor } from "@/lib/services/match";
 import { getProfile } from "@/lib/services/profiles";
 import { proposalsFor } from "@/lib/services/proposals";
+import { getShare } from "@/lib/services/share";
 import { ageFromYear, formatDate } from "@/lib/time";
 
 export default async function ProfilePage(props: PageProps<"/profiles/[id]">) {
@@ -16,16 +19,18 @@ export default async function ProfilePage(props: PageProps<"/profiles/[id]">) {
   const { id } = await props.params;
   const db = getDb();
   const p = await orNotFound(getProfile(db, user.id, id));
-  const [proposals, suggestions] = await Promise.all([
+  const [proposals, suggestions, share, origin] = await Promise.all([
     proposalsFor(db, user.id, p.id),
     p.status === "active" ? suggestFor(db, user.id, p) : Promise.resolve([]),
+    getShare(db, user.id, p.id),
+    siteOrigin(),
   ]);
   const other = p.kind === "patro" ? "patri" : "patro";
   const pairHref = (otherId: string) => `/proposals/new?${p.kind}=${p.id}&${other}=${otherId}`;
 
   return (
     <>
-      <PageHeader title={p.name} back={`/${p.kind}`} sub={`${KIND_LABEL[p.kind]} · ${bn(ageFromYear(p.birthYear))} বছর`}
+      <PageHeader title={p.name} back={`/${p.kind}`} sub={`${biodataNo(p.kind, p.code)} · ${bn(ageFromYear(p.birthYear))} বছর`}
         action={<Link href={`/profiles/${p.id}/edit`} aria-label="সম্পাদনা" className="grid size-11 place-items-center rounded-2xl border border-line bg-surface"><Icon name="edit" /></Link>} />
 
       {/* One column on a phone, in this order. On a wide screen the person and their matches sit on the left, the controls on the right. */}
@@ -107,6 +112,8 @@ export default async function ProfilePage(props: PageProps<"/profiles/[id]">) {
             <ProfileStatusForm id={p.id} current={p.status} />
             <p className="text-xs text-muted">প্রস্তাব &quot;বিয়ে ঠিক&quot; বা &quot;বিয়ে হয়েছে&quot; হলে অবস্থা নিজে থেকেই বদলায়।</p>
           </Card>
+
+          <ShareCard id={p.id} no={biodataNo(p.kind, p.code)} link={share ? `${origin}/b/${share}` : null} />
 
           <details className="rounded-2xl border border-line bg-surface p-4">
             <summary className="cursor-pointer font-semibold text-neg">মুছে ফেলুন</summary>
