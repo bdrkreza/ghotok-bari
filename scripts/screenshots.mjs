@@ -186,7 +186,8 @@ await shot(customer, "customer-patri-list");
 const seenPath = await follow(customer, customer.getByRole("link", { name: /বায়োডাটা দেখুন/ }).first(), /\/biodata\/[0-9a-f-]+$/);
 await shot(customer, "customer-biodata");
 await go(customer, "/me");
-await follow(customer, customer.getByRole("link", { name: /সুমাইয়া আক্তার/ }), /\/me\/biodata\/[0-9a-f-]+$/);
+// the family's own biodata card carries two buttons; "দেখুন" opens it
+await follow(customer, customer.locator("li", { hasText: "সুমাইয়া আক্তার" }).getByRole("link", { name: "দেখুন" }), /\/me\/biodata\/[0-9a-f-]+$/);
 await shot(customer, "customer-my-biodata");
 const customerWeb = await (await browser.newContext({ ...WIDE, storageState: await customer.context().storageState() })).newPage();
 await webShot(customerWeb, "/me", "customer-home");
