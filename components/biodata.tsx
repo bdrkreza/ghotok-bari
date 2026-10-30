@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { ReactNode } from "react";
 import { Avatar } from "./avatar";
 import { Icon, type IconName } from "./icons";
@@ -102,6 +103,26 @@ export function FamilyBiodata({ b, aside }: { b: FamilyView; aside?: ReactNode }
         {aside}
       </div>
     </div>
+  );
+}
+
+/** A small card of someone else's biodata for a family: number, the first facts, and a link to the full view. */
+export function FamilyBiodataCard({ b }: { b: FamilyView & { id: string } }) {
+  const no = biodataNo(b.kind, b.code);
+  const facts = [
+    `${bn(ageFromYear(b.birthYear))} বছর`,
+    [b.upazila, b.district].filter(Boolean).join(", "),
+    b.profession ?? b.education ?? "",
+  ].filter(Boolean);
+  return (
+    <Link href={`/biodata/${b.id}`} aria-label={`${no}: বায়োডাটা দেখুন`} className="flex items-center gap-3 rounded-2xl border border-line bg-surface p-3 hover:border-primary/40">
+      <Avatar kind={b.kind} className="size-14" />
+      <span className="min-w-0 flex-1">
+        <span className="block font-display font-bold">{no}</span>
+        <span className="block truncate text-sm text-muted">{facts.join(" · ")}</span>
+      </span>
+      <Icon name="chevronRight" size={18} className="shrink-0 text-muted" />
+    </Link>
   );
 }
 

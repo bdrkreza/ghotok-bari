@@ -52,6 +52,13 @@ export async function browseBiodata(db: Db, ghotokId: string, filter: BrowseFilt
 
 export type FamilyBiodata = Awaited<ReturnType<typeof browseBiodata>>[number];
 
+/** The latest listed people of both kinds, as a family sees them, for the family's home page. */
+export async function recentBiodata(db: Db, ghotokId: string, limit = 4): Promise<FamilyBiodata[]> {
+  return db.select({ id: profile.id, ...FAMILY_VIEW }).from(profile)
+    .where(and(eq(profile.ghotokId, ghotokId), eq(profile.approval, "approved"), eq(profile.status, "active")))
+    .orderBy(desc(profile.updatedAt)).limit(limit);
+}
+
 /** One approved biodata as a family sees it, or null. */
 export async function browseOne(db: Db, ghotokId: string, id: string): Promise<FamilyBiodata | null> {
   const [row] = await db.select({ id: profile.id, ...FAMILY_VIEW }).from(profile)
