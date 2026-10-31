@@ -87,8 +87,8 @@ export function ProfileForm({ kind, profile, minYear, maxYear, viewer = "admin",
                 <Wide>
                   <Field name="name" label={t(`form.nameOf.${kind}`)} required defaultValue={v.name} autoComplete="off" placeholder={t("form.fullName")} tag={tags("name", "ghotok")} />
                 </Wide>
-                <Field name="fatherName" label={t("form.father")} defaultValue={v.fatherName} tag={tags("fatherName", "ghotok")} />
-                <Field name="motherName" label={t("form.mother")} defaultValue={v.motherName} tag={tags("motherName", "ghotok")} />
+                <Field name="fatherName" label={t("form.father")} placeholder={t("form.fatherPlaceholder")} defaultValue={v.fatherName} tag={tags("fatherName", "ghotok")} />
+                <Field name="motherName" label={t("form.mother")} placeholder={t("form.motherPlaceholder")} defaultValue={v.motherName} tag={tags("motherName", "ghotok")} />
                 <Field name="birthYear" label={t("form.birthYear")} required type="number" inputMode="numeric" min={String(minYear)} max={String(maxYear)} placeholder={t("form.birthYearPlaceholder")} defaultValue={v.birthYear}
                   hint={t("form.birthYearHint", { n: kind === "patro" ? 21 : 18 })} tag={tags("birthYear", "all")} />
                 <Field name="heightCm" label={t("form.height")} type="number" inputMode="numeric" min="100" max="250" placeholder={t("form.heightPlaceholder")} defaultValue={v.heightCm} hint={t("form.heightHint")} tag={tags("heightCm", "all")} />
@@ -103,14 +103,14 @@ export function ProfileForm({ kind, profile, minYear, maxYear, viewer = "admin",
               </Section>
 
               <Section n={n(3)} title={t("form.s3")} hint={t("form.s3Hint")}>
-                <Field name="village" label={t("form.village")} defaultValue={v.village} tag={tags("village", "ghotok")} />
-                <Field name="upazila" label={t("form.upazila")} defaultValue={v.upazila} tag={tags("upazila", "all")} />
-                <Field name="district" label={t("form.district")} required defaultValue={v.district} tag={tags("district", "all")} />
+                <Field name="village" label={t("form.village")} placeholder={t("form.villagePlaceholder")} defaultValue={v.village} tag={tags("village", "ghotok")} />
+                <Field name="upazila" label={t("form.upazila")} placeholder={t("form.upazilaPlaceholder")} defaultValue={v.upazila} tag={tags("upazila", "all")} />
+                <Field name="district" label={t("form.district")} placeholder={t("form.districtPlaceholder")} required defaultValue={v.district} tag={tags("district", "all")} />
               </Section>
 
               <Section n={n(4)} title={t("form.s4")} hint={family ? t("form.s4Hint") : undefined}>
                 <Field name="guardianName" label={t("form.guardianName")} placeholder={t("form.guardianPlaceholder")} defaultValue={v.guardianName} tag={tags("guardianName", "ghotok")} />
-                <Field name="guardianPhone" label={t("form.guardianPhone")} type="tel" inputMode="tel" placeholder="01XXXXXXXXX" defaultValue={v.guardianPhone} tag={tags("guardianPhone", "ghotok")} />
+                <Field name="guardianPhone" label={t("form.guardianPhone")} type="tel" inputMode="tel" placeholder={t("form.guardianPhonePlaceholder")} defaultValue={v.guardianPhone} tag={tags("guardianPhone", "ghotok")} />
                 <Wide>
                   <TextArea name="familyDetails" label={t("form.family")} placeholder={t("form.familyPlaceholder")} defaultValue={v.familyDetails} rows={v.familyDetails && v.familyDetails.length > 120 ? 6 : 3} tag={tags("familyDetails", "all")} />
                 </Wide>
