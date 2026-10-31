@@ -113,7 +113,7 @@ export function Hidden({ name, value }: { name: string; value: string }) {
 export function Checkbox({ name, label, defaultChecked = false, id = name }: { name: string; id?: string; label: string; defaultChecked?: boolean }) {
   return (
     <label htmlFor={id} className="flex items-center gap-3">
-      <input id={id} type="checkbox" name={name} defaultChecked={defaultChecked} className="size-5 shrink-0 accent-[var(--primary)]" />
+      <input id={id} type="checkbox" name={name} defaultChecked={defaultChecked} className="size-5 shrink-0 accent-primary" />
       <span>{label}</span>
     </label>
   );
@@ -123,7 +123,7 @@ export function Checkbox({ name, label, defaultChecked = false, id = name }: { n
 export function ConfirmCheck({ name = "confirm", label }: { name?: string; label: string }) {
   return (
     <label className="flex items-start gap-3 text-sm font-semibold">
-      <input type="checkbox" name={name} required className="mt-0.5 size-5 shrink-0 accent-[var(--primary)]" />
+      <input type="checkbox" name={name} required className="mt-0.5 size-5 shrink-0 accent-primary" />
       <span>{label}</span>
     </label>
   );

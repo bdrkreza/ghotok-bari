@@ -26,7 +26,7 @@ export default async function AuthLayout({ children }: LayoutProps<"/">) {
   const features = site ? FAMILY_FEATURES : SETUP_FEATURES;
   return (
     <div className="flex min-h-dvh flex-col lg:flex-row">
-      <aside className="bg-panel px-4 py-4 text-on-panel lg:sticky lg:top-0 lg:flex lg:h-dvh lg:w-[26rem] lg:shrink-0 lg:flex-col lg:justify-between lg:px-12 lg:py-12 xl:w-[30rem] 2xl:w-[36rem] 2xl:px-14">
+      <aside className="bg-panel px-4 py-4 text-on-panel lg:sticky lg:top-0 lg:flex lg:h-dvh lg:w-104 lg:shrink-0 lg:flex-col lg:justify-between lg:px-12 lg:py-12 xl:w-120 2xl:w-xl 2xl:px-14">
         <div className="mx-auto flex w-full max-w-md items-center gap-3 lg:mx-0 lg:max-w-none">
           <span aria-hidden className="grid size-11 shrink-0 place-items-center rounded-2xl bg-on-panel font-display text-xl font-extrabold text-panel lg:size-14 lg:text-2xl">ঘ</span>
           <div className="flex min-w-0 flex-1 flex-col">
@@ -37,7 +37,7 @@ export default async function AuthLayout({ children }: LayoutProps<"/">) {
         </div>
         <div className="hidden flex-col items-start gap-5 lg:flex">
           <span className="rounded-full bg-panel-soft px-3.5 py-1 text-sm font-bold text-panel">{site ? t("auth.forFamilies") : t("auth.firstTime")}</span>
-          <p className="max-w-md font-display text-4xl/[1.25] font-extrabold text-balance xl:text-5xl/[1.25]">
+          <p className="max-w-md font-display text-4xl/tight font-extrabold text-balance xl:text-5xl/tight">
             {site ? t("auth.familyHeadline") : t("auth.setupHeadline")}
           </p>
           <p className="max-w-sm text-lg leading-relaxed text-on-panel/85">{site ? t("auth.familyPitch") : t("auth.setupPitch")}</p>

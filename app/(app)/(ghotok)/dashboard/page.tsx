@@ -125,7 +125,7 @@ export default async function HomePage() {
             {d.people.map((p) => (
               <li key={p.id}>
                 <Link href={`/profiles/${p.id}`} className="flex flex-col gap-2.5 rounded-2xl border border-line bg-surface p-2.5 hover:border-primary/40">
-                  <span className="relative block aspect-[4/3] overflow-hidden rounded-xl bg-sunk">
+                  <span className="relative block aspect-4/3 overflow-hidden rounded-xl bg-sunk">
                     {p.photoUrl ? (
                       // a plain <img>: the link may point anywhere, and next/image would need every host listed in config
                       // eslint-disable-next-line @next/next/no-img-element
