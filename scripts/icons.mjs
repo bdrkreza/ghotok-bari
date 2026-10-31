@@ -19,7 +19,7 @@ const html = ({ size, radius, glyph }) => `<!doctype html><html><head><meta char
   html, body { margin: 0; background: transparent; }
   body { width: ${size}px; height: ${size}px; display: grid; place-items: center; }
   .tile { width: ${size}px; height: ${size}px; border-radius: ${radius}px; display: grid; place-items: center;
-          background: linear-gradient(160deg, #c62a45 0%, #b3213a 55%, #93172e 100%); }
+          background: linear-gradient(160deg, #a64a24 0%, #8a3b1c 55%, #672a12 100%); }
   .glyph { font: 800 ${glyph}px/1 Baloo; color: #fff; transform: translateY(${Math.round(glyph * 0.055)}px); }
 </style></head><body><div class="tile"><span class="glyph">আ</span></div></body></html>`;
 

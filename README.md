@@ -98,8 +98,12 @@ The same pages render two layouts, chosen by screen width (Tailwind's `lg` break
   settings); a wider page; and two columns where there is room (dashboard, person, proposal, ledger, front page).
   Forms stay one narrow column. Edge and Chrome offer to install it as a desktop app from the address bar too.
 
-Colours follow the phone's light or dark setting. **সেটিংস → থিম** fixes one on that device (kept in the browser, not on
-the server), and the sun/moon button in either bar flips it in one tap.
+The look is mehedi: the brown-red of dried henna for buttons and links, deep henna for text and the sign-in panel, a
+skin-cream ground, leaf green for good news and a true red for what is owed. Ornaments drawn from a hand's henna sit
+faintly on the page (`public/henna/*.svg`, applied as CSS masks from `app/globals.css`): a vine-and-paisley in two
+corners of every page and in each home's hero card, a lattice band under every bar and over the phone's tab bar, and a
+ring of dots around the "ঘ" mark. Colours follow the phone's light or dark setting. **সেটিংস → থিম** fixes one on that
+device (kept in the browser, not on the server), and the sun/moon button in either bar flips it in one tap.
 
 The phone layout's DOM order is kept on every screen; the wide layout only regroups cards into columns.
 

@@ -7,7 +7,7 @@ export type Theme = "system" | "light" | "dark";
 export const THEME_KEY = "alta-theme";
 
 /** The page background of each scheme, also pushed into the browser's bar (theme-color). */
-export const THEME_COLORS = { light: "#f8f6f3", dark: "#14161d" } as const;
+export const THEME_COLORS = { light: "#f9f3ea", dark: "#171009" } as const;
 
 export const THEMES: { value: Theme; label: string }[] = [
   { value: "system", label: "ফোনের মতো" },

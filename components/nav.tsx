@@ -54,7 +54,7 @@ export function Nav({ role }: { role: Role }) {
   const active = useActive();
   const { t } = useT();
   return (
-    <nav aria-label={t("nav.main")} className="fixed inset-x-0 bottom-0 z-20 border-t border-line bg-surface/95 backdrop-blur pb-[env(safe-area-inset-bottom)] lg:hidden">
+    <nav aria-label={t("nav.main")} className="henna-edge henna-edge-t fixed inset-x-0 bottom-0 z-20 bg-surface/95 pt-2 pb-[env(safe-area-inset-bottom)] backdrop-blur lg:hidden">
       <ul className="mx-auto flex max-w-md">
         {tabsFor(role).map((tab) => {
           const on = active(tab);
@@ -80,11 +80,11 @@ export function TopNav({ userName, role, siteName }: { userName: string; role: R
   const settingsOn = active({ href: "/settings" });
   const tabs = role === "admin" ? [...GHOTOK_TABS, ...GHOTOK_MORE] : CUSTOMER_TABS.filter((tab) => tab.href !== "/settings");
   return (
-    <header className="sticky top-0 z-20 hidden border-b border-line bg-surface/95 backdrop-blur lg:block">
+    <header className="henna-edge sticky top-0 z-20 hidden bg-surface/95 pb-2.5 backdrop-blur lg:block">
       <div className="mx-auto flex h-18 max-w-6xl items-stretch gap-4 px-8">
         {/* the name never shrinks away; with seven tabs and the switches, the tab row scrolls instead */}
         <Link href={role === "admin" ? "/dashboard" : "/me"} className="flex shrink-0 items-center gap-2.5">
-          <span aria-hidden className="grid size-10 shrink-0 place-items-center rounded-xl bg-primary font-display text-lg font-extrabold text-on-primary">ঘ</span>
+          <span aria-hidden className="grid size-10 shrink-0 place-items-center rounded-xl bg-primary font-display text-lg font-extrabold text-on-primary outline-2 outline-offset-3 outline-primary outline-dotted">ঘ</span>
           <span className="flex flex-col leading-tight">
             <span className="max-w-44 truncate font-display text-lg font-extrabold xl:max-w-56">{siteName}</span>
             <span className="text-xs text-muted">{role === "admin" ? t("nav.ghotokDashboard") : t("nav.trusted")}</span>

@@ -48,7 +48,7 @@ export default async function MePage() {
 
   return (
     <>
-      <section className="flex flex-col gap-4 rounded-3xl border border-primary-soft bg-linear-to-br from-primary-soft/60 via-bg to-surface p-5 lg:flex-row lg:items-end lg:justify-between lg:gap-8 lg:p-8">
+      <section className="henna-corner flex flex-col gap-4 rounded-3xl border border-primary-soft bg-linear-to-br from-primary-soft/60 via-bg to-surface p-5 lg:flex-row lg:items-end lg:justify-between lg:gap-8 lg:p-8">
         <div className="flex flex-col items-start gap-3">
           <span className="rounded-full bg-primary-soft px-3 py-1 text-xs font-bold text-primary">{site?.name}</span>
           <h1 className="font-display text-3xl/[1.2] font-extrabold lg:text-4xl/[1.2]">

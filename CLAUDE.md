@@ -31,6 +31,9 @@ Read README.md for the screens, roles, data model and setup.
 - Expected failures throw `AppError(code)` (`lib/errors.ts`); `attempt()` in `lib/form.ts` turns them into a Bangla
   message for the form. Raw error text never reaches the user.
 - Server actions take `(prev: FormState, form: FormData)` and are used through `ActionForm` in `components/form.tsx`.
+- Colour comes only from the tokens in `app/globals.css` (light, then the two dark blocks, kept identical); the mehedi
+  ornaments are the `.henna-*` classes there, CSS masks over `public/henna/*.svg`, so they recolour with the theme. New
+  surfaces use the tokens, never a hex value in JSX.
 - Two layouts from one tree: phone (top bar, `max-w-md` column, bottom tab bar) and `lg:` web (top nav bar in
   `components/nav.tsx`, wider page, cards regrouped into columns). Keep the phone DOM order; let `lg:` classes only
   change placement. `/`, `/setup`, the manifest, `public/sw.js`, `/offline` and `/b/*` (shared biodata) are public in

@@ -2,16 +2,16 @@
    Pages always come from the network (they show one ghotok's private data, so none of them is kept here);
    when the network is gone the offline page is shown instead. Build assets under /_next/static/ carry a content
    hash in their name, so once fetched they are served from the cache. Registered by components/pwa.tsx. */
-const CACHE = "alta-v1";
+const CACHE = "alta-v2"; // bumped with the mehedi scheme, so installed phones refetch the offline page's colours
 const OFFLINE_URL = "/offline";
 const STAMP_URL = "/__offline-stamp";
 const DAY = 24 * 60 * 60 * 1000;
 
 // Used only if the offline page itself could not be cached.
 const FALLBACK_HTML = `<!doctype html><html lang="bn"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>ইন্টারনেট নেই · আলতা</title></head>
-<body style="margin:0;min-height:100dvh;display:grid;place-items:center;background:#f8f6f3;color:#1f2333;font-family:system-ui,sans-serif;text-align:center;padding:16px">
-<div><p style="font-size:28px;font-weight:800;margin:0 0 8px">ইন্টারনেট নেই</p><p style="color:#6b7183;margin:0 0 20px">সংযোগ ফিরে এলে আবার চেষ্টা করুন।</p>
-<form action="/"><button style="min-height:48px;padding:0 20px;border:0;border-radius:16px;background:#b3213a;color:#fff;font-weight:700;font-size:16px">আবার চেষ্টা করুন</button></form></div></body></html>`;
+<body style="margin:0;min-height:100dvh;display:grid;place-items:center;background:#f9f3ea;color:#2f1a0f;font-family:system-ui,sans-serif;text-align:center;padding:16px">
+<div><p style="font-size:28px;font-weight:800;margin:0 0 8px">ইন্টারনেট নেই</p><p style="color:#7c6553;margin:0 0 20px">সংযোগ ফিরে এলে আবার চেষ্টা করুন।</p>
+<form action="/"><button style="min-height:48px;padding:0 20px;border:0;border-radius:16px;background:#8a3b1c;color:#fff;font-weight:700;font-size:16px">আবার চেষ্টা করুন</button></form></div></body></html>`;
 
 /** Fetches the offline page again, and the stylesheets it links, so it keeps up with new builds. */
 async function cacheOfflinePage() {

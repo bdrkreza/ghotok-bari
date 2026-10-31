@@ -25,10 +25,10 @@ export default async function PublicBiodataPage(props: PageProps<"/b/[token]">) 
 
   return (
     <div className="flex min-h-dvh flex-col">
-      <header className="border-b border-line bg-surface">
+      <header className="henna-edge relative bg-surface pb-2.5">
         <div className="mx-auto flex h-14 max-w-4xl items-center justify-between gap-4 px-4 lg:h-16">
           <span className="flex min-w-0 items-center gap-2 font-display text-lg font-extrabold">
-            <span aria-hidden className="grid size-8 shrink-0 place-items-center rounded-xl bg-primary text-base text-on-primary">ঘ</span>
+            <span aria-hidden className="grid size-8 shrink-0 place-items-center rounded-xl bg-primary text-base text-on-primary outline-2 outline-offset-3 outline-primary outline-dotted">ঘ</span>
             <span className="truncate">{site?.name ?? t("common.alta")}</span>
           </span>
           <span className="flex shrink-0 items-center gap-3">

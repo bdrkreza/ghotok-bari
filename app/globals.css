@@ -1,102 +1,106 @@
 @import "tailwindcss";
 
-/* Design tokens. "Alta" is the red dye on a bride's feet, so the one accent colour is a deep alta red on a quiet,
-   paper-like ground. Text is a navy charcoal and the greys are neutral, so the red carries the brand on its own.
-   Colour otherwise carries meaning (pos = money in, neg = owes / danger) and the pale tints are kept for small
-   status badges: light enough to sit in a row of text, with ink dark enough to read. */
+/* Design tokens. The scheme is mehedi: the one accent is the brown-red of dried henna on a skin-cream ground, text
+   and the sign-in panel are the deep henna of the pattern's lines, and the tints for badges are earth tones from the
+   same hand (sandalwood, light henna, cream). Colour otherwise carries meaning: pos is the green of a henna leaf
+   (money in, listed, done) and neg a true red (owes, returned, delete), so neither is mistaken for the accent. */
 :root {
-  --bg: #f8f6f3;
-  --surface: #ffffff;
-  --sunk: #f0ede8;
-  --ink: #1f2333;
-  --muted: #6b7183;
-  --line: #e6e2dc;
-  --primary: #b3213a;
+  --bg: #f9f3ea;
+  --surface: #fffdf8;
+  --sunk: #f1e7d8;
+  --ink: #2f1a0f;
+  --muted: #7c6553;
+  --line: #e7d9c6;
+  --primary: #8a3b1c;
   --on-primary: #ffffff;
-  --primary-soft: #fbe8ec;
-  --warn: #fff8eb;
-  --warn-line: #f1dfb6;
-  --warn-ink: #86500a;
-  --mango: #fdeed2;
-  --mango-ink: #7a4d08;
-  --mint: #dcf3e6;
-  --mint-ink: #0f5f3c;
-  --sky: #e1ebfa;
-  --sky-ink: #1f3f8f;
-  --lilac: #e8e5fa;
-  --lilac-ink: #4538a6;
-  --coral: #fbe4e0;
-  --coral-ink: #8c2f24;
-  --pos: #0f7a4b;
-  --neg: #b42318;
-  --neg-soft: #fdecea;
-  --pos-soft: #e6f5ec;
-  /* The brand panel beside the sign-in forms: a deeper alta, on which the mark and text are white. */
-  --panel: #7b2a46;
+  --primary-soft: #f5e1d4;
+  --warn: #faeed6;
+  --warn-line: #ead6a6;
+  --warn-ink: #6e4a08;
+  --mango: #f6e3c2;
+  --mango-ink: #7a4a0a;
+  --mint: #e4eed4;
+  --mint-ink: #3e5f1f;
+  --sky: #ece4d8;
+  --sky-ink: #5a4636;
+  --lilac: #f3e2d8;
+  --lilac-ink: #7a3b1c;
+  --coral: #f8dccf;
+  --coral-ink: #9a3a16;
+  --pos: #4f7a2a;
+  --neg: #b4321a;
+  --neg-soft: #fbe4de;
+  --pos-soft: #e8f0dc;
+  /* The brand panel beside the sign-in forms: deep henna, on which the mark and text are white. */
+  --panel: #4a1c0c;
   --on-panel: #ffffff;
-  --panel-soft: #fbe8ec;
+  --panel-soft: #f5e1d4;
 }
 
 /* Dark follows the phone, unless a theme was picked in settings: data-theme on <html>, see lib/theme.ts. */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #14161d;
-    --surface: #1c1f29;
-    --sunk: #262a37;
-    --ink: #eef0f5;
-    --muted: #a2a9bb;
-    --line: #2e3242;
-    --primary: #ff8296;
-    --on-primary: #14161d;
-    --primary-soft: #45202c;
-    --warn: #2b2415;
-    --warn-line: #4b3d1c;
-    --warn-ink: #ffd18a;
+    --bg: #171009;
+    --surface: #211810;
+    --sunk: #2c2116;
+    --ink: #f3ebe2;
+    --muted: #b4a394;
+    --line: #3b2d20;
+    --primary: #e8955f;
+    --on-primary: #171009;
+    --primary-soft: #4a2c1a;
+    --warn: #3a2c10;
+    --warn-line: #6b5220;
+    --warn-ink: #ffd27d;
     --neg-soft: #3b1f1c;
-    --pos-soft: #143024;
-    --mango: #3b3014;
+    --pos-soft: #24311a;
+    --mango: #3b2d10;
     --mango-ink: #ffd27d;
-    --mint: #12301f;
-    --mint-ink: #9ee2bd;
-    --sky: #172741;
-    --sky-ink: #a9c9fb;
-    --lilac: #262349;
-    --lilac-ink: #d6cdff;
+    --mint: #263518;
+    --mint-ink: #bfe09a;
+    --sky: #2b2620;
+    --sky-ink: #d9cdbd;
+    --lilac: #3a2a22;
+    --lilac-ink: #f0c7ad;
     --coral: #3d1c18;
     --coral-ink: #ffb7a7;
-    --pos: #5dd49a;
+    --pos: #9ccb6a;
     --neg: #ff8d7b;
+    --panel: #3a1a0d;
+    --panel-soft: #4a2c1a;
     color-scheme: dark;
   }
 }
 
 :root[data-theme="dark"] {
-  --bg: #14161d;
-  --surface: #1c1f29;
-  --sunk: #262a37;
-  --ink: #eef0f5;
-  --muted: #a2a9bb;
-  --line: #2e3242;
-  --primary: #ff8296;
-  --on-primary: #14161d;
-  --primary-soft: #45202c;
-  --warn: #2b2415;
-  --warn-line: #4b3d1c;
-  --warn-ink: #ffd18a;
+  --bg: #171009;
+  --surface: #211810;
+  --sunk: #2c2116;
+  --ink: #f3ebe2;
+  --muted: #b4a394;
+  --line: #3b2d20;
+  --primary: #e8955f;
+  --on-primary: #171009;
+  --primary-soft: #4a2c1a;
+  --warn: #3a2c10;
+  --warn-line: #6b5220;
+  --warn-ink: #ffd27d;
   --neg-soft: #3b1f1c;
-  --pos-soft: #143024;
-  --mango: #3b3014;
+  --pos-soft: #24311a;
+  --mango: #3b2d10;
   --mango-ink: #ffd27d;
-  --mint: #12301f;
-  --mint-ink: #9ee2bd;
-  --sky: #172741;
-  --sky-ink: #a9c9fb;
-  --lilac: #262349;
-  --lilac-ink: #d6cdff;
+  --mint: #263518;
+  --mint-ink: #bfe09a;
+  --sky: #2b2620;
+  --sky-ink: #d9cdbd;
+  --lilac: #3a2a22;
+  --lilac-ink: #f0c7ad;
   --coral: #3d1c18;
   --coral-ink: #ffb7a7;
-  --pos: #5dd49a;
+  --pos: #9ccb6a;
   --neg: #ff8d7b;
+  --panel: #3a1a0d;
+  --panel-soft: #4a2c1a;
   color-scheme: dark;
 }
 
@@ -141,6 +145,88 @@
 body {
   background: var(--bg);
   color: var(--ink);
+}
+
+/* Mehedi ornaments, drawn from a hand's henna (public/henna/*.svg). Each is a mask over a theme colour, so it follows
+   light and dark and can be dimmed with one opacity. The page itself carries a vine-and-paisley in two corners, pinned
+   to the viewport; .henna-corner puts a smaller one in a hero card; .henna-edge lays the wrist's lattice band along a
+   bar's bottom edge (-t: top edge; the bar pays for it with padding); .henna-sides runs it down both edges of the
+   sign-in panel in the panel's own text colour. Pseudo-elements, so the markup stays plain. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: var(--primary);
+  opacity: 0.13;
+  mask:
+    url("/henna/vine.svg") no-repeat right -90px top 30px / 620px 620px,
+    url("/henna/vine-flip.svg") no-repeat left -90px bottom -90px / 620px 620px;
+}
+@media (max-width: 1023px) {
+  body::before {
+    mask-position: right -70px top 40px, left -80px bottom 20px;
+    mask-size: 380px 380px;
+  }
+}
+
+.henna-corner {
+  position: relative;
+  isolation: isolate;
+}
+.henna-corner::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  pointer-events: none;
+  background: var(--primary);
+  opacity: 0.2;
+  mask: url("/henna/vine.svg") no-repeat right -28px top -28px / 260px 260px;
+}
+@media (max-width: 1023px) {
+  .henna-corner::before {
+    mask-position: right -36px top -36px;
+    mask-size: 190px 190px;
+  }
+}
+
+.henna-edge::after {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  height: 10px;
+  pointer-events: none;
+  background: var(--primary);
+  mask: url("/henna/band.svg") repeat-x center / 56px 10px;
+}
+.henna-edge-t::after {
+  top: 0;
+  bottom: auto;
+}
+
+@media (min-width: 1024px) {
+  .henna-sides::before,
+  .henna-sides::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 14px;
+    pointer-events: none;
+    background: var(--on-panel);
+    opacity: 0.4;
+    mask: url("/henna/band-v.svg") repeat-y center / 14px 80px;
+  }
+  .henna-sides::before {
+    left: 10px;
+  }
+  .henna-sides::after {
+    right: 10px;
+  }
 }
 
 /* Native date inputs and selects pick up the page colours. */

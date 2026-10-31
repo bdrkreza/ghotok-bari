@@ -30,10 +30,10 @@ export default async function FrontPage() {
 
   return (
     <div className="flex min-h-dvh flex-col">
-      <header className="sticky top-0 z-20 border-b border-line bg-bg/90 backdrop-blur">
+      <header className="henna-edge sticky top-0 z-20 bg-bg/90 pb-2.5 backdrop-blur">
         <div className="mx-auto flex h-14 max-w-md items-center justify-between gap-3 px-4 lg:h-18 lg:max-w-6xl lg:px-8">
           <Link href="/" className="flex min-w-0 items-center gap-2 font-display text-lg font-extrabold">
-            <span aria-hidden className="grid size-8 shrink-0 place-items-center rounded-xl bg-primary text-base text-on-primary lg:size-10 lg:text-lg">ঘ</span>
+            <span aria-hidden className="grid size-8 shrink-0 place-items-center rounded-xl bg-primary text-base text-on-primary outline-2 outline-offset-3 outline-primary outline-dotted lg:size-10 lg:text-lg">ঘ</span>
             <span className="truncate">{site.name}</span>
           </Link>
           <nav aria-label={t("front.account")} className="flex shrink-0 items-center gap-2">
@@ -46,7 +46,7 @@ export default async function FrontPage() {
       </header>
 
       <main className="mx-auto flex w-full max-w-md flex-1 flex-col gap-6 px-4 py-6 lg:max-w-6xl lg:gap-10 lg:px-8 lg:py-12">
-        <section className="flex flex-col gap-6 rounded-3xl border border-primary-soft bg-linear-to-br from-primary-soft/60 via-bg to-surface p-5 lg:grid lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] lg:items-center lg:gap-10 lg:p-12">
+        <section className="henna-corner flex flex-col gap-6 rounded-3xl border border-primary-soft bg-linear-to-br from-primary-soft/60 via-bg to-surface p-5 lg:grid lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] lg:items-center lg:gap-10 lg:p-12">
           <div className="flex flex-col items-start gap-4">
             <span className="rounded-full bg-primary-soft px-3 py-1 text-xs font-bold text-primary">{site.tagline ?? t("site.defaultTagline")}</span>
             <h1 className="font-display text-3xl/[1.2] font-extrabold text-balance lg:text-5xl/[1.15]">{site.name}</h1>

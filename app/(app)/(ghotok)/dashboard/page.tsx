@@ -24,7 +24,7 @@ export default async function HomePage() {
 
   return (
     <>
-      <section className="flex flex-col gap-5 rounded-3xl border border-primary-soft bg-linear-to-br from-primary-soft/60 via-bg to-surface p-5 lg:gap-7 lg:p-10">
+      <section className="henna-corner flex flex-col gap-5 rounded-3xl border border-primary-soft bg-linear-to-br from-primary-soft/60 via-bg to-surface p-5 lg:gap-7 lg:p-10">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between lg:gap-8">
           <div className="flex flex-col items-start gap-3">
             <span className="rounded-full bg-primary-soft px-3 py-1 text-xs font-bold text-primary">{t("dash.badge")}</span>
