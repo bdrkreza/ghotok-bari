@@ -3,7 +3,6 @@
 import { usePathname } from "next/navigation";
 import { useEffect, useSyncExternalStore } from "react";
 import { Icon, type IconName } from "./icons";
-import { Card } from "./ui";
 import { useT } from "@/lib/i18n/client";
 import { THEMES, THEME_KEY, applyTheme, isTheme, type Theme } from "@/lib/theme";
 
@@ -82,24 +81,21 @@ export function ThemeButton({ className = "" }: { className?: string }) {
 
 const ICONS: Record<Theme, IconName> = { system: "monitor", light: "sun", dark: "moon" };
 
-/** Settings card: follow the phone, or fix light or dark on this device. */
-export function ThemeCard() {
+/** The settings page's choice: follow the phone, or fix light or dark on this device. */
+export function ThemeChoice() {
   const { theme, setTheme } = useTheme();
   const { t } = useT();
   return (
-    <Card title={t("theme.title")}>
-      <p className="text-sm text-muted">{t("theme.text")}</p>
-      <div role="radiogroup" aria-label={t("theme.aria")} className="grid grid-cols-3 gap-2">
-        {THEMES.map((th) => {
-          const on = theme === th.value;
-          return (
-            <button key={th.value} type="button" role="radio" aria-checked={on} onClick={() => setTheme(th.value)}
-              className={`flex min-h-12 flex-col items-center justify-center gap-1 rounded-2xl border px-2 py-2 text-sm font-bold sm:flex-row sm:gap-2 sm:px-3 ${on ? "border-primary bg-primary-soft text-primary" : "border-line bg-surface text-muted"}`}>
-              <Icon name={ICONS[th.value]} size={18} />{t(`theme.${th.value}`)}
-            </button>
-          );
-        })}
-      </div>
-    </Card>
+    <div role="radiogroup" aria-label={t("theme.aria")} className="grid grid-cols-3 gap-2">
+      {THEMES.map((th) => {
+        const on = theme === th.value;
+        return (
+          <button key={th.value} type="button" role="radio" aria-checked={on} onClick={() => setTheme(th.value)}
+            className={`flex min-h-12 flex-col items-center justify-center gap-1 rounded-2xl border px-2 py-2 text-sm font-bold sm:flex-row sm:gap-2 sm:px-3 ${on ? "border-primary bg-primary-soft text-primary" : "border-line bg-surface text-muted hover:text-ink"}`}>
+            <Icon name={ICONS[th.value]} size={18} />{t(`theme.${th.value}`)}
+          </button>
+        );
+      })}
+    </div>
   );
 }

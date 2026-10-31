@@ -2,7 +2,7 @@
 
 import { useEffect, useSyncExternalStore } from "react";
 import { Icon } from "./icons";
-import { Card, primaryButton } from "./ui";
+import { Card, outlineButton } from "./ui";
 import { richParts } from "@/lib/i18n";
 import { useT } from "@/lib/i18n/client";
 
@@ -84,7 +84,7 @@ export function InstallCard() {
         <>
           <p className="text-sm text-muted">{t("pwa.text")}</p>
           {state === "ready" ? (
-            <button type="button" onClick={install} className={primaryButton}><Icon name="plus" size={18} />{t("pwa.install")}</button>
+            <button type="button" onClick={install} className={outlineButton}><Icon name="plus" size={18} />{t("pwa.install")}</button>
           ) : state === "ios" ? (
             <p className="text-sm">{rich(t("pwa.ios"))}</p>
           ) : state === "manual" ? (

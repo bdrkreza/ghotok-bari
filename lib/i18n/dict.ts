@@ -618,6 +618,10 @@ export const bn = {
   "pwa.install": "ফোনে ইনস্টল করুন",
   "pwa.ios": "Safari-র নিচের **Share** বোতাম চাপুন, তারপর **Add to Home Screen** বেছে নিন।",
   "pwa.manual": "ব্রাউজারের মেনু (**⋮**) থেকে **Install app** বা **Add to Home screen** বেছে নিন।",
+  "st.prefs": "পছন্দ",
+  "st.passwordHint": "পাসওয়ার্ড বদলাতে বা ভুলে গেলে ঘটককে ফোন করুন; উনি নতুন পাসওয়ার্ড দিয়ে দেবেন।",
+  "st.ownerPhoneHint": "এই নম্বরেই পরিবাররা আপনাকে ফোন করেন; সাইটের প্রথম পাতায় এটিই দেখানো হয়।",
+  "st.signedIn": "লগইন করা আছে",
 
   // messages from the server
   "err.not_found": "এটি খুঁজে পাওয়া যায়নি।",
@@ -1253,6 +1257,10 @@ export const en: Record<Key, string> = {
   "pwa.install": "Install on the phone",
   "pwa.ios": "In Safari, tap the **Share** button below, then choose **Add to Home Screen**.",
   "pwa.manual": "From the browser menu (**⋮**) choose **Install app** or **Add to Home screen**.",
+  "st.prefs": "Preferences",
+  "st.passwordHint": "To change or recover your password, call the ghotok; they will set a new one for you.",
+  "st.ownerPhoneHint": "Families call you on this number; the front page shows it.",
+  "st.signedIn": "Signed in",
 
   "err.not_found": "This could not be found.",
   "err.invalid_input": "Something is wrong in the form. Check the fields marked in red.",
