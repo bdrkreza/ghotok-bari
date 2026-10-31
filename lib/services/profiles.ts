@@ -1,7 +1,10 @@
 import { and, count, desc, eq, gte, ilike, lte, or, sql, type SQL } from "drizzle-orm";
 import { z } from "zod";
 import type { Db } from "../db";
-import { profile, user, type Approval, type MaritalStatus, type Profile, type ProfileKind, type ProfileStatus, type Religion } from "../db/schema";
+import {
+  profile, user, type AfterHome, type Approval, type BloodGroup, type Choice, type Complexion, type Dowry, type EducationMedium,
+  type ExpectEducation, type ExpectMarital, type FamilyStatus, type MaritalStatus, type Profile, type ProfileKind, type ProfileStatus, type Religion,
+} from "../db/schema";
 import { AppError } from "../errors";
 import { normalizePhone } from "../auth/phone";
 import type { Place } from "../search";
@@ -19,6 +22,20 @@ const optionalInt = (min: number, max: number) =>
     if (!Number.isInteger(n) || n < min || n > max) { ctx.addIssue({ code: "custom", message: "range" }); return null; }
     return n;
   });
+
+/** "" -> null, otherwise one of the given answers */
+const pick = <V extends string>(values: readonly [V, ...V[]]) =>
+  z.union([z.enum(values), z.literal("")]).transform((s) => (s || null) as V | null);
+
+export const COMPLEXIONS: readonly [Complexion, ...Complexion[]] = ["forsha", "ujjol_shyamla", "shyamla", "kalo"];
+export const BLOOD_GROUPS: readonly [BloodGroup, ...BloodGroup[]] = ["A+", "A-", "B+", "B-", "O+", "O-", "AB+", "AB-"];
+export const EDUCATION_MEDIUMS: readonly [EducationMedium, ...EducationMedium[]] = ["general", "madrasa", "english"];
+export const FAMILY_STATUSES: readonly [FamilyStatus, ...FamilyStatus[]] = ["nimno", "moddho", "uccho_moddho", "uccho"];
+export const CHOICES: readonly [Choice, ...Choice[]] = ["yes", "no", "discuss"];
+export const AFTER_HOMES: readonly [AfterHome, ...AfterHome[]] = ["family", "city", "abroad", "undecided"];
+export const DOWRIES: readonly [Dowry, ...Dowry[]] = ["none", "gift", "discuss"];
+export const EXPECT_EDUCATIONS: readonly [ExpectEducation, ...ExpectEducation[]] = ["ssc", "hsc", "bachelor", "master"];
+export const EXPECT_MARITALS: readonly [ExpectMarital, ...ExpectMarital[]] = ["obibahito", "talak_ok", "bidhoba_ok"];
 
 const profileInput = z.object({
   kind: z.enum(["patro", "patri"]),
@@ -44,8 +61,30 @@ const profileInput = z.object({
   }),
   familyDetails: optional(2000),
   expectations: optional(2000),
+  complexion: pick(COMPLEXIONS),
+  weightKg: optionalInt(20, 300),
+  bloodGroup: pick(BLOOD_GROUPS),
+  educationMedium: pick(EDUCATION_MEDIUMS),
+  workplace: optional(160),
+  presentAddress: optional(160),
+  brothers: optionalInt(0, 30),
+  sisters: optionalInt(0, 30),
+  familyStatus: pick(FAMILY_STATUSES),
+  religiousPractice: optional(300),
+  afterStudy: pick(CHOICES),
+  afterJob: pick(CHOICES),
+  afterHome: pick(AFTER_HOMES),
+  dowry: pick(DOWRIES),
+  jointFamily: pick(CHOICES),
+  expectAgeMin: optionalInt(18, 80),
+  expectAgeMax: optionalInt(18, 80),
+  expectEducation: pick(EXPECT_EDUCATIONS),
+  expectMarital: pick(EXPECT_MARITALS),
+  expectDistricts: optional(200),
   photoUrl: z.union([z.url().max(500), z.literal("")]).transform((s) => s || null),
   notes: optional(2000),
+}).superRefine((d, ctx) => {
+  if (d.expectAgeMin !== null && d.expectAgeMax !== null && d.expectAgeMin > d.expectAgeMax) ctx.addIssue({ code: "custom", message: "age_range", path: ["expectAgeMax"] });
 });
 
 /** Every field the form may send; a missing one is read as empty. */
@@ -59,6 +98,9 @@ export function parseProfile(raw: Record<string, string>) {
   const data = parsed.data;
   const age = currentYear() - data.birthYear;
   if (age < MIN_AGE[data.kind]) throw new AppError(data.kind === "patro" ? "patro_too_young" : "patri_too_young");
+  // the "after marriage" questions differ by kind; whatever the other kind's fields carry is dropped
+  if (data.kind === "patro") data.jointFamily = null;
+  else { data.afterHome = null; data.dowry = null; }
   return data;
 }
 
@@ -67,14 +109,14 @@ export function parseProfile(raw: Record<string, string>) {
  * the ghotok's approval (lib/services/biodata.ts). The biodata number is handed out either way, so families can
  * quote it when they call.
  */
-export async function createProfile(db: Db, ghotokId: string, raw: Record<string, string>, ownerUserId?: string): Promise<string> {
+export async function createProfile(db: Db, ghotokId: string, raw: Record<string, string>, owner?: { ownerUserId: string; pledgedAt: Date }): Promise<string> {
   const data = parseProfile(raw);
   const id = crypto.randomUUID();
   // the next biodata number for this ghotok and kind. People are added one at a time; should two inserts ever
   // race, the unique index (ghotok, kind, code) makes one fail instead of handing out the same number twice.
   const [{ next }] = await db.select({ next: sql<number>`coalesce(max(${profile.code}), 0)::int + 1` }).from(profile)
     .where(and(eq(profile.ghotokId, ghotokId), eq(profile.kind, data.kind)));
-  await db.insert(profile).values({ id, ghotokId, code: next, ...data, ...(ownerUserId ? { ownerUserId, approval: "pending" as const } : {}) });
+  await db.insert(profile).values({ id, ghotokId, code: next, ...data, ...(owner ? { ...owner, approval: "pending" as const } : {}) });
   return id;
 }
 
@@ -208,7 +250,9 @@ export async function profileOwner(db: Db, ghotokId: string, p: Profile): Promis
 /** The ghotok's decision on a biodata: approving puts it in the lists, returning hands it back to the family with a note. */
 export async function setApproval(db: Db, ghotokId: string, id: string, decision: "approved" | "returned", note = ""): Promise<void> {
   await getProfile(db, ghotokId, id);
-  const change = decision === "approved" ? { approval: "approved" as const, returnNote: null } : { approval: "returned" as const, returnNote: note.trim() || null };
+  const change = decision === "approved"
+    ? { approval: "approved" as const, returnNote: null, approvedAt: new Date() }
+    : { approval: "returned" as const, returnNote: note.trim() || null, approvedAt: null };
   await db.update(profile).set(change).where(and(eq(profile.id, id), eq(profile.ghotokId, ghotokId)));
 }
 

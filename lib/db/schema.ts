@@ -56,6 +56,19 @@ export type ProfileStatus = "active" | "engaged" | "married" | "inactive";
 export type Approval = "pending" | "approved" | "returned";
 export type Religion = "islam" | "hindu" | "christian" | "buddhist" | "other";
 export type MaritalStatus = "obibahito" | "talakprapto" | "bidhoba";
+/* The optional, pick-one answers on the biodata form. Null everywhere means "would rather not say" / "any". */
+export type Complexion = "forsha" | "ujjol_shyamla" | "shyamla" | "kalo";
+export type BloodGroup = "A+" | "A-" | "B+" | "B-" | "O+" | "O-" | "AB+" | "AB-";
+export type EducationMedium = "general" | "madrasa" | "english";
+export type FamilyStatus = "nimno" | "moddho" | "uccho_moddho" | "uccho";
+/** yes / no / to be discussed: the "after marriage" questions */
+export type Choice = "yes" | "no" | "discuss";
+/** where a groom means to live with his wife */
+export type AfterHome = "family" | "city" | "abroad" | "undecided";
+/** whether a groom's side expects anything from the bride's */
+export type Dowry = "none" | "gift" | "discuss";
+export type ExpectEducation = "ssc" | "hsc" | "bachelor" | "master";
+export type ExpectMarital = "obibahito" | "talak_ok" | "bidhoba_ok";
 
 /** A groom (patro) or bride (patri) the ghotok is looking for a match for. */
 export const profile = pgTable("profile", {
@@ -85,6 +98,38 @@ export const profile = pgTable("profile", {
   familyDetails: text("family_details"),
   /** what kind of match the family is looking for */
   expectations: text("expectations"),
+  /* the looks and the papers families ask about first */
+  complexion: text("complexion").$type<Complexion>(),
+  weightKg: integer("weight_kg"),
+  bloodGroup: text("blood_group").$type<BloodGroup>(),
+  educationMedium: text("education_medium").$type<EducationMedium>(),
+  /** where they work, or a line about the work */
+  workplace: text("workplace"),
+  /** town or country they live in now, when not the village (jobs, abroad); null = at home */
+  presentAddress: text("present_address"),
+  /* the family in numbers and a line on religious practice; the prose stays in familyDetails */
+  brothers: integer("brothers"),
+  sisters: integer("sisters"),
+  familyStatus: text("family_status").$type<FamilyStatus>(),
+  religiousPractice: text("religious_practice"),
+  /* after marriage: a groom answers for his wife (may she study / work, where they will live, any dowry);
+     a bride answers for herself (will she study / work, is a joint family fine) */
+  afterStudy: text("after_study").$type<Choice>(),
+  afterJob: text("after_job").$type<Choice>(),
+  afterHome: text("after_home").$type<AfterHome>(),
+  dowry: text("dowry").$type<Dowry>(),
+  jointFamily: text("joint_family").$type<Choice>(),
+  /* the match they hope for, in a form the suggestions can use; the prose stays in expectations */
+  expectAgeMin: integer("expect_age_min"),
+  expectAgeMax: integer("expect_age_max"),
+  expectEducation: text("expect_education").$type<ExpectEducation>(),
+  expectMarital: text("expect_marital").$type<ExpectMarital>(),
+  /** districts that would suit, comma-separated as written; null = anywhere */
+  expectDistricts: text("expect_districts"),
+  /** when the family ticked "my guardian knows, and all of this is true"; null for the ghotok's own entries */
+  pledgedAt: timestamp("pledged_at", { withTimezone: true }),
+  /** when the ghotok approved a family's biodata; shown to other families as the ghotok's check */
+  approvedAt: timestamp("approved_at", { withTimezone: true }),
   photoUrl: text("photo_url"),
   /** the ghotok's private notes; a family never sees or edits these */
   notes: text("notes"),

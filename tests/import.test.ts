@@ -160,7 +160,8 @@ describe("reading a biodata file", () => {
     });
     expect(p.education).toContain("মাস্টার্স");
     expect(p.education).toContain("Dhaka University (2021)");
-    for (const line of ["Enamul Haque", "Rowjatul Jannat", "রক্তের গ্রুপ O+", "ওজন 45 Kg", "বাবা: Former Subeder, BGB-Rtd. 2017"]) expect(p.familyDetails).toContain(line);
+    for (const line of ["Enamul Haque", "Rowjatul Jannat", "বাবা: Former Subeder, BGB-Rtd. 2017"]) expect(p.familyDetails).toContain(line);
+    expect(p).toMatchObject({ bloodGroup: "O+", weightKg: "45" });
     expect(p.guardianPhone).toBeUndefined();
   });
 
@@ -169,7 +170,8 @@ describe("reading a biodata file", () => {
     expect(p).toMatchObject({ name: "Samira Yasmin", birthYear: "2002", religion: "islam", maritalStatus: "obibahito", district: "গোপালগঞ্জ", upazila: "Kashiani", fatherName: "Md. Delowar Hossain", motherName: "Sabina Yasmin" });
     expect(p.village).toBeUndefined();
     expect(p.education).toContain("অনার্স");
-    for (const line of ["One Sister", "রক্তের গ্রুপ A+", "গায়ের রং Wheatish", "বাবা: Businessman"]) expect(p.familyDetails).toContain(line);
+    for (const line of ["One Sister", "বাবা: Businessman"]) expect(p.familyDetails).toContain(line);
+    expect(p).toMatchObject({ bloodGroup: "A+", complexion: "ujjol_shyamla" });
   });
 
   it("reads a Bangla sheet as OCR would type it", () => {
@@ -179,8 +181,8 @@ describe("reading a biodata file", () => {
       fatherName: "মোঃ বাদশা শেখ", motherName: "রাণী আক্তার", guardianPhone: "01924848502",
     });
     expect(p.profession).toContain("মুদ্রাক্ষরিক");
-    expect(p.profession).toContain("চরভাটাপাড়া উচ্চ বিদ্যালয়");
-    expect(p.familyDetails).toContain("ওজন 52 কেজি");
+    expect(p.workplace).toBe("চরভাটাপাড়া উচ্চ বিদ্যালয়");
+    expect(p.weightKg).toBe("52");
     expect(p.education).toBeUndefined();
   });
 
@@ -190,7 +192,8 @@ describe("reading a biodata file", () => {
     expect(p.profession).toBeUndefined();
     expect(p.expectations).toContain("prefer someone");
     expect(p.education).toContain("অনার্স");
-    for (const line of ["Fatima Tuj Zohura", "Occupation: Army (retired)", "রক্তের গ্রুপ 0+"]) expect(p.familyDetails).toContain(line);
+    for (const line of ["Fatima Tuj Zohura", "Occupation: Army (retired)"]) expect(p.familyDetails).toContain(line);
+    expect(p.bloodGroup).toBe("O+"); // typed as "0+"
   });
 
   it("copes with what OCR does to a photo: stray digits, dots for commas, P.0., ® for bullets", () => {
@@ -199,6 +202,22 @@ describe("reading a biodata file", () => {
     expect(p.education).toBe("মাস্টার্স, Dhaka University (2021)");
     const q = parseBiodataText("জন্মস্থান ঃ চরভাটপাড়া.কাশিয়ানী:গোপালগঞ্জ ৷");
     expect(q).toMatchObject({ village: "চরভাটপাড়া", upazila: "কাশিয়ানী", district: "গোপালগঞ্জ" });
+  });
+
+  it("reads the looks, the medium, the workplace, siblings, a present address and the age hoped for", () => {
+    const p = parseBiodataText([
+      "Name: Rafiq", "Complexion: Fair", "Weight: 68 kg", "Blood Group: O (+ve)", "Medium: Madrasa", "Occupation: Teacher",
+      "Workplace: Savar High School", "Permanent Address: Vill: Kushura, Dhamrai, Dist: Dhaka", "Present Address: Mirpur, Dhaka",
+      "Family: 2 brothers and 1 sister", "Expectation: age 22 to 28, religious",
+    ].join("\n"));
+    expect(p).toMatchObject({
+      name: "Rafiq", complexion: "forsha", weightKg: "68", bloodGroup: "O+", educationMedium: "madrasa", profession: "Teacher",
+      workplace: "Savar High School", village: "Kushura", upazila: "Dhamrai", district: "ঢাকা", presentAddress: "ঢাকা",
+      brothers: "2", sisters: "1", expectAgeMin: "22", expectAgeMax: "28",
+    });
+    // the medium can also come from the degrees, and a blood group without a sign is left out
+    expect(parseBiodataText("Education: Dakhil, Alim").educationMedium).toBe("madrasa");
+    expect(parseBiodataText("Blood: B").bloodGroup).toBeUndefined();
   });
 
   it("leaves out what it cannot read instead of guessing", () => {

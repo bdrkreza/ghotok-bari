@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Avatar } from "@/components/avatar";
+import { afterMarriageRows, expectationTags, familyTags } from "@/components/biodata";
 import { DeleteBiodataForm } from "@/components/biodata-forms";
 import { Icon } from "@/components/icons";
-import { ApprovalBadge, Card, Facts, PageHeader, quietButton } from "@/components/ui";
+import { ApprovalBadge, Badge, Card, Facts, PageHeader, quietButton } from "@/components/ui";
 import { requireCustomer } from "@/lib/auth/session";
 import { getDb } from "@/lib/db";
 import { getT } from "@/lib/i18n/server";
@@ -50,8 +51,18 @@ export default async function MyBiodataPage(props: PageProps<"/me/biodata/[id]">
               [t("facts.father"), p.fatherName],
               [t("facts.mother"), p.motherName],
               [t("facts.guardian"), p.guardianName],
+              [t("facts.complexion"), p.complexion ? t(`complexion.${p.complexion}`) : null],
+              [t("facts.weight"), p.weightKg ? t("facts.kg", { n: p.weightKg }) : null],
+              [t("facts.blood"), p.bloodGroup],
+              [t("facts.medium"), p.educationMedium ? t(`medium.${p.educationMedium}`) : null],
+              [t("facts.workplace"), p.workplace],
+              [t("facts.presentAddress"), p.presentAddress],
+              [t("facts.religiousPractice"), p.religiousPractice],
             ]} />
+            {familyTags(p, T).length ? <p className="flex flex-wrap gap-1.5">{familyTags(p, T).map((x) => <Badge key={x} tone="sky">{x}</Badge>)}</p> : null}
             {p.familyDetails ? <Text label={t("facts.family")} value={p.familyDetails} /> : null}
+            {afterMarriageRows(p, T).length ? <Text label={t("facts.after")} value={afterMarriageRows(p, T).map(([q, a]) => `${q} ${a}`).join("\n")} /> : null}
+            {expectationTags(p, T).length ? <p className="flex flex-wrap gap-1.5">{expectationTags(p, T).map((x) => <Badge key={x} tone="sky">{x}</Badge>)}</p> : null}
             {p.expectations ? <Text label={t("facts.expectations")} value={p.expectations} /> : null}
             <p className="text-xs text-muted">{t("mb.submittedChanged", { a: T.date(p.createdAt), b: T.date(p.updatedAt) })}</p>
           </Card>

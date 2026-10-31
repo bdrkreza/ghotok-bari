@@ -120,10 +120,10 @@ export function Checkbox({ name, label, defaultChecked = false, id = name }: { n
 }
 
 /** A required tick box used instead of a confirm() dialog for actions that cannot be undone. */
-export function ConfirmCheck({ name = "confirm", label }: { name?: string; label: string }) {
+export function ConfirmCheck({ name = "confirm", label, defaultChecked = false }: { name?: string; label: string; defaultChecked?: boolean }) {
   return (
     <label className="flex items-start gap-3 text-sm font-semibold">
-      <input type="checkbox" name={name} required className="mt-0.5 size-5 shrink-0 accent-primary" />
+      <input type="checkbox" name={name} required defaultChecked={defaultChecked} className="mt-0.5 size-5 shrink-0 accent-primary" />
       <span>{label}</span>
     </label>
   );

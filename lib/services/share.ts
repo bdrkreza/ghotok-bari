@@ -1,7 +1,7 @@
 import { and, eq } from "drizzle-orm";
 import { randomBytes } from "node:crypto";
 import type { Db } from "../db";
-import { biodataShare, profile, user, type MaritalStatus, type ProfileKind, type ProfileStatus, type Religion } from "../db/schema";
+import { biodataShare, profile, user, type Profile } from "../db/schema";
 import { getProfile } from "./profiles";
 
 // A public biodata link: /b/<token>. The ghotok switches it on per person, hands the link to a family, and can
@@ -41,23 +41,21 @@ export const FAMILY_VIEW = {
   code: profile.code, kind: profile.kind, birthYear: profile.birthYear, heightCm: profile.heightCm, religion: profile.religion,
   maritalStatus: profile.maritalStatus, education: profile.education, profession: profile.profession, upazila: profile.upazila,
   district: profile.district, familyDetails: profile.familyDetails, expectations: profile.expectations, status: profile.status,
+  complexion: profile.complexion, weightKg: profile.weightKg, bloodGroup: profile.bloodGroup, educationMedium: profile.educationMedium,
+  workplace: profile.workplace, presentAddress: profile.presentAddress, brothers: profile.brothers, sisters: profile.sisters,
+  familyStatus: profile.familyStatus, religiousPractice: profile.religiousPractice, afterStudy: profile.afterStudy, afterJob: profile.afterJob,
+  afterHome: profile.afterHome, dowry: profile.dowry, jointFamily: profile.jointFamily, expectAgeMin: profile.expectAgeMin,
+  expectAgeMax: profile.expectAgeMax, expectEducation: profile.expectEducation, expectMarital: profile.expectMarital,
+  expectDistricts: profile.expectDistricts,
+  // when the ghotok checked it (a family's entry) or wrote it (their own): the trust line under the number
+  approvedAt: profile.approvedAt, createdAt: profile.createdAt,
 };
 
+/** A row as a family sees it: exactly the FAMILY_VIEW columns, typed from the table. */
+export type FamilyView = Pick<Profile, keyof typeof FAMILY_VIEW>;
+
 /** What a family sees from a shared link. */
-export interface PublicBiodata {
-  code: number;
-  kind: ProfileKind;
-  birthYear: number;
-  heightCm: number | null;
-  religion: Religion;
-  maritalStatus: MaritalStatus;
-  education: string | null;
-  profession: string | null;
-  upazila: string | null;
-  district: string;
-  familyDetails: string | null;
-  expectations: string | null;
-  status: ProfileStatus;
+export interface PublicBiodata extends FamilyView {
   /** who to call */
   ghotok: { name: string; phone: string };
 }

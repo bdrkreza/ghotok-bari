@@ -57,6 +57,10 @@ export async function seedDemo(db: Db, auth: Auth, headers: Headers): Promise<{ 
     village: "বাঁশবাড়িয়া", upazila: "সাভার", district: "ঢাকা", guardianName: "মো. আলমগীর হোসেন (বাবা)", guardianPhone: "01711111111",
     familyDetails: "৩ ভাই ১ বোন। নিজেদের পাকা বাড়ি, ৫ বিঘা জমি। বাবা অবসরপ্রাপ্ত স্কুলশিক্ষক।",
     expectations: "শিক্ষিত, নম্র, সাভার বা আশেপাশের পরিবার হলে ভালো।",
+    complexion: "shyamla", weightKg: "68", bloodGroup: "O+", educationMedium: "general", workplace: "ঢাকায় বেসরকারি ব্যাংকে অফিসার", presentAddress: "ঢাকা",
+    brothers: "3", sisters: "1", familyStatus: "moddho", religiousPractice: "নামাজ পড়েন",
+    afterStudy: "yes", afterJob: "discuss", afterHome: "family", dowry: "none",
+    expectAgeMin: "22", expectAgeMax: "28", expectEducation: "hsc", expectMarital: "obibahito", expectDistricts: "ঢাকা, গাজীপুর",
   });
   const rafiq = await person("patro", {
     name: "রফিকুল ইসলাম", fatherName: "আব্দুল মজিদ", birthYear: "1992", heightCm: "165", maritalStatus: "talakprapto",
@@ -87,6 +91,10 @@ export async function seedDemo(db: Db, auth: Auth, headers: Headers): Promise<{ 
     education: "অনার্স (বাংলা)", profession: "প্রাথমিক বিদ্যালয়ের শিক্ষক", monthlyIncome: "22000",
     village: "বোয়ালী", upazila: "কালিয়াকৈর", district: "গাজীপুর", guardianName: "আব্দুর রহমান (বাবা)", guardianPhone: "01766666666",
     expectations: "শিক্ষিত ও চাকরিজীবী পাত্র; চাকরি চালিয়ে যেতে দেবে এমন পরিবার।",
+    complexion: "ujjol_shyamla", weightKg: "52", bloodGroup: "B+", educationMedium: "general", workplace: "কালিয়াকৈরে সরকারি প্রাথমিক বিদ্যালয়",
+    brothers: "1", sisters: "1", familyStatus: "moddho", religiousPractice: "পাঁচ ওয়াক্ত নামাজ পড়েন, পর্দা করেন",
+    afterStudy: "yes", afterJob: "yes", jointFamily: "yes",
+    expectAgeMin: "27", expectAgeMax: "34", expectEducation: "bachelor", expectMarital: "obibahito", expectDistricts: "ঢাকা, গাজীপুর",
   });
   const shiuli = await person("patri", {
     name: "শিউলি রানী দাস", fatherName: "গোপাল চন্দ্র দাস", birthYear: "1999", heightCm: "152", religion: "hindu",
@@ -98,6 +106,8 @@ export async function seedDemo(db: Db, auth: Auth, headers: Headers): Promise<{ 
     education: "এসএসসি", profession: "দর্জি", monthlyIncome: "8000",
     village: "রামচন্দ্রপুর", upazila: "মুরাদনগর", district: "কুমিল্লা", guardianName: "মো. জাহাঙ্গীর (মামা)", guardianPhone: "01788888888",
     familyDetails: "একটি মেয়ে আছে (৪ বছর)।", expectations: "সন্তান মেনে নেবে এমন সৎ মানুষ।",
+    complexion: "shyamla", bloodGroup: "B+", brothers: "2", sisters: "0", familyStatus: "nimno", religiousPractice: "নামাজ পড়েন",
+    afterStudy: "no", afterJob: "yes", jointFamily: "yes", expectAgeMin: "30", expectAgeMax: "42", expectMarital: "talak_ok", expectDistricts: "কুমিল্লা",
   });
 
   // হাসান ও ফাতেমা: talks going well
@@ -127,13 +137,18 @@ export async function seedDemo(db: Db, auth: Auth, headers: Headers): Promise<{ 
   // what the two families handed in: one biodata still waiting for the ghotok, one already listed
   const idOf = async (phone: string) => (await db.query.user.findFirst({ where: eq(user.username, phone) }))!.id;
   await submitBiodata(db, g, await idOf(DEMO_CUSTOMER.phone), {
-    kind: "patri", religion: "islam", maritalStatus: "obibahito", name: "সুমাইয়া আক্তার", fatherName: "মৃত আব্দুল হাই", motherName: "রহিমা বেগম",
+    kind: "patri", pledge: "on", religion: "islam", maritalStatus: "obibahito", name: "সুমাইয়া আক্তার", fatherName: "মৃত আব্দুল হাই", motherName: "রহিমা বেগম",
+    complexion: "forsha", bloodGroup: "A+", brothers: "1", sisters: "1", familyStatus: "moddho", afterStudy: "yes", afterJob: "discuss", jointFamily: "discuss",
+    expectAgeMin: "25", expectAgeMax: "32", expectEducation: "bachelor",
     birthYear: "2003", heightCm: "157", education: "অনার্স (পড়ছে)", profession: "শিক্ষার্থী",
     village: "কাটাখালী", upazila: "সাভার", district: "ঢাকা", guardianName: "রহিমা বেগম (মা)", guardianPhone: DEMO_CUSTOMER.phone,
     familyDetails: "১ ভাই ১ বোন। মা গৃহিণী, ভাই ব্যবসা করে।", expectations: "চাকরিজীবী, ধার্মিক; পড়া চালিয়ে যেতে দেবে এমন পরিবার।",
   });
   const tanvir = await submitBiodata(db, g, await idOf(DEMO_CUSTOMER_2.phone), {
-    kind: "patro", religion: "islam", maritalStatus: "obibahito", name: "তানভীর হোসেন", fatherName: "মো. জসিম উদ্দিন",
+    kind: "patro", pledge: "on", religion: "islam", maritalStatus: "obibahito", name: "তানভীর হোসেন", fatherName: "মো. জসিম উদ্দিন",
+    complexion: "shyamla", weightKg: "70", bloodGroup: "O+", educationMedium: "general", workplace: "ঢাকায় সফটওয়্যার কোম্পানিতে", presentAddress: "ঢাকা",
+    brothers: "1", sisters: "0", familyStatus: "uccho_moddho", afterStudy: "yes", afterJob: "yes", afterHome: "city", dowry: "none",
+    expectAgeMin: "22", expectAgeMax: "27", expectEducation: "hsc", expectDistricts: "ঢাকা, গাজীপুর",
     birthYear: "1996", heightCm: "173", education: "বিএসসি ইঞ্জিনিয়ারিং", profession: "সফটওয়্যার ইঞ্জিনিয়ার", monthlyIncome: "55000",
     village: "বোর্ডবাজার", upazila: "গাজীপুর সদর", district: "গাজীপুর", guardianName: "মো. জসিম উদ্দিন (বাবা)", guardianPhone: DEMO_CUSTOMER_2.phone,
     familyDetails: "২ ভাই। বাবা অবসরপ্রাপ্ত ব্যাংকার, নিজেদের বাড়ি।", expectations: "শিক্ষিত, নম্র; ঢাকা-গাজীপুরের মধ্যে হলে ভালো।",

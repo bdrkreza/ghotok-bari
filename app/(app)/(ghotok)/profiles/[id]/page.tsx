@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { afterMarriageRows, expectationTags, familyTags } from "@/components/biodata";
 import { ApprovalForm } from "@/components/biodata-forms";
 import { Icon } from "@/components/icons";
 import { DeleteProfileForm, ProfileStatusForm } from "@/components/proposal-forms";
@@ -83,8 +84,18 @@ export default async function ProfilePage(props: PageProps<"/profiles/[id]">) {
               [t("facts.father"), p.fatherName],
               [t("facts.mother"), p.motherName],
               [t("facts.guardian"), p.guardianName],
+              [t("facts.complexion"), p.complexion ? t(`complexion.${p.complexion}`) : null],
+              [t("facts.weight"), p.weightKg ? t("facts.kg", { n: p.weightKg }) : null],
+              [t("facts.blood"), p.bloodGroup],
+              [t("facts.medium"), p.educationMedium ? t(`medium.${p.educationMedium}`) : null],
+              [t("facts.workplace"), p.workplace],
+              [t("facts.presentAddress"), p.presentAddress],
+              [t("facts.religiousPractice"), p.religiousPractice],
             ]} />
+            {familyTags(p, T).length ? <p className="flex flex-wrap gap-1.5">{familyTags(p, T).map((x) => <Badge key={x} tone="sky">{x}</Badge>)}</p> : null}
             {p.familyDetails ? <Text label={t("facts.family")} value={p.familyDetails} /> : null}
+            {afterMarriageRows(p, T).length ? <Text label={t("facts.after")} value={afterMarriageRows(p, T).map(([q, a]) => `${q} ${a}`).join("\n")} /> : null}
+            {expectationTags(p, T).length ? <p className="flex flex-wrap gap-1.5">{expectationTags(p, T).map((x) => <Badge key={x} tone="sky">{x}</Badge>)}</p> : null}
             {p.expectations ? <Text label={t("facts.expectations")} value={p.expectations} /> : null}
             {p.notes ? <Text label={t("facts.notes")} value={p.notes} /> : null}
             <p className="text-xs text-muted">{t("pp.addedOn", { date: T.date(p.createdAt) })}</p>

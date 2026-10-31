@@ -5,7 +5,7 @@ import { ageFromYear } from "../time";
 
 /** Why two people might suit each other; the page turns the key into words in the user's language ("reason.*"). */
 export interface Reason {
-  key: "sameDistrict" | "sameUpazila" | "ageGap" | "sameEducation" | "maritalMatch";
+  key: "sameDistrict" | "sameUpazila" | "ageGap" | "sameEducation" | "maritalMatch" | "fitsAge" | "fitsDistrict" | "fitsMarital";
   /** the age gap in years, for "ageGap" */
   n?: number;
 }
@@ -32,6 +32,20 @@ export function scorePair(patro: Profile, patri: Profile): { score: number; reas
   else if (gap > -3 && gap <= 15) { score += 1; reasons.push({ key: "ageGap", n: Math.abs(gap) }); }
   if (patro.education && norm(patro.education) === norm(patri.education)) { score += 1; reasons.push({ key: "sameEducation" }); }
   if ((patro.maritalStatus === "obibahito") === (patri.maritalStatus === "obibahito")) { score += 1; reasons.push({ key: "maritalMatch" }); }
+  // what each side asked for on the form, where they filled it in
+  const fits = (who: Profile, other: Profile) => ({
+    age: who.expectAgeMin !== null || who.expectAgeMax !== null
+      ? (who.expectAgeMin ?? 0) <= ageFromYear(other.birthYear) && ageFromYear(other.birthYear) <= (who.expectAgeMax ?? 200) : null,
+    district: who.expectDistricts ? who.expectDistricts.split(/[,،]/).map(norm).filter(Boolean).includes(norm(other.district)) : null,
+    marital: who.expectMarital
+      ? who.expectMarital === "obibahito" ? other.maritalStatus === "obibahito"
+        : who.expectMarital === "talak_ok" ? other.maritalStatus !== "bidhoba" : true
+      : null,
+  });
+  const a = fits(patro, patri), b = fits(patri, patro);
+  if (a.age || b.age) { score += 2; reasons.push({ key: "fitsAge" }); }
+  if (a.district || b.district) { score += 2; reasons.push({ key: "fitsDistrict" }); }
+  if (a.marital || b.marital) { score += 1; reasons.push({ key: "fitsMarital" }); }
   return { score, reasons };
 }
 

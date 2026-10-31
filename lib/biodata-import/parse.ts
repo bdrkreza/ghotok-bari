@@ -10,7 +10,9 @@ import { currentYear } from "../time";
 export type ImportField =
   | "kind" | "name" | "fatherName" | "motherName" | "birthYear" | "heightCm" | "religion" | "maritalStatus"
   | "education" | "profession" | "monthlyIncome" | "village" | "upazila" | "district" | "guardianName" | "guardianPhone"
-  | "familyDetails" | "expectations";
+  | "familyDetails" | "expectations"
+  | "complexion" | "weightKg" | "bloodGroup" | "educationMedium" | "workplace" | "presentAddress" | "brothers" | "sisters"
+  | "expectAgeMin" | "expectAgeMax";
 
 export type Imported = Partial<Record<ImportField, string>>;
 
@@ -103,7 +105,7 @@ function tidyEducation(lines: string[]): string {
 
 /* ---------- labels and sections ---------- */
 
-type LabelField = ImportField | "dob" | "address" | "permanent" | "present" | "height" | "weight" | "blood" | "complexion" | "age" | "phone" | "workplace";
+type LabelField = ImportField | "dob" | "address" | "permanent" | "present" | "height" | "weight" | "blood" | "complexion" | "medium" | "age" | "phone" | "workplace";
 type Rule<F extends string> = { field: F; re: RegExp };
 
 // a label at the start of a line, with the value after a colon, dash or Bangla "ঃ" (or straight after the label)
@@ -129,6 +131,7 @@ const LABELS: Rule<LabelField>[] = [
   { field: "present", re: /^present(?: address)?|^current address|^বর্তমান ঠিকানা|^জন্মস্থান/i },
   { field: "address", re: /^address|^ঠিকানা/i },
   { field: "phone", re: /^(?:mobile|phone|contact|cell)(?: no\.?| number)?|^মোবাইল(?: নং| নম্বর)?|^ফোন|^যোগাযোগ/i },
+  { field: "medium", re: /^medium(?: of (?:education|study))?|^শিক্ষার মাধ্যম|^মাধ্যম/i },
   { field: "education", re: /^education(?:al)?(?: qualification)?|^qualification|^শিক্ষাগত যোগ্যতা|^শিক্ষা|^যোগ্যতা/i },
   { field: "expectations", re: /^expectation|^partner preference|^looking for|^about me|^প্রত্যাশা|^যেমন চান|^যেমন (?:পাত্র|পাত্রী) চান/i },
   { field: "familyDetails", re: /^family(?: details| information| background)?|^siblings?|^sibiling|^পারিবারিক(?: পরিচয়| বিবরণ)?|^পরিবার|^ভাইবোন/i },
@@ -211,14 +214,15 @@ export function parseBiodataText(raw: string): Imported {
         case "dob": { const y = yearOf(value); if (y) put("birthYear", String(y)); break; }
         case "age": { const y = yearOf(`${value} years`); if (y && !out.birthYear) put("birthYear", String(y)); break; }
         case "height": { const cm = heightToCm(value); if (cm) put("heightCm", String(cm)); break; }
-        case "weight": extras.push(`ওজন ${value}`); break;
-        case "blood": extras.push(`রক্তের গ্রুপ ${value}`); break;
-        case "complexion": extras.push(`গায়ের রং ${value}`); break;
+        case "weight": { const kg = value.match(/\d{2,3}/); if (kg) put("weightKg", kg[0]); else extras.push(`ওজন ${value}`); break; }
+        case "blood": { const g = bloodGroupOf(value); if (g) put("bloodGroup", g); else extras.push(`রক্তের গ্রুপ ${value}`); break; }
+        case "complexion": { const c = complexionOf(value); if (c) put("complexion", c); else extras.push(`গায়ের রং ${value}`); break; }
+        case "medium": { const m = mediumOf(value); if (m) put("educationMedium", m); break; }
         case "religion": { const r = religionOf(value); if (r) put("religion", r); break; }
         case "maritalStatus": { const m = maritalOf(value); if (m) put("maritalStatus", m); break; }
         case "monthlyIncome": { const n = value.replace(/[^\d]/g, ""); if (n) put("monthlyIncome", n); break; }
         case "phone": { const p = normalizePhone(value.replace(/[^\d+]/g, "")); if (p) put("guardianPhone", p); break; }
-        case "workplace": if (clean(value)) out.profession = out.profession ? `${out.profession}, ${clean(value)}` : clean(value); break;
+        case "workplace": put("workplace", value); break;
         case "permanent": case "present": case "address": {
           // an address often runs on to the next line: "House: 78, Ward: 3, Sarkarpara, Post.:" / "Lohagara, P.O.: Lohagara, Dist.: Narail."
           const parts = [value];
@@ -266,10 +270,31 @@ export function parseBiodataText(raw: string): Imported {
   const family = [...(sections.familyDetails ?? []), ...extras];
   if (family.length) out.familyDetails = family.join("\n");
 
+  // the medium of education, when the degrees give it away ("দাখিল", "O level")
+  if (!out.educationMedium && out.education) { const m = mediumOf(out.education); if (m) out.educationMedium = m; }
+  // "৩ ভাই ১ বোন", "2 brothers and 1 sister" in the family lines
+  if (out.familyDetails) {
+    const bro = out.familyDetails.match(/(\d{1,2})\s*(?:জন\s*)?(?:ভাই|brothers?)\b/i);
+    const sis = out.familyDetails.match(/(\d{1,2})\s*(?:জন\s*)?(?:বোন|sisters?)\b/i);
+    if (bro) put("brothers", bro[1]);
+    if (sis) put("sisters", sis[1]);
+  }
+  // "বয়স ২২-৩০", "age 25 to 32" in what the family hopes for
+  if (out.expectations) {
+    const range = out.expectations.match(/(?:age|বয়স)\D{0,12}(\d{2})\s*(?:-|–|—|to|থেকে)\s*(\d{2})/i);
+    if (range && Number(range[1]) <= Number(range[2])) { put("expectAgeMin", range[1]); put("expectAgeMax", range[2]); }
+  }
+
   // the permanent address is where a family is "from"; the present one is the fallback
   const addr = addresses.permanent ?? addresses.address ?? addresses.present;
   if (addr) applyAddress(out, addr.join(", "));
   if (out.district) { const d = districtOf(out.district); if (d) out.district = d; else delete out.district; }
+  // a present address beside the permanent one: where they live now, by district where it names one
+  if (addresses.present && addr !== addresses.present) {
+    const present = addresses.present.join(", ");
+    const d = present.split(/[,،]/).map((s) => districtOf(s.trim())).filter(Boolean).pop();
+    put("presentAddress", (d ?? present).slice(0, 160));
+  }
 
   // any Bangladeshi mobile number anywhere, when no contact line named one
   if (!out.guardianPhone) {
@@ -282,6 +307,35 @@ export function parseBiodataText(raw: string): Imported {
     else if (/\b(groom|son)\b|পাত্র(?!ী)/i.test(text)) out.kind = "patro";
   }
   return out;
+}
+
+/** "B+", "O (+ve)", "AB positive", "এ পজিটিভ" -> the form's blood group, or null when the sign is missing. */
+export function bloodGroupOf(text: string): string | null {
+  // OCR and hurried typists write the O group as a zero
+  const s = text.toUpperCase().replace(/এবি/g, "AB").replace(/\bএ\b/g, "A").replace(/\bবি\b/g, "B").replace(/\bও\b/g, "O").replace(/\b0(?=\s*[+\-−(]|\s*$)/g, "O");
+  const g = s.match(/\b(AB|A|B|O)\b/);
+  if (!g) return null;
+  const sign = /\+|POS|পজিটিভ|পজেটিভ/.test(s) ? "+" : /[-−–]|NEG|নেগেটিভ/.test(s) ? "-" : null;
+  return sign ? `${g[1]}${sign}` : null;
+}
+
+/** "ফর্সা", "fair", "উজ্জ্বল শ্যামলা", "brown" -> the form's complexion, or null. */
+export function complexionOf(text: string): string | null {
+  const s = text.toLowerCase();
+  if (/উজ্জ্বল|bright|light brown|wheat/.test(s)) return "ujjol_shyamla";
+  if (/ফর্সা|fair|white|গৌর/.test(s)) return "forsha";
+  if (/শ্যামলা|brown|medium|dusky|tan/.test(s)) return "shyamla";
+  if (/কালো|dark|black/.test(s)) return "kalo";
+  return null;
+}
+
+/** The medium of education, from a label's value or from the degrees themselves. */
+export function mediumOf(text: string): string | null {
+  const s = text.toLowerCase();
+  if (/মাদ্রাসা|madrasa|madrasah|dakhil|alim\b|fazil|kamil|দাখিল|আলিম|ফাজিল|কামিল|hafez|হাফেজ/.test(s)) return "madrasa";
+  if (/english medium|ইংরেজি মাধ্যম|ইংলিশ মিডিয়াম|o[- ]?levels?|a[- ]?levels?|igcse/.test(s)) return "english";
+  if (/general|সাধারণ|bangla medium|বাংলা মাধ্যম/.test(s)) return "general";
+  return null;
 }
 
 /** "House: 78, Ward: 3, Sarkarpara, Post: Lohagara, P.O.: Lohagara, Dist.: Narail" -> village, upazila, district */

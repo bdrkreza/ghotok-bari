@@ -37,6 +37,8 @@ export async function createTestApp() {
 export function personForm(over: Record<string, string> = {}): Record<string, string> {
   return {
     kind: "patro",
+    // the family's "my guardian knows, and this is true" box; the ghotok's own forms ignore it
+    pledge: "on",
     name: "রহিম উদ্দিন",
     fatherName: "করিম উদ্দিন",
     motherName: "",

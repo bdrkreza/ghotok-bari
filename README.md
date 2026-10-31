@@ -27,9 +27,9 @@ layout on a computer) and a **phone app** (installed from the browser onto the h
 | `/dashboard` | admin | Greeting, a search bar into the lists, how many patro/patri are looking, a notice when biodata wait for approval, live proposals, money at a glance, recent people |
 | `/dashboard/approvals` | admin | Biodata families handed in: waiting (অপেক্ষমাণ) and sent back (ফেরত দেওয়া), with who wrote each; opens the person's page |
 | `/dashboard/customers` | admin | Every account: name, number, joined and last seen, role; make a helper an admin or take it back |
-| `/profiles/new?kind=patro` | admin | Add a person (name, age, education, address, guardian, family, expectations); listed at once |
+| `/profiles/new?kind=patro` | admin | Add a person (name, age, looks, education, work, address, guardian, family, the "after marriage" answers, expectations); listed at once |
 | `/profiles/[id]` | admin | One person: details, their proposals, suggested matches, status, public share link, delete. For a family's biodata: who handed it in, and the buttons to list it or return it with a note |
-| `/b/[token]` | anyone with the link | Public biodata a ghotok chose to share: biodata number, age, height, religion, marital status, education, profession, upazila and district, family, expectations, and the ghotok's number; no name, photo, parents, guardian phone, village, income or notes |
+| `/b/[token]` | anyone with the link | Public biodata a ghotok chose to share: biodata number, the ghotok's check, age, height, complexion, weight, blood group, religion, marital status, education and medium, profession and workplace, upazila and district, where they live now, siblings and the family's means, religious practice, the "after marriage" answers, family, expectations, and the ghotok's number; no name, photo, parents, guardian phone, village, income or notes |
 | `/proposals` | admin | Every proposal, filtered by stage |
 | `/proposals/new` | admin | Pair one patro with one patri (listed people only) |
 | `/proposals/[id]` | admin | Stage changes with a timeline, notes, and the money for this match |
@@ -49,7 +49,13 @@ lists, not counted, not matched and cannot be proposed. **Approved**, it is a pe
 the ghotok's own notes field stays theirs. **Returned**, the family sees the ghotok's note on `/me` and can fix and
 resubmit. Any change a family makes afterwards puts it back to pending. A family may delete a biodata only while it
 is unlisted; a listed one is removed by the ghotok. What families see of each other is decided in one place,
-`FAMILY_VIEW` in `lib/services/share.ts`, and is the same set of fields the public link shows.
+`FAMILY_VIEW` in `lib/services/share.ts`, and is the same set of fields the public link shows. Handing in, a family
+ticks that their guardian knows and the details are true (`pledgedAt`); once the ghotok approves, every family sees
+"checked and listed by the ghotok" with the date (`approvedAt`) under the biodata number. Beyond the basics the form
+asks, all optional: complexion, weight and blood group; the medium of education and the workplace; where they live now;
+brothers and sisters, the family's means and religious practice; the "after marriage" questions (a groom: may his wife
+study or work, where they will live, any dowry; a bride: will she study or work, is a joint family fine); and the match
+hoped for as an age range, least education, marital status and districts, which the ghotok's match suggestions use.
 
 ### Filling the form from a file
 

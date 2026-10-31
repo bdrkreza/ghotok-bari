@@ -18,7 +18,8 @@ export type AppErrorCode =
   | "not_approved"
   | "ask_ghotok"
   | "import_failed"
-  | "file_too_big";
+  | "file_too_big"
+  | "pledge_required";
 
 export class AppError extends Error {
   constructor(public readonly code: AppErrorCode, detail?: string) {

@@ -2,14 +2,17 @@
 
 import { useState, type ReactNode } from "react";
 import { BiodataImport } from "@/components/biodata-import";
-import { ActionForm, Field, Hidden, Select, TextArea } from "@/components/form";
+import { ActionForm, ConfirmCheck, Field, Hidden, Select, TextArea } from "@/components/form";
 import { Icon } from "@/components/icons";
 import type { Imported } from "@/lib/biodata-import/parse";
 import type { Profile, ProfileKind } from "@/lib/db/schema";
 import { useT } from "@/lib/i18n/client";
 import { submitBiodataAction, updateBiodataAction } from "@/lib/actions/biodata";
 import { createProfileAction, updateProfileAction } from "@/lib/actions/profiles";
-import { MARITAL_STATUSES, RELIGIONS } from "@/lib/services/profiles";
+import {
+  AFTER_HOMES, BLOOD_GROUPS, CHOICES, COMPLEXIONS, DOWRIES, EDUCATION_MEDIUMS, EXPECT_EDUCATIONS, EXPECT_MARITALS, FAMILY_STATUSES,
+  MARITAL_STATUSES, RELIGIONS,
+} from "@/lib/services/profiles";
 
 /** Who is filling the form: the ghotok (full form, their private notes) or a family (their own biodata, no notes). */
 export type Viewer = "admin" | "customer";
@@ -32,8 +35,9 @@ interface Props {
 }
 
 /**
- * The same long form for a new person and for editing one; `profile` fills it in for editing. Five numbered
+ * The same long form for a new person and for editing one; `profile` fills it in for editing. Six numbered
  * sections, fields side by side where the screen allows, and for a family a chip on every field saying who sees it.
+ * Everything beyond name, birth year and district is optional; the pick-one questions all offer "would rather not say".
  * With `importable`, a photo, PDF or Word file of an existing biodata can fill the fields first.
  */
 export function ProfileForm({ kind, profile, minYear, maxYear, viewer = "admin", importable = false, ai = false }: Props) {
@@ -63,6 +67,8 @@ export function ProfileForm({ kind, profile, minYear, maxYear, viewer = "admin",
     if (field in importedFields) chips.push(fromFile);
     return chips.length ? <span className="inline-flex flex-wrap gap-1">{chips}</span> : undefined;
   };
+  const notSay = t("form.notSay");
+  const any = t("form.any");
 
   return (
     <div className="flex flex-col gap-4">
@@ -92,13 +98,18 @@ export function ProfileForm({ kind, profile, minYear, maxYear, viewer = "admin",
                 <Field name="birthYear" label={t("form.birthYear")} required type="number" inputMode="numeric" min={String(minYear)} max={String(maxYear)} placeholder={t("form.birthYearPlaceholder")} defaultValue={v.birthYear}
                   hint={t("form.birthYearHint", { n: kind === "patro" ? 21 : 18 })} tag={tags("birthYear", "all")} />
                 <Field name="heightCm" label={t("form.height")} type="number" inputMode="numeric" min="100" max="250" placeholder={t("form.heightPlaceholder")} defaultValue={v.heightCm} hint={t("form.heightHint")} tag={tags("heightCm", "all")} />
+                <Select name="complexion" label={t("form.complexion")} options={options("complexion", COMPLEXIONS)} placeholder={notSay} defaultValue={v.complexion} tag={tags("complexion", "all")} />
+                <Field name="weightKg" label={t("form.weight")} type="number" inputMode="numeric" min="20" max="300" placeholder={t("form.weightPlaceholder")} defaultValue={v.weightKg} tag={tags("weightKg", "all")} />
+                <Select name="bloodGroup" label={t("form.blood")} options={BLOOD_GROUPS.map((b) => [b, b] as const)} placeholder={t("form.unknown")} defaultValue={v.bloodGroup} tag={tags("bloodGroup", "all")} />
                 <Select name="religion" label={t("form.religion")} options={options("religion", RELIGIONS)} defaultValue={v.religion || "islam"} tag={tags("religion", "all")} />
                 <Select name="maritalStatus" label={t("form.marital")} options={options("marital", MARITAL_STATUSES)} defaultValue={v.maritalStatus || "obibahito"} tag={tags("maritalStatus", "all")} />
               </Section>
 
               <Section n={n(2)} title={t("form.s2")}>
+                <Select name="educationMedium" label={t("form.medium")} options={options("medium", EDUCATION_MEDIUMS)} placeholder={notSay} defaultValue={v.educationMedium} tag={tags("educationMedium", "all")} />
                 <Field name="education" label={t("form.education")} placeholder={t("form.educationPlaceholder")} defaultValue={v.education} tag={tags("education", "all")} />
                 <Field name="profession" label={t("form.profession")} placeholder={t("form.professionPlaceholder")} defaultValue={v.profession} tag={tags("profession", "all")} />
+                <Field name="workplace" label={t("form.workplace")} placeholder={t("form.workplacePlaceholder")} defaultValue={v.workplace} tag={tags("workplace", "all")} />
                 <Field name="monthlyIncome" label={t("form.income")} type="number" inputMode="numeric" min="0" placeholder={t("form.incomePlaceholder")} defaultValue={v.monthlyIncome} tag={tags("monthlyIncome", "ghotok")} />
               </Section>
 
@@ -106,17 +117,42 @@ export function ProfileForm({ kind, profile, minYear, maxYear, viewer = "admin",
                 <Field name="village" label={t("form.village")} placeholder={t("form.villagePlaceholder")} defaultValue={v.village} tag={tags("village", "ghotok")} />
                 <Field name="upazila" label={t("form.upazila")} placeholder={t("form.upazilaPlaceholder")} defaultValue={v.upazila} tag={tags("upazila", "all")} />
                 <Field name="district" label={t("form.district")} placeholder={t("form.districtPlaceholder")} required defaultValue={v.district} tag={tags("district", "all")} />
+                <Field name="presentAddress" label={t("form.presentAddress")} placeholder={t("form.presentAddressPlaceholder")} defaultValue={v.presentAddress} hint={t("form.presentAddressHint")} tag={tags("presentAddress", "all")} />
               </Section>
 
               <Section n={n(4)} title={t("form.s4")} hint={family ? t("form.s4Hint") : undefined}>
                 <Field name="guardianName" label={t("form.guardianName")} placeholder={t("form.guardianPlaceholder")} defaultValue={v.guardianName} tag={tags("guardianName", "ghotok")} />
                 <Field name="guardianPhone" label={t("form.guardianPhone")} type="tel" inputMode="tel" placeholder={t("form.guardianPhonePlaceholder")} defaultValue={v.guardianPhone} tag={tags("guardianPhone", "ghotok")} />
+                <Field name="brothers" label={t("form.brothers")} type="number" inputMode="numeric" min="0" max="30" placeholder={t("form.countPlaceholder")} defaultValue={v.brothers} tag={tags("brothers", "all")} />
+                <Field name="sisters" label={t("form.sisters")} type="number" inputMode="numeric" min="0" max="30" placeholder={t("form.countPlaceholder")} defaultValue={v.sisters} tag={tags("sisters", "all")} />
+                <Select name="familyStatus" label={t("form.familyStatus")} options={options("famStatus", FAMILY_STATUSES)} placeholder={notSay} defaultValue={v.familyStatus} tag={tags("familyStatus", "all")} />
+                <Field name="religiousPractice" label={t("form.religiousPractice")} placeholder={t("form.religiousPracticePlaceholder")} defaultValue={v.religiousPractice} tag={tags("religiousPractice", "all")} />
                 <Wide>
                   <TextArea name="familyDetails" label={t("form.family")} placeholder={t("form.familyPlaceholder")} defaultValue={v.familyDetails} rows={v.familyDetails && v.familyDetails.length > 120 ? 6 : 3} tag={tags("familyDetails", "all")} />
                 </Wide>
               </Section>
 
-              <Section n={n(5)} title={t("form.s5")} hint={family ? t("form.s5Hint") : undefined}>
+              <Section n={n(5)} title={t("form.sAfter")} hint={t("form.sAfterHint")}>
+                <Select name="afterStudy" label={t(`form.afterStudy.${kind}`)} options={options("choice", CHOICES)} placeholder={notSay} defaultValue={v.afterStudy} tag={tags("afterStudy", "all")} />
+                <Select name="afterJob" label={t(`form.afterJob.${kind}`)} options={options("choice", CHOICES)} placeholder={notSay} defaultValue={v.afterJob} tag={tags("afterJob", "all")} />
+                {kind === "patro" ? (
+                  <>
+                    <Select name="afterHome" label={t("form.afterHome")} options={options("afterHome", AFTER_HOMES)} placeholder={notSay} defaultValue={v.afterHome} tag={tags("afterHome", "all")} />
+                    <Select name="dowry" label={t("form.dowry")} options={options("dowry", DOWRIES)} placeholder={notSay} defaultValue={v.dowry} tag={tags("dowry", "all")} />
+                  </>
+                ) : (
+                  <Select name="jointFamily" label={t("form.jointFamily")} options={options("choice", CHOICES)} placeholder={notSay} defaultValue={v.jointFamily} tag={tags("jointFamily", "all")} />
+                )}
+              </Section>
+
+              <Section n={n(6)} title={t("form.s5")} hint={family ? t("form.s5Hint") : undefined}>
+                <Field name="expectAgeMin" label={t("form.expectAgeMin")} type="number" inputMode="numeric" min="18" max="80" placeholder={t("form.expectAgeMinPlaceholder")} defaultValue={v.expectAgeMin} tag={tags("expectAgeMin", "all")} />
+                <Field name="expectAgeMax" label={t("form.expectAgeMax")} type="number" inputMode="numeric" min="18" max="80" placeholder={t("form.expectAgeMaxPlaceholder")} defaultValue={v.expectAgeMax} tag={tags("expectAgeMax", "all")} />
+                <Select name="expectEducation" label={t("form.expectEducation")} options={options("expectEdu", EXPECT_EDUCATIONS)} placeholder={any} defaultValue={v.expectEducation} tag={tags("expectEducation", "all")} />
+                <Select name="expectMarital" label={t("form.marital")} options={options("expectMarital", EXPECT_MARITALS)} placeholder={any} defaultValue={v.expectMarital} tag={tags("expectMarital", "all")} />
+                <Wide>
+                  <Field name="expectDistricts" label={t("form.expectDistricts")} placeholder={t("form.expectDistrictsPlaceholder")} defaultValue={v.expectDistricts} hint={t("form.expectDistrictsHint")} tag={tags("expectDistricts", "all")} />
+                </Wide>
                 <Wide>
                   <TextArea name="expectations" label={t("form.expectations")} placeholder={t("form.expectationsPlaceholder")} defaultValue={v.expectations} tag={tags("expectations", "all")} />
                 </Wide>
@@ -131,10 +167,13 @@ export function ProfileForm({ kind, profile, minYear, maxYear, viewer = "admin",
               </Section>
 
               {family ? (
-                <p className="flex items-start gap-2 text-sm text-muted">
-                  <Icon name="shield" size={16} className="mt-0.5 shrink-0 text-primary" />
-                  {t("form.note")}
-                </p>
+                <div className="flex flex-col gap-3 rounded-3xl border border-line bg-surface p-4 lg:p-6">
+                  <ConfirmCheck name="pledge" label={t("form.pledge")} defaultChecked={!!profile?.pledgedAt} />
+                  <p className="flex items-start gap-2 text-sm text-muted">
+                    <Icon name="shield" size={16} className="mt-0.5 shrink-0 text-primary" />
+                    {t("form.note")}
+                  </p>
+                </div>
               ) : null}
             </>
           );

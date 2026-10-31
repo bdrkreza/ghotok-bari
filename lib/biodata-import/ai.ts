@@ -30,12 +30,22 @@ const Fields = z.object({
   district: z.string().nullable().describe("one of Bangladesh's 64 districts, Bangla spelling, e.g. নড়াইল"),
   guardianName: z.string().nullable().describe("whoever a ghotok should call, with the relation in brackets, e.g. মো. মিজানুর রহমান (বাবা)"),
   guardianPhone: z.string().nullable().describe("11 digits, 01XXXXXXXXX"),
-  familyDetails: z.string().nullable().describe("parents' occupations, siblings, home, plus blood group, weight, complexion if given; Bangla, short lines"),
+  familyDetails: z.string().nullable().describe("parents' occupations, siblings, home, assets; Bangla, short lines"),
   expectations: z.string().nullable().describe("what the family wants in a match, in Bangla"),
+  complexion: z.enum(["forsha", "ujjol_shyamla", "shyamla", "kalo"]).nullable().describe("forsha = fair, ujjol_shyamla = light brown / bright, shyamla = brown / wheatish, kalo = dark"),
+  weightKg: z.string().nullable().describe("whole kilograms, digits only"),
+  bloodGroup: z.enum(["A+", "A-", "B+", "B-", "O+", "O-", "AB+", "AB-"]).nullable(),
+  educationMedium: z.enum(["general", "madrasa", "english"]).nullable().describe("madrasa for dakhil / alim / fazil / kamil, english for English medium or O/A levels, general when the document says so or the degrees are SSC/HSC/university"),
+  workplace: z.string().nullable().describe("where they work, or one line about the work, in Bangla"),
+  presentAddress: z.string().nullable().describe("the town or country they live in now, only when it differs from the permanent address; Bangla, short"),
+  brothers: z.string().nullable().describe("number of brothers, digits only"),
+  sisters: z.string().nullable().describe("number of sisters, digits only"),
+  expectAgeMin: z.string().nullable().describe("the lowest age wanted in a match, digits only"),
+  expectAgeMax: z.string().nullable().describe("the highest age wanted in a match, digits only"),
 });
 
 const SYSTEM = `You read a Bangladeshi marriage biodata (in Bangla, English or both; typed, or a photo of a printed or handwritten sheet) and fill a matchmaker's form.
-Rules: copy only what the document says; leave a field null when it is absent or unreadable, never guess. Write free-text fields in Bangla (translate English; keep names in the script they are written in, Bangla preferred when both appear). Dates become the birth year only. Heights in feet and inches become centimetres. Addresses: prefer the permanent address; split it into village/area, upazila (thana) and district, with the district as one of the 64 districts in Bangla spelling. Put blood group, weight and complexion into familyDetails as short lines, since the form has no fields for them. Contact numbers belong to the guardian. Do not invent a guardian or a phone number.`;
+Rules: copy only what the document says; leave a field null when it is absent or unreadable, never guess. Write free-text fields in Bangla (translate English; keep names in the script they are written in, Bangla preferred when both appear). Dates become the birth year only. Heights in feet and inches become centimetres. Addresses: prefer the permanent address; split it into village/area, upazila (thana) and district, with the district as one of the 64 districts in Bangla spelling. Blood group, weight, complexion, the medium of education, the workplace, the number of brothers and sisters and the age range hoped for each have a field of their own; fill presentAddress only when the person lives somewhere other than the permanent address. Contact numbers belong to the guardian. Do not invent a guardian or a phone number.`;
 
 type Input =
   | { type: "image"; mediaType: "image/jpeg" | "image/png" | "image/webp" | "image/gif"; data: Buffer }

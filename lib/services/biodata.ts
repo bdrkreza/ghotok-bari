@@ -22,16 +22,25 @@ export async function getMyBiodata(db: Db, ghotokId: string, ownerUserId: string
   return row;
 }
 
+/** The family must tick "my guardian knows, and all of this is true" (the form's `pledge` box) each time they hand in. */
+const pledged = (raw: Record<string, string>): Date => {
+  if (raw.pledge !== "on") throw new AppError("pledge_required");
+  return new Date();
+};
+
 /** Hand in a biodata: it waits for the ghotok as "pending". The ghotok's notes field is not the family's to write. */
 export async function submitBiodata(db: Db, ghotokId: string, ownerUserId: string, raw: Record<string, string>): Promise<string> {
-  return createProfile(db, ghotokId, { ...raw, notes: "" }, ownerUserId);
+  const pledgedAt = pledged(raw);
+  return createProfile(db, ghotokId, { ...raw, notes: "" }, { ownerUserId, pledgedAt });
 }
 
 /** Change one's own biodata. Whatever the ghotok had decided, the new text waits for approval again. */
 export async function updateMyBiodata(db: Db, ghotokId: string, ownerUserId: string, id: string, raw: Record<string, string>): Promise<void> {
   const existing = await getMyBiodata(db, ghotokId, ownerUserId, id);
+  const pledgedAt = pledged(raw);
   const data = parseProfile({ ...raw, kind: existing.kind, notes: existing.notes ?? "" });
-  await db.update(profile).set({ ...data, approval: "pending", returnNote: null }).where(and(eq(profile.id, id), mine(ghotokId, ownerUserId)));
+  await db.update(profile).set({ ...data, pledgedAt, approval: "pending", returnNote: null, approvedAt: null })
+    .where(and(eq(profile.id, id), mine(ghotokId, ownerUserId)));
 }
 
 /** A family may take back a biodata the ghotok has not listed; a listed one is removed by the ghotok (AppError("ask_ghotok")). */
