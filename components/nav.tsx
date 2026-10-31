@@ -103,10 +103,11 @@ export function TopNav({ userName, role, siteName }: { userName: string; role: R
         </nav>
         <LangSwitch className="my-auto shrink-0" />
         <ThemeButton className="my-auto" />
-        <Link href="/settings" aria-current={settingsOn ? "page" : undefined}
-          className={`my-auto flex shrink-0 items-center gap-2.5 rounded-full border py-1 pr-4 pl-1 text-sm font-bold ${settingsOn ? "border-primary bg-primary-soft text-primary" : "border-line hover:bg-sunk"}`}>
+        {/* the ghotok's bar carries seven tabs, so their pill is initials only (the name is in the label); a family's bar has room for the name */}
+        <Link href="/settings" aria-current={settingsOn ? "page" : undefined} aria-label={t("nav.settingsFor", { name: userName })} title={userName}
+          className={`my-auto flex shrink-0 items-center gap-2.5 rounded-full border p-1 text-sm font-bold ${role === "admin" ? "" : "pr-4"} ${settingsOn ? "border-primary bg-primary-soft text-primary" : "border-line hover:bg-sunk"}`}>
           <span aria-hidden className="grid size-9 place-items-center rounded-full bg-primary-soft text-sm text-primary">{initials(userName)}</span>
-          <span className="max-w-36 truncate">{userName}</span>
+          {role === "admin" ? null : <span className="max-w-36 truncate">{userName}</span>}
         </Link>
       </div>
     </header>
