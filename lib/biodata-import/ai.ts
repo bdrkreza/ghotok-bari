@@ -7,7 +7,10 @@ import type { Imported } from "./parse";
 // The better reader, when the site has an AI key: the model looks at the photo, PDF or text and fills the same
 // fields the rule-based parser does, handling handwriting, odd layouts and prose. Two providers:
 //   GEMINI_API_KEY     Google's Gemini through its REST API. Its free tier (a key from AI Studio, no card) is enough
-//                      for a village ghotok's handful of biodata a day; the default model is gemini-2.5-flash.
+//                      for a village ghotok's handful of biodata a day. The default model is gemini-flash-lite-latest:
+//                      it read a designed CV in two seconds, where the bigger Flash models thought for a minute, far
+//                      too long for someone waiting at a form. (Older names like gemini-2.5-flash are refused for new
+//                      keys, so the alias is also the safer default.)
 //   ANTHROPIC_API_KEY  Claude, paid, the stronger reader; the default model is claude-opus-5-5.
 // With both set, Claude is used. With neither, the button on the form uses the free, in-browser path
 // (extract.ts + parse.ts) instead and nothing here runs. BIODATA_AI_MODEL overrides either default.
@@ -19,7 +22,10 @@ export const aiProvider = (): AiProvider | null =>
 
 export const aiAvailable = (): boolean => aiProvider() !== null;
 
-const model = () => process.env.BIODATA_AI_MODEL || (aiProvider() === "gemini" ? "gemini-2.5-flash" : "claude-opus-5-5");
+const model = () => process.env.BIODATA_AI_MODEL || (aiProvider() === "gemini" ? "gemini-flash-lite-latest" : "claude-opus-5-5");
+
+/** How long a reading may take before the browser is better off reading the file itself. */
+const AI_TIMEOUT_MS = 45_000;
 
 /** The form's fields; null where the document says nothing. Zod keeps the model's answer in this exact shape. */
 const Fields = z.object({
@@ -82,7 +88,7 @@ async function withClaude(input: Input): Promise<Imported> {
     system: SYSTEM,
     output_config: { effort: "medium", format: zodOutputFormat(Fields) },
     messages: [{ role: "user", content }],
-  });
+  }, { timeout: AI_TIMEOUT_MS });
   if (response.stop_reason === "refusal" || !response.parsed_output) throw new AppError("import_failed");
   return fieldsFromJson(response.parsed_output);
 }
@@ -104,15 +110,22 @@ async function withGemini(input: Input): Promise<Imported> {
       : [{ inline_data: { mime_type: input.type === "pdf" ? "application/pdf" : input.mediaType, data: input.data.toString("base64") } }];
   parts.push({ text: `Fill the form fields from this biodata. Answer with one JSON object and nothing else, with exactly these keys (every key present, null where the document says nothing):\n${keyList()}` });
 
-  const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model()}:generateContent`, {
-    method: "POST",
-    headers: { "content-type": "application/json", "x-goog-api-key": process.env.GEMINI_API_KEY ?? "" },
-    body: JSON.stringify({
-      system_instruction: { parts: [{ text: SYSTEM }] },
-      contents: [{ role: "user", parts }],
-      generationConfig: { response_mime_type: "application/json", temperature: 0 },
-    }),
-  });
+  let res: Response;
+  try {
+    res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model()}:generateContent`, {
+      method: "POST",
+      headers: { "content-type": "application/json", "x-goog-api-key": process.env.GEMINI_API_KEY ?? "" },
+      body: JSON.stringify({
+        system_instruction: { parts: [{ text: SYSTEM }] },
+        contents: [{ role: "user", parts }],
+        generationConfig: { response_mime_type: "application/json", temperature: 0 },
+      }),
+      signal: AbortSignal.timeout(AI_TIMEOUT_MS),
+    });
+  } catch (e) {
+    // no network, or the model took too long: the browser reads the file itself
+    throw new AppError("ai_busy", `gemini: ${e instanceof Error ? e.name : "fetch failed"}`);
+  }
   // the free tier's quota: a handful a minute; the browser falls back to reading the file itself
   if (res.status === 429 || res.status === 503) throw new AppError("ai_busy", `gemini ${res.status}`);
   if (!res.ok) throw new AppError("import_failed", `gemini ${res.status} ${(await res.text()).slice(0, 300)}`);
