@@ -33,7 +33,7 @@ export default async function AuthLayout({ children }: LayoutProps<"/">) {
             <p className="truncate font-display text-2xl leading-tight font-bold lg:text-3xl">{site?.name ?? t("common.alta")}</p>
             <p className="truncate text-sm text-on-panel/80">{site ? (site.tagline ?? t("site.defaultTagline")) : t("auth.ghotokSite")}</p>
           </div>
-          <LangSwitch className="shrink-0 border-on-panel/30 bg-on-panel/10 [&_button]:text-on-panel/80 [&_button[aria-pressed=true]]:bg-on-panel [&_button[aria-pressed=true]]:text-panel" />
+          <LangSwitch tone="panel" className="shrink-0" />
         </div>
         <div className="hidden flex-col items-start gap-5 lg:flex">
           <span className="rounded-full bg-panel-soft px-3.5 py-1 text-sm font-bold text-panel">{site ? t("auth.forFamilies") : t("auth.firstTime")}</span>
