@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" fill="none" stroke="#000" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+  <!-- a seamless mehedi net: a flower in the middle, a flower on every corner (completed by the next tile), vines
+       running between them with a leaf each, and cone dots at the edges. Used as a repeating CSS mask (globals.css). -->
+  <circle cx="100" cy="100" r="6"/>
+  <ellipse cx="100" cy="84" rx="5" ry="10"/>
+  <ellipse cx="100" cy="84" rx="5" ry="10" transform="rotate(45 100 100)"/>
+  <ellipse cx="100" cy="84" rx="5" ry="10" transform="rotate(90 100 100)"/>
+  <ellipse cx="100" cy="84" rx="5" ry="10" transform="rotate(135 100 100)"/>
+  <ellipse cx="100" cy="84" rx="5" ry="10" transform="rotate(180 100 100)"/>
+  <ellipse cx="100" cy="84" rx="5" ry="10" transform="rotate(225 100 100)"/>
+  <ellipse cx="100" cy="84" rx="5" ry="10" transform="rotate(270 100 100)"/>
+  <ellipse cx="100" cy="84" rx="5" ry="10" transform="rotate(315 100 100)"/>
+  <circle cx="100" cy="100" r="26" stroke-width="3" stroke-dasharray="0 8.17"/>
+  <g id="c">
+    <circle cx="0" cy="0" r="5"/>
+    <ellipse cx="0" cy="-13" rx="4" ry="8"/>
+    <ellipse cx="0" cy="-13" rx="4" ry="8" transform="rotate(60)"/>
+    <ellipse cx="0" cy="-13" rx="4" ry="8" transform="rotate(120)"/>
+    <ellipse cx="0" cy="-13" rx="4" ry="8" transform="rotate(180)"/>
+    <ellipse cx="0" cy="-13" rx="4" ry="8" transform="rotate(240)"/>
+    <ellipse cx="0" cy="-13" rx="4" ry="8" transform="rotate(300)"/>
+  </g>
+  <use href="#c" x="200" y="0"/><use href="#c" x="0" y="200"/><use href="#c" x="200" y="200"/>
+  <path d="M82 82 C 70 78, 60 62, 46 46 M118 82 C 130 78, 140 62, 154 46 M82 118 C 70 122, 60 138, 46 154 M118 118 C 130 122, 140 138, 154 154"/>
+  <path d="M64 64 q -14 -2 -18 12 q 14 2 18 -12 z M136 64 q 14 -2 18 12 q -14 2 -18 -12 z M64 136 q -14 2 -18 -12 q 14 -2 18 12 z M136 136 q 14 2 18 -12 q -14 -2 -18 12 z"/>
+  <g fill="#000" stroke="none">
+    <circle cx="100" cy="0" r="2.4"/><circle cx="100" cy="200" r="2.4"/><circle cx="0" cy="100" r="2.4"/><circle cx="200" cy="100" r="2.4"/>
+    <circle cx="100" cy="12" r="1.5"/><circle cx="100" cy="188" r="1.5"/><circle cx="12" cy="100" r="1.5"/><circle cx="188" cy="100" r="1.5"/>
+    <circle cx="90" cy="6" r="1.2"/><circle cx="110" cy="6" r="1.2"/><circle cx="90" cy="194" r="1.2"/><circle cx="110" cy="194" r="1.2"/>
+    <circle cx="6" cy="90" r="1.2"/><circle cx="6" cy="110" r="1.2"/><circle cx="194" cy="90" r="1.2"/><circle cx="194" cy="110" r="1.2"/>
+  </g>
+</svg>

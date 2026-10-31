@@ -148,10 +148,29 @@ body {
 }
 
 /* Mehedi ornaments, drawn from a hand's henna (public/henna/*.svg). Each is a mask over a theme colour, so it follows
-   light and dark and can be dimmed with one opacity. The page itself carries a vine-and-paisley in two corners, pinned
-   to the viewport; .henna-corner puts a smaller one in a hero card; .henna-edge lays the wrist's lattice band along a
-   bar's bottom edge (-t: top edge; the bar pays for it with padding); .henna-sides runs it down both edges of the
-   sign-in panel in the panel's own text colour. Pseudo-elements, so the markup stays plain. */
+   light and dark and can be dimmed with one opacity. The page carries two layers: a seamless net over the whole
+   document, scrolling with it like a printed cloth, and a vine-and-paisley in two corners pinned to the viewport.
+   .henna-corner puts a smaller paisley in a hero card; .henna-edge lays the wrist's lattice band along a bar's bottom
+   edge (-t: top edge; the bar pays for it with padding); .henna-sides runs it down both edges of the sign-in panel in
+   the panel's own text colour. Pseudo-elements, so the markup stays plain. */
+body {
+  position: relative; /* so the net below spans the whole document, not just the first screen */
+}
+body::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: var(--primary);
+  opacity: 0.09;
+  mask: url("/henna/net.svg") repeat center top / 200px 200px;
+}
+@media (max-width: 1023px) {
+  body::after {
+    mask-size: 150px 150px;
+  }
+}
 body::before {
   content: "";
   position: fixed;
