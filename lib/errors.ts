@@ -18,6 +18,7 @@ export type AppErrorCode =
   | "not_approved"
   | "ask_ghotok"
   | "import_failed"
+  | "ai_busy"
   | "file_too_big"
   | "pledge_required";
 

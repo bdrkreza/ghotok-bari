@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { fieldsFromJson } from "@/lib/biodata-import/ai";
 import { districtOf, heightToCm, parseBiodataText, yearOf } from "@/lib/biodata-import/parse";
 
 // Four real shapes of biodata families hand to a ghotok, typed out the way Word, a PDF or OCR would give them.
@@ -247,6 +248,13 @@ describe("reading a biodata file", () => {
     // the medium can also come from the degrees, and a blood group without a sign is left out
     expect(parseBiodataText("Education: Dakhil, Alim").educationMedium).toBe("madrasa");
     expect(parseBiodataText("Blood: B").bloodGroup).toBeUndefined();
+  });
+
+  it("takes a model's JSON field by field: nulls and blanks out, numbers as strings, a wrong enum dropped alone", () => {
+    const f = fieldsFromJson({ name: " রহিম ", birthYear: 1996, heightCm: null, religion: "Muslim", bloodGroup: "O+", district: "", extra: "ignored" });
+    expect(f).toEqual({ name: "রহিম", birthYear: "1996", bloodGroup: "O+" });
+    expect(() => fieldsFromJson({ name: null })).toThrow();
+    expect(() => fieldsFromJson("not an object")).toThrow();
   });
 
   it("leaves out what it cannot read instead of guessing", () => {

@@ -25,27 +25,30 @@ export function BiodataImport({ ai, onResult }: { ai: boolean; onResult: (fields
     try {
       if (!importKind(file)) throw new Error("unsupported");
       if (file.size > MAX_IMPORT_BYTES) throw new Error("too_big");
-      let fields: Imported;
+      let fields: Imported | null = null;
+      // the AI reading first, when the site has a key; if it is busy or fails, the phone reads the file itself
       if (ai && importKind(file) !== "docx") {
         setStatus(t("import.sendingFile"));
         const form = new FormData();
         form.set("file", file);
         const result = await extractBiodataAction(form);
-        if (!result.ok) throw new Error(result.error);
-        fields = result.fields;
-      } else {
+        if (result.ok) fields = result.fields;
+        else setStatus(t("import.aiFallback"));
+      }
+      if (!fields) {
         const text = await extractText(file, setStatus, {
           word: t("import.readingWord"), pdf: t("import.readingPdf"), ocrFirst: t("import.ocrFirst"), ocrPrep: t("import.ocrPrep"),
           ocrProgress: (p) => t("import.ocrProgress", { p }),
         });
-        if (ai) {
+        if (ai && importKind(file) === "docx") {
           setStatus(t("import.sendingText"));
           const form = new FormData();
           form.set("text", text);
           const result = await extractBiodataAction(form);
-          if (!result.ok) throw new Error(result.error);
-          fields = result.fields;
-        } else {
+          if (result.ok) fields = result.fields;
+          else setStatus(t("import.aiFallback"));
+        }
+        if (!fields) {
           setStatus(t("import.arranging"));
           fields = parseBiodataText(text);
         }

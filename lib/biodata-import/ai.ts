@@ -4,13 +4,22 @@ import { z } from "zod";
 import { AppError } from "../errors";
 import type { Imported } from "./parse";
 
-// The better reader, when the site has an Anthropic API key: Claude looks at the photo, PDF or text and fills the
-// same fields the rule-based parser does, handling handwriting, odd layouts and prose. Without a key the button on
-// the form uses the free, in-browser path (extract.ts + parse.ts) instead; nothing here runs.
+// The better reader, when the site has an AI key: the model looks at the photo, PDF or text and fills the same
+// fields the rule-based parser does, handling handwriting, odd layouts and prose. Two providers:
+//   GEMINI_API_KEY     Google's Gemini through its REST API. Its free tier (a key from AI Studio, no card) is enough
+//                      for a village ghotok's handful of biodata a day; the default model is gemini-2.5-flash.
+//   ANTHROPIC_API_KEY  Claude, paid, the stronger reader; the default model is claude-opus-5-5.
+// With both set, Claude is used. With neither, the button on the form uses the free, in-browser path
+// (extract.ts + parse.ts) instead and nothing here runs. BIODATA_AI_MODEL overrides either default.
 
-export const aiAvailable = (): boolean => Boolean(process.env.ANTHROPIC_API_KEY);
+export type AiProvider = "anthropic" | "gemini";
 
-const model = () => process.env.BIODATA_AI_MODEL || "claude-opus-5-5";
+export const aiProvider = (): AiProvider | null =>
+  process.env.ANTHROPIC_API_KEY ? "anthropic" : process.env.GEMINI_API_KEY ? "gemini" : null;
+
+export const aiAvailable = (): boolean => aiProvider() !== null;
+
+const model = () => process.env.BIODATA_AI_MODEL || (aiProvider() === "gemini" ? "gemini-2.5-flash" : "claude-opus-5-5");
 
 /** The form's fields; null where the document says nothing. Zod keeps the model's answer in this exact shape. */
 const Fields = z.object({
@@ -52,8 +61,12 @@ type Input =
   | { type: "pdf"; data: Buffer }
   | { type: "text"; text: string };
 
-/** The fields Claude read, with nulls dropped. Throws AppError("import_failed") when the model declines or returns nothing usable. */
+/** The fields the model read, with nulls dropped. Throws AppError("import_failed") when the model declines or returns nothing usable. */
 export async function extractWithAi(input: Input): Promise<Imported> {
+  return aiProvider() === "gemini" ? withGemini(input) : withClaude(input);
+}
+
+async function withClaude(input: Input): Promise<Imported> {
   const client = new Anthropic();
   const content: Anthropic.ContentBlockParam[] =
     input.type === "image"
@@ -71,8 +84,58 @@ export async function extractWithAi(input: Input): Promise<Imported> {
     messages: [{ role: "user", content }],
   });
   if (response.stop_reason === "refusal" || !response.parsed_output) throw new AppError("import_failed");
+  return fieldsFromJson(response.parsed_output);
+}
 
+/** The keys the model must answer with, with their meaning and allowed values, for a prompt. */
+function keyList(): string {
+  const schema = z.toJSONSchema(Fields) as { properties?: Record<string, { description?: string; anyOf?: { enum?: string[] }[]; enum?: string[] }> };
+  return Object.entries(schema.properties ?? {}).map(([key, p]) => {
+    const values = p.enum ?? p.anyOf?.flatMap((a) => a.enum ?? []);
+    const about = [p.description, values?.length ? `one of ${values.join(" | ")}` : null].filter(Boolean).join("; ");
+    return `- ${key}${about ? `: ${about}` : ""}`;
+  }).join("\n");
+}
+
+async function withGemini(input: Input): Promise<Imported> {
+  const parts: Record<string, unknown>[] =
+    input.type === "text"
+      ? [{ text: `The biodata's text:\n\n${input.text}` }]
+      : [{ inline_data: { mime_type: input.type === "pdf" ? "application/pdf" : input.mediaType, data: input.data.toString("base64") } }];
+  parts.push({ text: `Fill the form fields from this biodata. Answer with one JSON object and nothing else, with exactly these keys (every key present, null where the document says nothing):\n${keyList()}` });
+
+  const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model()}:generateContent`, {
+    method: "POST",
+    headers: { "content-type": "application/json", "x-goog-api-key": process.env.GEMINI_API_KEY ?? "" },
+    body: JSON.stringify({
+      system_instruction: { parts: [{ text: SYSTEM }] },
+      contents: [{ role: "user", parts }],
+      generationConfig: { response_mime_type: "application/json", temperature: 0 },
+    }),
+  });
+  // the free tier's quota: a handful a minute; the browser falls back to reading the file itself
+  if (res.status === 429 || res.status === 503) throw new AppError("ai_busy", `gemini ${res.status}`);
+  if (!res.ok) throw new AppError("import_failed", `gemini ${res.status} ${(await res.text()).slice(0, 300)}`);
+  const body = (await res.json()) as { candidates?: { content?: { parts?: { text?: string }[] } }[] };
+  const text = body.candidates?.[0]?.content?.parts?.map((p) => p.text ?? "").join("") ?? "";
+  let raw: unknown;
+  try { raw = JSON.parse(text); } catch { throw new AppError("import_failed", "gemini: not json"); }
+  return fieldsFromJson(raw);
+}
+
+/**
+ * The model's JSON as form fields: each key checked on its own against the schema (a wrong enum value or a number
+ * where a string belongs drops that field, not the whole answer), nulls and blanks left out, everything a string.
+ */
+export function fieldsFromJson(raw: unknown): Imported {
+  if (!raw || typeof raw !== "object") throw new AppError("import_failed", "ai: no object");
   const out: Imported = {};
-  for (const [k, v] of Object.entries(response.parsed_output)) if (v) out[k as keyof Imported] = String(v).trim();
+  for (const [key, schema] of Object.entries(Fields.shape)) {
+    let value = (raw as Record<string, unknown>)[key];
+    if (typeof value === "number") value = String(value);
+    const parsed = schema.safeParse(value);
+    if (parsed.success && parsed.data !== null && String(parsed.data).trim()) out[key as keyof Imported] = String(parsed.data).trim();
+  }
+  if (!Object.keys(out).length) throw new AppError("import_failed", "ai: nothing read");
   return out;
 }
