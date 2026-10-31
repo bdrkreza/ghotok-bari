@@ -2,7 +2,7 @@
 
 import { useState, type ReactNode } from "react";
 import { Icon } from "./icons";
-import { bn } from "@/lib/bn";
+import { useT } from "@/lib/i18n/client";
 
 /**
  * The filter column of a list. On a phone it starts folded behind a "ফিল্টার" button, so the cards are one
@@ -10,19 +10,20 @@ import { bn } from "@/lib/bn";
  */
 export function FilterPanel({ active, children }: { active: number; children: ReactNode }) {
   const [open, setOpen] = useState(false);
-  const badge = active ? <span className="rounded-full bg-primary px-2 py-0.5 text-xs text-on-primary">{bn(active)}</span> : null;
+  const { t, n } = useT();
+  const badge = active ? <span className="rounded-full bg-primary px-2 py-0.5 text-xs text-on-primary">{n(active)}</span> : null;
   return (
     <aside className="rounded-2xl border border-line bg-surface lg:sticky lg:top-24 lg:max-h-[calc(100dvh-7rem)] lg:overflow-y-auto">
       <button type="button" onClick={() => setOpen((o) => !o)} aria-expanded={open} aria-controls="filters"
         className="flex min-h-12 w-full items-center justify-center gap-2 px-4 font-display text-base font-bold lg:hidden">
         <Icon name="filter" size={20} className="text-primary" />
-        ফিল্টার
+        {t("filter.title")}
         {badge}
         <Icon name="chevronRight" size={18} className={`text-muted transition-transform ${open ? "-rotate-90" : "rotate-90"}`} />
       </button>
       <div className="hidden min-h-14 items-center justify-center gap-2 border-b border-line px-4 font-display text-base font-bold lg:flex">
         <Icon name="filter" size={20} className="text-primary" />
-        ফিল্টার
+        {t("filter.title")}
         {badge}
       </div>
       <div id="filters" className={`${open ? "block" : "hidden"} border-t border-line lg:block lg:border-t-0`}>{children}</div>

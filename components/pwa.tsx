@@ -3,6 +3,8 @@
 import { useEffect, useSyncExternalStore } from "react";
 import { Icon } from "./icons";
 import { Card, primaryButton } from "./ui";
+import { richParts } from "@/lib/i18n";
+import { useT } from "@/lib/i18n/client";
 
 /** Registers public/sw.js in production: build assets are cached and an offline page replaces the browser's error.
  *  Development skips it, so hot reload keeps serving fresh files. */
@@ -72,19 +74,21 @@ async function install() {
 export function InstallCard() {
   // null on the server and during hydration: the browser is not known yet
   const state = useSyncExternalStore<InstallState | null>(subscribe, snapshot, () => null);
+  const { t } = useT();
+  const rich = (s: string) => richParts(s).map((p, i) => (p.bold ? <span key={i} className="font-bold">{p.text}</span> : <span key={i}>{p.text}</span>));
   return (
-    <Card title="ফোনে app হিসেবে রাখুন">
+    <Card title={t("pwa.title")}>
       {state === "installed" ? (
-        <p className="flex items-center gap-2 text-sm font-semibold text-pos"><Icon name="check" size={18} />আলতা এই ফোনে app হিসেবে আছে।</p>
+        <p className="flex items-center gap-2 text-sm font-semibold text-pos"><Icon name="check" size={18} />{t("pwa.installed")}</p>
       ) : (
         <>
-          <p className="text-sm text-muted">হোম স্ক্রিনে রাখলে এক টোকায় খাতা খোলে, ব্রাউজারের ঠিকানা-বার ছাড়া পুরো পর্দায় চলে। ইন্টারনেট না থাকলেও app খোলে।</p>
+          <p className="text-sm text-muted">{t("pwa.text")}</p>
           {state === "ready" ? (
-            <button type="button" onClick={install} className={primaryButton}><Icon name="plus" size={18} />ফোনে ইনস্টল করুন</button>
+            <button type="button" onClick={install} className={primaryButton}><Icon name="plus" size={18} />{t("pwa.install")}</button>
           ) : state === "ios" ? (
-            <p className="text-sm">Safari-র নিচের <span className="font-bold">Share</span> বোতাম চাপুন, তারপর <span className="font-bold">Add to Home Screen</span> বেছে নিন।</p>
+            <p className="text-sm">{rich(t("pwa.ios"))}</p>
           ) : state === "manual" ? (
-            <p className="text-sm">ব্রাউজারের মেনু (<span className="font-bold">⋮</span>) থেকে <span className="font-bold">Install app</span> বা <span className="font-bold">Add to Home screen</span> বেছে নিন।</p>
+            <p className="text-sm">{rich(t("pwa.manual"))}</p>
           ) : null}
         </>
       )}

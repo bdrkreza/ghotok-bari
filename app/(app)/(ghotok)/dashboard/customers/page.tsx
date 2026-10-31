@@ -3,16 +3,20 @@ import { RoleForm } from "@/components/customer-forms";
 import { Icon } from "@/components/icons";
 import { Badge, Card, Empty, PageHeader } from "@/components/ui";
 import { requireAdmin } from "@/lib/auth/session";
-import { bn, initials } from "@/lib/bn";
+import { initials } from "@/lib/bn";
 import { getDb } from "@/lib/db";
+import { getT } from "@/lib/i18n/server";
 import { listCustomers } from "@/lib/services/customers";
-import { formatDate } from "@/lib/time";
 
-export const metadata: Metadata = { title: "গ্রাহক" };
+export async function generateMetadata(): Promise<Metadata> {
+  const { t } = await getT();
+  return { title: t("nav.customers") };
+}
 
 /** Every account on the site: who signed up and when, who is an admin, and the buttons to change that. */
 export default async function CustomersPage(props: PageProps<"/dashboard/customers">) {
-  const admin = await requireAdmin();
+  const [admin, T] = await Promise.all([requireAdmin(), getT()]);
+  const { t } = T;
   const query = await props.searchParams;
   const q = typeof query.q === "string" ? query.q.trim() : "";
   const rows = await listCustomers(getDb(), admin, q);
@@ -20,15 +24,15 @@ export default async function CustomersPage(props: PageProps<"/dashboard/custome
 
   return (
     <>
-      <PageHeader title="গ্রাহক ও অ্যাডমিন" back="/dashboard" sub={q ? `"${q}" খোঁজা হচ্ছে` : `${bn(rows.length)}টি অ্যাকাউন্ট, তার মধ্যে ${bn(admins)} জন অ্যাডমিন`} />
+      <PageHeader title={t("cu.title")} back="/dashboard" sub={q ? t("cu.searching", { q }) : t("cu.count", { n: rows.length, a: admins })} />
 
       <div className="flex flex-col gap-5 lg:grid lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-start lg:gap-6">
         <section className="flex min-w-0 flex-col gap-4">
           <form method="get" action="/dashboard/customers" role="search" className="flex gap-2">
-            <label htmlFor="q" className="sr-only">অ্যাকাউন্ট খুঁজুন</label>
-            <input id="q" name="q" defaultValue={q} placeholder="নাম বা মোবাইল…" inputMode="search"
+            <label htmlFor="q" className="sr-only">{t("cu.searchAria")}</label>
+            <input id="q" name="q" defaultValue={q} placeholder={t("cu.searchPlaceholder")} inputMode="search"
               className="min-h-11 w-full rounded-xl border border-line bg-surface px-3 text-sm outline-none focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/40 sm:w-72" />
-            <button type="submit" aria-label="খুঁজুন" className="grid size-11 shrink-0 place-items-center rounded-xl border border-line bg-surface"><Icon name="search" size={18} /></button>
+            <button type="submit" aria-label={t("common.search")} className="grid size-11 shrink-0 place-items-center rounded-xl border border-line bg-surface"><Icon name="search" size={18} /></button>
           </form>
 
           {rows.length ? (
@@ -40,16 +44,16 @@ export default async function CustomersPage(props: PageProps<"/dashboard/custome
                     <div className="min-w-0">
                       <p className="flex flex-wrap items-center gap-2 font-bold">
                         <span className="truncate">{c.name}</span>
-                        {c.owner ? <Badge tone="mango">ঘটক</Badge> : c.role === "admin" ? <Badge tone="lilac">অ্যাডমিন</Badge> : <Badge tone="mint">গ্রাহক</Badge>}
-                        {c.id === admin.id ? <Badge tone="sky">আপনি</Badge> : null}
+                        {c.owner ? <Badge tone="mango">{t("cu.ghotok")}</Badge> : c.role === "admin" ? <Badge tone="lilac">{t("cu.admin")}</Badge> : <Badge tone="mint">{t("cu.customer")}</Badge>}
+                        {c.id === admin.id ? <Badge tone="sky">{t("cu.you")}</Badge> : null}
                       </p>
                       <p className="truncate text-sm text-muted">
-                        {bn(c.phone)} · যোগ {formatDate(c.joined)}{c.lastSeen ? ` · শেষ দেখা ${formatDate(c.lastSeen)}` : ""}
+                        {T.n(c.phone)} · {t("cu.joined", { date: T.date(c.joined) })}{c.lastSeen ? ` · ${t("cu.lastSeen", { date: T.date(c.lastSeen) })}` : ""}
                       </p>
                     </div>
                   </div>
                   {c.id === admin.id || c.owner ? null : c.envAdmin ? (
-                    <p className="text-xs text-muted lg:w-40">ADMIN_PHONES থেকে অ্যাডমিন</p>
+                    <p className="text-xs text-muted lg:w-40">{t("cu.envAdmin")}</p>
                   ) : (
                     <RoleForm id={c.id} admin={c.role === "admin"} />
                   )}
@@ -57,17 +61,14 @@ export default async function CustomersPage(props: PageProps<"/dashboard/custome
               ))}
             </ul>
           ) : (
-            <Empty>{q ? `"${q}" নামে কোনো অ্যাকাউন্ট নেই।` : "এখনো কেউ অ্যাকাউন্ট খোলেনি।"}</Empty>
+            <Empty>{q ? t("cu.noneFor", { q }) : t("cu.none")}</Empty>
           )}
         </section>
 
         <section className="flex flex-col gap-4">
-          <Card title="ভূমিকা কীভাবে কাজ করে">
-            <p className="text-sm text-muted">
-              সাইটে যে-ই রেজিস্টার করুক, গ্রাহক হয়: পাত্র-পাত্রী দেখে আর নিজের বায়োডাটা দেয়। অ্যাডমিন পুরো ড্যাশবোর্ড চালায়।
-              কোনো সহকারীকে অ্যাডমিন করতে চাইলে তার সারিতে “অ্যাডমিন করুন” চাপুন; সরাতেও এখান থেকেই।
-            </p>
-            <p className="text-sm text-muted">সাইটের মালিক ঘটক সবসময় অ্যাডমিন থাকেন, আর কেউ নিজের ভূমিকা নিজে বদলাতে পারে না।</p>
+          <Card title={t("cu.howTitle")}>
+            <p className="text-sm text-muted">{t("cu.how1")}</p>
+            <p className="text-sm text-muted">{t("cu.how2")}</p>
           </Card>
         </section>
       </div>

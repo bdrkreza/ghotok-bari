@@ -1,33 +1,32 @@
 // The search bar on the dashboard and the filters it hands to the /patro and /patri lists. Pure helpers shared by
 // server and client code, so nothing here touches the database.
-import { bn } from "./bn";
 import type { ProfileKind } from "./db/schema";
+import type { Key, T } from "./i18n";
 
 /** Age bands offered in the search bar; the value travels in the URL as ?age=18-25 (41- is open-ended). */
-export const AGE_RANGES: readonly { value: string; label: string }[] = [
-  { value: "18-25", label: "১৮ – ২৫" },
-  { value: "26-30", label: "২৬ – ৩০" },
-  { value: "31-35", label: "৩১ – ৩৫" },
-  { value: "36-40", label: "৩৬ – ৪০" },
-  { value: "41-", label: "৪১+" },
-];
-
+export const AGE_RANGES = ["18-25", "26-30", "31-35", "36-40", "41-"] as const;
 /** Height bands in cm, shown in feet and inches as the ghotok says them. */
-export const HEIGHT_RANGES: readonly { value: string; label: string }[] = [
-  { value: "-151", label: "৫ ফুটের নিচে" },
-  { value: "152-162", label: "৫′০″ – ৫′৪″" },
-  { value: "163-172", label: "৫′৫″ – ৫′৮″" },
-  { value: "173-", label: "৫′৯″ বা বেশি" },
-];
-
+export const HEIGHT_RANGES = ["-151", "152-162", "163-172", "173-"] as const;
 /** Lower bounds for monthly income, in taka. */
-export const INCOME_MINS: readonly { value: string; label: string }[] = [
-  { value: "10000", label: "১০ হাজার+" },
-  { value: "20000", label: "২০ হাজার+" },
-  { value: "30000", label: "৩০ হাজার+" },
-  { value: "50000", label: "৫০ হাজার+" },
-  { value: "100000", label: "১ লাখ+" },
-];
+export const INCOME_MINS = ["10000", "20000", "30000", "50000", "100000"] as const;
+
+export type BandGroup = "age" | "height" | "income";
+const BANDS: Record<BandGroup, readonly string[]> = { age: AGE_RANGES, height: HEIGHT_RANGES, income: INCOME_MINS };
+const FIXED: Record<string, Key> = {
+  "-151": "range.under5ft", "152-162": "range.h152", "163-172": "range.h163", "173-": "range.h173",
+  "10000": "range.k10", "20000": "range.k20", "30000": "range.k30", "50000": "range.k50", "100000": "range.lakh1",
+};
+
+/** The band as a person reads it, in their language: "১৮ – ২৫", "5′0″ – 5′4″", "১০ হাজার+". */
+export function bandLabel(t: T, group: BandGroup, value: string): string {
+  if (FIXED[value]) return t.t(FIXED[value]);
+  const m = /^(\d+)-(\d+)?$/.exec(value);
+  if (group === "age" && m) return m[2] ? t.t("range.age", { a: Number(m[1]), b: Number(m[2]) }) : t.t("range.agePlus", { a: Number(m[1]) });
+  return t.n(value);
+}
+
+/** Every band of a group with its label, for a <select>. */
+export const bandOptions = (t: T, group: BandGroup) => BANDS[group].map((value) => ({ value, label: bandLabel(t, group, value) }));
 
 export interface Band { min?: number; max?: number }
 export type AgeBand = Band;
@@ -52,12 +51,6 @@ export function parseNo(value: string | undefined): number | undefined {
   const digits = (value ?? "").replace(/[০-৯]/g, (d) => String("০১২৩৪৫৬৭৮৯".indexOf(d))).replace(/\D/g, "");
   return digits && digits.length <= 9 ? Number(digits) : undefined;
 }
-
-const label = (ranges: readonly { value: string; label: string }[], value: string) => ranges.find((r) => r.value === value)?.label ?? bn(value);
-/** The band as the ghotok reads it: "১৮ – ২৫" */
-export const ageLabel = (value: string) => label(AGE_RANGES, value);
-export const heightLabelFor = (value: string) => label(HEIGHT_RANGES, value);
-export const incomeLabel = (value: string) => label(INCOME_MINS, value);
 
 /** A district and upazila pair as written on someone's profile. */
 export interface Place { district: string; upazila: string | null }

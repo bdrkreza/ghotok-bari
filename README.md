@@ -75,6 +75,15 @@ own and land in পরিবারের বিবরণ as short lines. Nothing
 the ghotok resets a family's forgotten password from the accounts list; the front page's words are edited from the
 dashboard.
 
+## Two languages
+
+Every screen is in Bangla by default and in English on request: the "বাং | EN" switch sits in the top bar, the
+phone header, the sign-in panel, the front page and settings. The choice is a cookie (`lang`), kept for a year on
+that browser. Digits, money, dates and the biodata number follow the language ("৳১২,০০০ · ৩০ অক্টোবর ২০২৬" or
+"৳12,000 · 30 October 2026"), and so do the messages that come back from the server (form errors, notices). What
+people typed, demo data included, stays as typed. All phrases live in `lib/i18n/dict.ts`, one key with two strings,
+and a test keeps the two languages in step.
+
 ## Web and mobile
 
 The same pages render two layouts, chosen by screen width (Tailwind's `lg` breakpoint, 1024px):

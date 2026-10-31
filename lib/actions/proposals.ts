@@ -6,6 +6,7 @@ import { requireAdmin } from "../auth/session";
 import { getDb } from "../db";
 import type { ProposalStatus } from "../db/schema";
 import { attempt, field, fieldValues, type FormState } from "../form";
+import { getT } from "../i18n/server";
 import { addNote, changeStatus, createProposal, deleteProposal } from "../services/proposals";
 
 export async function createProposalAction(_prev: FormState, form: FormData): Promise<FormState> {
@@ -21,23 +22,23 @@ export async function createProposalAction(_prev: FormState, form: FormData): Pr
 }
 
 export async function changeStatusAction(_prev: FormState, form: FormData): Promise<FormState> {
-  const user = await requireAdmin();
+  const [user, { t }] = await Promise.all([requireAdmin(), getT()]);
   const id = field(form, "id");
   return attempt(async () => {
     await changeStatus(getDb(), user.ghotokId, id, field(form, "to") as ProposalStatus, field(form, "note"));
     revalidatePath("/dashboard");
     revalidatePath(`/proposals/${id}`);
-    return { notice: "অবস্থা বদলানো হয়েছে।" };
+    return { notice: t("notice.statusChanged") };
   });
 }
 
 export async function addNoteAction(_prev: FormState, form: FormData): Promise<FormState> {
-  const user = await requireAdmin();
+  const [user, { t }] = await Promise.all([requireAdmin(), getT()]);
   const id = field(form, "id");
   return attempt(async () => {
     await addNote(getDb(), user.ghotokId, id, field(form, "note"));
     revalidatePath(`/proposals/${id}`);
-    return { notice: "নোট যোগ হয়েছে।" };
+    return { notice: t("notice.noteAdded") };
   });
 }
 

@@ -6,6 +6,7 @@ import { requireAdmin } from "../auth/session";
 import { getDb } from "../db";
 import type { ProfileStatus } from "../db/schema";
 import { attempt, field, fieldValues, type FormState } from "../form";
+import { getT } from "../i18n/server";
 import { createProfile, deleteProfile, setApproval, setProfileStatus, updateProfile } from "../services/profiles";
 
 export async function createProfileAction(_prev: FormState, form: FormData): Promise<FormState> {
@@ -30,25 +31,25 @@ export async function updateProfileAction(_prev: FormState, form: FormData): Pro
 }
 
 export async function setProfileStatusAction(_prev: FormState, form: FormData): Promise<FormState> {
-  const user = await requireAdmin();
+  const [user, { t }] = await Promise.all([requireAdmin(), getT()]);
   const id = field(form, "id");
   return attempt(async () => {
     await setProfileStatus(getDb(), user.ghotokId, id, field(form, "status") as ProfileStatus);
     revalidatePath(`/profiles/${id}`);
-    return { notice: "অবস্থা বদলানো হয়েছে।" };
+    return { notice: t("notice.statusChanged") };
   });
 }
 
 /** The ghotok's decision on a biodata a family handed in; the button pressed says which. */
 export async function setApprovalAction(_prev: FormState, form: FormData): Promise<FormState> {
-  const user = await requireAdmin();
+  const [user, { t }] = await Promise.all([requireAdmin(), getT()]);
   const id = field(form, "id");
   const decision = field(form, "decision") === "returned" ? "returned" : "approved";
   return attempt(async () => {
     await setApproval(getDb(), user.ghotokId, id, decision, field(form, "note"));
     revalidatePath(`/profiles/${id}`);
     revalidatePath("/dashboard");
-    return { notice: decision === "approved" ? "তালিকায় তোলা হয়েছে।" : "পরিবারকে ফেরত পাঠানো হয়েছে।" };
+    return { notice: decision === "approved" ? t("notice.listed") : t("notice.returned") };
   });
 }
 

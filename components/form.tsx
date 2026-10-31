@@ -3,6 +3,7 @@
 import { useActionState, useEffect, useRef, useState, useTransition, type ReactNode } from "react";
 import { Icon } from "@/components/icons";
 import type { FormState } from "@/lib/form";
+import { useT } from "@/lib/i18n/client";
 
 type Action = (prev: FormState, form: FormData) => Promise<FormState>;
 
@@ -31,6 +32,7 @@ interface FieldProps {
 export function Field({ name, label, type = "text", hint, required = false, id = name, tag, ...rest }: FieldProps) {
   // a password can be shown, so a typing slip on a phone is seen before it is sent
   const [shown, setShown] = useState(false);
+  const { t } = useT();
   const isPassword = type === "password";
   const input = (
     <input
@@ -52,7 +54,7 @@ export function Field({ name, label, type = "text", hint, required = false, id =
           {input}
           <button
             type="button" onClick={() => setShown((s) => !s)} aria-pressed={shown} aria-controls={id}
-            aria-label={shown ? "Password লুকান" : "Password দেখান"}
+            aria-label={shown ? t("common.hidePassword") : t("common.showPassword")}
             className="absolute inset-y-0 right-1 grid w-12 place-items-center rounded-xl text-muted"
           >
             <Icon name={shown ? "eyeOff" : "eye"} size={20} />
@@ -152,9 +154,11 @@ interface ActionFormProps {
 
 /** A form bound to a server action: shows the returned error or notice, disables the button while it runs. */
 export function ActionForm({
-  action, submitLabel, pendingLabel = "একটু অপেক্ষা করুন…", children, tone = "primary",
+  action, submitLabel, pendingLabel, children, tone = "primary",
   resetOnSuccess = false, inline = false, compact = false, submitAriaLabel,
 }: ActionFormProps) {
+  const { t } = useT();
+  const waiting = pendingLabel ?? t("common.wait");
   const [state, formAction, pending] = useActionState(action, {});
   const [, startTransition] = useTransition();
   const ref = useRef<HTMLFormElement>(null);
@@ -165,7 +169,7 @@ export function ActionForm({
   const button = (
     <button type="submit" disabled={pending} aria-label={submitAriaLabel}
       className={`inline-flex items-center justify-center gap-1.5 font-bold disabled:opacity-60 ${size} ${inline ? "shrink-0" : "w-full"} ${TONES[tone]}`}>
-      {pending ? (compact ? "…" : pendingLabel) : submitLabel}
+      {pending ? (compact ? "…" : waiting) : submitLabel}
     </button>
   );
   return (

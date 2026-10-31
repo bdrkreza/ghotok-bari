@@ -70,15 +70,11 @@ export async function updateSite(db: Db, ghotokId: string, raw: Record<string, s
   await db.update(site).set(data).where(eq(site.id, current.id));
 }
 
-export const DEFAULT_TAGLINE = "বিশ্বাস আর পরিবারের সম্মতিতে ঘটকালি";
-export const DEFAULT_ABOUT =
-  "পাত্র-পাত্রীর বায়োডাটা, পরিবারের সাথে যোগাযোগ আর বিয়ের কথাবার্তা, সবকিছু একজন বিশ্বস্ত ঘটকের হাতে। " +
-  "বায়োডাটা দেখুন, পছন্দ হলে আগ্রহ জানান, বাকিটা আমি দেখব।";
-
 export interface PublicSite {
   name: string;
-  tagline: string;
-  about: string;
+  /** the ghotok's own words; null means the page shows its stock line in the reader's language */
+  tagline: string | null;
+  about: string | null;
   address: string | null;
   /** the ghotok's login number: what families call */
   phone: string;
@@ -101,8 +97,8 @@ export async function publicSite(db: Db): Promise<PublicSite | null> {
   const phone = owner?.phone ?? "";
   return {
     name: s.name,
-    tagline: s.tagline ?? DEFAULT_TAGLINE,
-    about: s.about ?? DEFAULT_ABOUT,
+    tagline: s.tagline,
+    about: s.about,
     address: s.address,
     phone,
     whatsapp: s.whatsapp ?? phone,

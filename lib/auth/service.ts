@@ -1,7 +1,7 @@
 import { APIError } from "better-auth/api";
 import { z } from "zod";
 import type { Auth } from "./index";
-import { bn } from "../bn";
+import { makeT, type Lang } from "../i18n";
 import { MIN_PASSWORD_LENGTH, normalizePhone, placeholderEmail } from "./phone";
 
 export type AuthErrorCode =
@@ -66,14 +66,7 @@ export async function login(deps: Deps, input: { phone: string; password: string
   }
 }
 
-/** What to tell the user for each error code. Raw errors are never shown. */
-export function authMessage(code: AuthErrorCode): string {
-  switch (code) {
-    case "invalid_name": return "নাম কমপক্ষে ২ অক্ষরের হতে হবে।";
-    case "invalid_phone": return "সঠিক মোবাইল নম্বর দিন, যেমন 01712345678।";
-    case "weak_password": return `পাসওয়ার্ড কমপক্ষে ${bn(MIN_PASSWORD_LENGTH)} অক্ষরের হতে হবে।`;
-    case "phone_taken": return "এই নম্বরে আগে থেকেই অ্যাকাউন্ট আছে। লগইন করুন।";
-    case "wrong_credentials": return "মোবাইল নম্বর বা পাসওয়ার্ড ঠিক নয়।";
-    default: return "কিছু একটা সমস্যা হয়েছে। একটু পরে আবার চেষ্টা করুন।";
-  }
+/** What to tell the user for each error code, in their language. Raw errors are never shown. */
+export function authMessage(code: AuthErrorCode, lang: Lang = "bn"): string {
+  return makeT(lang).t(`autherr.${code}`, { n: MIN_PASSWORD_LENGTH });
 }

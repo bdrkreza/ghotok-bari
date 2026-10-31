@@ -3,20 +3,21 @@ import { ApprovalForm } from "@/components/biodata-forms";
 import { Icon } from "@/components/icons";
 import { DeleteProfileForm, ProfileStatusForm } from "@/components/proposal-forms";
 import { ShareCard } from "@/components/share";
-import { Badge, Card, Empty, Facts, PageHeader, ProfileBadge, ProposalBadge, RowLink, primaryButton, quietButton } from "@/components/ui";
+import { ApprovalBadge, Badge, Card, Empty, Facts, PageHeader, ProfileBadge, ProposalBadge, RowLink, primaryButton, quietButton } from "@/components/ui";
 import { requireAdmin } from "@/lib/auth/session";
-import { APPROVAL, MARITAL, RELIGION, biodataNo, bn, heightLabel, taka, KIND_LABEL } from "@/lib/bn";
 import { getDb } from "@/lib/db";
+import { getT } from "@/lib/i18n/server";
 import { orNotFound } from "@/lib/not-found";
 import { siteOrigin } from "@/lib/origin";
 import { suggestFor } from "@/lib/services/match";
 import { getProfile, profileOwner } from "@/lib/services/profiles";
 import { proposalsFor } from "@/lib/services/proposals";
 import { getShare } from "@/lib/services/share";
-import { ageFromYear, formatDate } from "@/lib/time";
+import { ageFromYear } from "@/lib/time";
 
 export default async function ProfilePage(props: PageProps<"/profiles/[id]">) {
-  const user = await requireAdmin();
+  const [user, T] = await Promise.all([requireAdmin(), getT()]);
+  const { t } = T;
   const { id } = await props.params;
   const db = getDb();
   const p = await orNotFound(getProfile(db, user.ghotokId, id));
@@ -31,21 +32,22 @@ export default async function ProfilePage(props: PageProps<"/profiles/[id]">) {
   const other = p.kind === "patro" ? "patri" : "patro";
   const pairHref = (otherId: string) => `/proposals/new?${p.kind}=${p.id}&${other}=${otherId}`;
   const back = owner && !listed ? "/dashboard/approvals" : `/${p.kind}`;
+  const no = T.biodataNo(p.kind, p.code);
 
   return (
     <>
-      <PageHeader title={p.name} back={back} sub={`${biodataNo(p.kind, p.code)} · ${bn(ageFromYear(p.birthYear))} বছর`}
-        action={<Link href={`/profiles/${p.id}/edit`} aria-label="সম্পাদনা" className="grid size-11 place-items-center rounded-2xl border border-line bg-surface"><Icon name="edit" /></Link>} />
+      <PageHeader title={p.name} back={back} sub={`${no} · ${T.years(ageFromYear(p.birthYear))}`}
+        action={<Link href={`/profiles/${p.id}/edit`} aria-label={t("common.editAria")} className="grid size-11 place-items-center rounded-2xl border border-line bg-surface"><Icon name="edit" /></Link>} />
 
       {/* A biodata a family handed in: who wrote it, and the decision buttons. First on the page, since that is what the ghotok came for. */}
       {owner ? (
-        <Card title={listed ? "পরিবারের দেওয়া বায়োডাটা" : "অনুমোদনের অপেক্ষায়"} className={listed ? "" : "border-warn-line bg-warn"}>
+        <Card title={listed ? t("pp.ownerListed") : t("pp.ownerPending")} className={listed ? "" : "border-warn-line bg-warn"}>
           <p className="flex flex-wrap items-center gap-2 text-sm">
-            <Badge tone={APPROVAL[p.approval].tone}>{APPROVAL[p.approval].label}</Badge>
-            <span className="text-muted">দিয়েছেন <span className="font-bold text-ink">{owner.name}</span> · <a href={`tel:${owner.phone}`} className="font-bold text-primary">{bn(owner.phone)}</a> · {formatDate(p.updatedAt)}</span>
+            <ApprovalBadge approval={p.approval} />
+            <span className="text-muted">{t("pp.givenBy")} <span className="font-bold text-ink">{owner.name}</span> · <a href={`tel:${owner.phone}`} className="font-bold text-primary">{T.n(owner.phone)}</a> · {T.date(p.updatedAt)}</span>
           </p>
-          {p.approval === "returned" && p.returnNote ? <p className="text-sm text-muted">আপনার নোট: {p.returnNote}</p> : null}
-          {listed ? null : <p className="text-sm text-muted">তালিকায় তুললে অন্য পরিবার নাম-ছবি ছাড়া এটি দেখবে, আর মিল-খোঁজা ও প্রস্তাবে আসবে। পরিবার পরে বদলালে আবার এখানে ফিরবে।</p>}
+          {p.approval === "returned" && p.returnNote ? <p className="text-sm text-muted">{t("pp.yourNote", { note: p.returnNote })}</p> : null}
+          {listed ? null : <p className="text-sm text-muted">{t("pp.listHint")}</p>}
           <ApprovalForm id={p.id} current={p.approval} />
         </Card>
       ) : null}
@@ -66,29 +68,29 @@ export default async function ProfilePage(props: PageProps<"/profiles/[id]">) {
                 <ProfileBadge status={p.status} />
                 <p className="flex items-center gap-1.5 text-sm text-muted"><Icon name="location" size={16} />{[p.village, p.upazila, p.district].filter(Boolean).join(", ")}</p>
                 {p.guardianPhone ? (
-                  <a href={`tel:${p.guardianPhone}`} className="flex items-center gap-1.5 text-sm font-bold text-primary"><Icon name="phone" size={16} />{bn(p.guardianPhone)}{p.guardianName ? ` · ${p.guardianName}` : ""}</a>
+                  <a href={`tel:${p.guardianPhone}`} className="flex items-center gap-1.5 text-sm font-bold text-primary"><Icon name="phone" size={16} />{T.n(p.guardianPhone)}{p.guardianName ? ` · ${p.guardianName}` : ""}</a>
                 ) : null}
               </div>
             </div>
             <Facts items={[
-              ["বয়স", `${bn(ageFromYear(p.birthYear))} বছর (${bn(p.birthYear)})`],
-              ["উচ্চতা", p.heightCm ? heightLabel(p.heightCm) : null],
-              ["ধর্ম", RELIGION[p.religion]],
-              ["বৈবাহিক অবস্থা", MARITAL[p.maritalStatus]],
-              ["শিক্ষা", p.education],
-              ["পেশা", p.profession],
-              ["মাসিক আয়", p.monthlyIncome ? taka(p.monthlyIncome) : null],
-              ["বাবা", p.fatherName],
-              ["মা", p.motherName],
-              ["অভিভাবক", p.guardianName],
+              [t("facts.age"), t("facts.ageWithYear", { n: ageFromYear(p.birthYear), year: p.birthYear })],
+              [t("facts.height"), p.heightCm ? T.height(p.heightCm) : null],
+              [t("facts.religion"), t(`religion.${p.religion}`)],
+              [t("facts.marital"), t(`marital.${p.maritalStatus}`)],
+              [t("facts.education"), p.education],
+              [t("facts.profession"), p.profession],
+              [t("facts.income"), p.monthlyIncome ? T.money(p.monthlyIncome) : null],
+              [t("facts.father"), p.fatherName],
+              [t("facts.mother"), p.motherName],
+              [t("facts.guardian"), p.guardianName],
             ]} />
-            {p.familyDetails ? <Text label="পরিবার" value={p.familyDetails} /> : null}
-            {p.expectations ? <Text label="যেমন চান" value={p.expectations} /> : null}
-            {p.notes ? <Text label="ঘটকের নোট" value={p.notes} /> : null}
-            <p className="text-xs text-muted">যোগ করা হয়েছে {formatDate(p.createdAt)}</p>
+            {p.familyDetails ? <Text label={t("facts.family")} value={p.familyDetails} /> : null}
+            {p.expectations ? <Text label={t("facts.expectations")} value={p.expectations} /> : null}
+            {p.notes ? <Text label={t("facts.notes")} value={p.notes} /> : null}
+            <p className="text-xs text-muted">{t("pp.addedOn", { date: T.date(p.createdAt) })}</p>
           </Card>
 
-          <Card title="প্রস্তাব">
+          <Card title={t("pp.proposals")}>
             {proposals.length ? (
               <div>
                 {proposals.map((pr) => {
@@ -96,44 +98,44 @@ export default async function ProfilePage(props: PageProps<"/profiles/[id]">) {
                   return <RowLink key={pr.id} href={`/proposals/${pr.id}`} title={them.name} sub={them.district} right={<ProposalBadge status={pr.status} />} />;
                 })}
               </div>
-            ) : <p className="text-sm text-muted">এখনো কোনো প্রস্তাব নেই।</p>}
-            {listed && p.status === "active" ? <Link href={`/proposals/new?${p.kind}=${p.id}`} className={quietButton}><Icon name="plus" size={18} />প্রস্তাব দিন</Link> : null}
+            ) : <p className="text-sm text-muted">{t("pp.noProposals")}</p>}
+            {listed && p.status === "active" ? <Link href={`/proposals/new?${p.kind}=${p.id}`} className={quietButton}><Icon name="plus" size={18} />{t("pp.propose")}</Link> : null}
           </Card>
 
           {listed && p.status === "active" ? (
-            <Card title={`সম্ভাব্য ${KIND_LABEL[other]}`}>
+            <Card title={t("pp.possible", { kind: t(`kind.${other}`) })}>
               {suggestions.length ? (
                 <ul className="flex flex-col gap-3">
                   {suggestions.map((s) => (
                     <li key={s.candidate.id} className="flex flex-col gap-2 rounded-2xl bg-sunk p-3">
                       <div className="flex items-center justify-between gap-3">
                         <Link href={`/profiles/${s.candidate.id}`} className="min-w-0 flex-1">
-                          <span className="block truncate font-semibold">{s.candidate.name} <span className="font-normal text-muted">· {bn(ageFromYear(s.candidate.birthYear))} বছর</span></span>
+                          <span className="block truncate font-semibold">{s.candidate.name} <span className="font-normal text-muted">· {T.years(ageFromYear(s.candidate.birthYear))}</span></span>
                           <span className="block truncate text-sm text-muted">{[s.candidate.village, s.candidate.upazila, s.candidate.district].filter(Boolean).join(", ")}</span>
                         </Link>
-                        <Link href={pairHref(s.candidate.id)} className={`${primaryButton} min-h-10 px-3 text-sm`}>প্রস্তাব</Link>
+                        <Link href={pairHref(s.candidate.id)} className={`${primaryButton} min-h-10 px-3 text-sm`}>{t("pp.proposeShort")}</Link>
                       </div>
-                      {s.reasons.length ? <div className="flex flex-wrap gap-1.5">{s.reasons.map((r) => <Badge key={r} tone="mint">{r}</Badge>)}</div> : null}
+                      {s.reasons.length ? <div className="flex flex-wrap gap-1.5">{s.reasons.map((r) => <Badge key={r.key} tone="mint">{t(`reason.${r.key}`, { n: r.n ?? 0 })}</Badge>)}</div> : null}
                     </li>
                   ))}
                 </ul>
               ) : (
-                <Empty>একই ধর্মের, খোঁজ চলছে এমন কোনো {KIND_LABEL[other]} এখন নেই।</Empty>
+                <Empty>{t("pp.noSuggestions", { kind: t(`kind.${other}`) })}</Empty>
               )}
             </Card>
           ) : null}
         </div>
 
         <div className="flex flex-col gap-5 lg:col-span-2">
-          <Card title="অবস্থা">
+          <Card title={t("pp.status")}>
             <ProfileStatusForm id={p.id} current={p.status} />
-            <p className="text-xs text-muted">প্রস্তাব &quot;বিয়ে ঠিক&quot; বা &quot;বিয়ে হয়েছে&quot; হলে অবস্থা নিজে থেকেই বদলায়।</p>
+            <p className="text-xs text-muted">{t("pp.statusHint")}</p>
           </Card>
 
-          {listed ? <ShareCard id={p.id} no={biodataNo(p.kind, p.code)} link={share ? `${origin}/b/${share}` : null} /> : null}
+          {listed ? <ShareCard id={p.id} no={no} link={share ? `${origin}/b/${share}` : null} /> : null}
 
           <details className="rounded-2xl border border-line bg-surface p-4">
-            <summary className="cursor-pointer font-semibold text-neg">মুছে ফেলুন</summary>
+            <summary className="cursor-pointer font-semibold text-neg">{t("common.delete")}</summary>
             <div className="pt-4"><DeleteProfileForm id={p.id} kind={p.kind} /></div>
           </details>
         </div>

@@ -7,7 +7,12 @@ Read README.md for the screens, roles, data model and setup.
 
 ## Rules
 
-- UI text is Bangla, written directly in JSX. Numbers shown to the user go through `bn()` / `taka()` in `lib/bn.ts`.
+- The UI is bilingual, Bangla (default) and English, chosen by the `lang` cookie (the switch in every bar). Every
+  phrase lives in `lib/i18n/dict.ts` under the same key in both languages (a test checks parity); nothing user-facing
+  is hard-coded in JSX. Server components and actions get `t` from `getT()` in `lib/i18n/server.ts`, client components
+  from `useT()` in `lib/i18n/client.tsx`. Numbers, money, dates, heights and the biodata number go through that same
+  object (`t.n`, `t.money`, `t.date`, `t.height`, `t.biodataNo`) so digits follow the language. `lib/bn.ts` keeps the
+  Bangla-only helpers for data (demo, tests), not for screens.
 - Roles are `customer` and `admin` (`lib/db/auth-schema.ts`). The site's owner (`site.ghotok_id`) and `ADMIN_PHONES`
   are always admins (`lib/auth/roles.ts`). Pages and actions on the ghotok's side call `requireAdmin()` and pass its
   `ghotokId` (the owner's id, not the signed-in admin's) to services; the customer side calls `requireCustomer()`.

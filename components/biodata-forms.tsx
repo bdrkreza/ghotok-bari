@@ -4,13 +4,15 @@ import { ActionForm, ConfirmCheck, Hidden, TextArea } from "./form";
 import { deleteBiodataAction } from "@/lib/actions/biodata";
 import { setApprovalAction } from "@/lib/actions/profiles";
 import type { Approval } from "@/lib/db/schema";
+import { useT } from "@/lib/i18n/client";
 
 /** The ghotok's two buttons on a biodata a family handed in: list it, or send it back with a note. */
 export function ApprovalForm({ id, current }: { id: string; current: Approval }) {
+  const { t } = useT();
   return (
     <div className="flex flex-col gap-4">
       {current !== "approved" ? (
-        <ActionForm action={setApprovalAction} submitLabel="তালিকায় তুলুন" pendingLabel="তোলা হচ্ছে…">
+        <ActionForm action={setApprovalAction} submitLabel={t("ap.list")} pendingLabel={t("ap.listing")}>
           {() => (
             <>
               <Hidden name="id" value={id} />
@@ -19,12 +21,12 @@ export function ApprovalForm({ id, current }: { id: string; current: Approval })
           )}
         </ActionForm>
       ) : null}
-      <ActionForm action={setApprovalAction} submitLabel={current === "approved" ? "তালিকা থেকে সরিয়ে ফেরত দিন" : "ফেরত দিন"} tone="danger">
+      <ActionForm action={setApprovalAction} submitLabel={current === "approved" ? t("ap.returnListed") : t("ap.return")} tone="danger">
         {(v) => (
           <>
             <Hidden name="id" value={id} />
             <Hidden name="decision" value="returned" />
-            <TextArea name="note" label="পরিবারকে যা জানাতে চান" placeholder="যেমন: জন্ম সাল আর অভিভাবকের নম্বর ঠিক করে দিন" defaultValue={v.note} rows={2} />
+            <TextArea name="note" label={t("ap.noteLabel")} placeholder={t("ap.notePlaceholder")} defaultValue={v.note} rows={2} />
           </>
         )}
       </ActionForm>
@@ -34,12 +36,13 @@ export function ApprovalForm({ id, current }: { id: string; current: Approval })
 
 /** A family takes back a biodata the ghotok has not listed yet. */
 export function DeleteBiodataForm({ id }: { id: string }) {
+  const { t } = useT();
   return (
-    <ActionForm action={deleteBiodataAction} submitLabel="মুছে ফেলুন" tone="danger">
+    <ActionForm action={deleteBiodataAction} submitLabel={t("common.delete")} tone="danger">
       {() => (
         <>
           <Hidden name="id" value={id} />
-          <ConfirmCheck label="হ্যাঁ, এই বায়োডাটা মুছে যাবে।" />
+          <ConfirmCheck label={t("mb.deleteConfirm")} />
         </>
       )}
     </ActionForm>

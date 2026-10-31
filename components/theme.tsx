@@ -4,6 +4,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useSyncExternalStore } from "react";
 import { Icon, type IconName } from "./icons";
 import { Card } from "./ui";
+import { useT } from "@/lib/i18n/client";
 import { THEMES, THEME_KEY, applyTheme, isTheme, type Theme } from "@/lib/theme";
 
 // One store for every control on the page, so the settings card and the bar button never disagree.
@@ -67,7 +68,8 @@ export function ThemeSync() {
 /** One tap between light and dark, for the bars. The icon is the scheme it would switch to. */
 export function ThemeButton({ className = "" }: { className?: string }) {
   const { dark, setTheme } = useTheme();
-  const label = dark ? "আলো মোড" : "অন্ধকার মোড";
+  const { t } = useT();
+  const label = dark ? t("common.lightMode") : t("common.darkMode");
   return (
     <button
       type="button" onClick={() => setTheme(dark ? "light" : "dark")} aria-label={label} title={label}
@@ -83,16 +85,17 @@ const ICONS: Record<Theme, IconName> = { system: "monitor", light: "sun", dark: 
 /** Settings card: follow the phone, or fix light or dark on this device. */
 export function ThemeCard() {
   const { theme, setTheme } = useTheme();
+  const { t } = useT();
   return (
-    <Card title="থিম: আলো বা অন্ধকার">
-      <p className="text-sm text-muted">সাধারণত ফোনের সেটিং অনুযায়ী বদলায়। এখানে বেছে দিলে এই ডিভাইসে সেটাই থাকবে।</p>
-      <div role="radiogroup" aria-label="থিম" className="grid grid-cols-3 gap-2">
-        {THEMES.map((t) => {
-          const on = theme === t.value;
+    <Card title={t("theme.title")}>
+      <p className="text-sm text-muted">{t("theme.text")}</p>
+      <div role="radiogroup" aria-label={t("theme.aria")} className="grid grid-cols-3 gap-2">
+        {THEMES.map((th) => {
+          const on = theme === th.value;
           return (
-            <button key={t.value} type="button" role="radio" aria-checked={on} onClick={() => setTheme(t.value)}
+            <button key={th.value} type="button" role="radio" aria-checked={on} onClick={() => setTheme(th.value)}
               className={`flex min-h-12 flex-col items-center justify-center gap-1 rounded-2xl border px-2 py-2 text-sm font-bold sm:flex-row sm:gap-2 sm:px-3 ${on ? "border-primary bg-primary-soft text-primary" : "border-line bg-surface text-muted"}`}>
-              <Icon name={ICONS[t.value]} size={18} />{t.label}
+              <Icon name={ICONS[th.value]} size={18} />{t(`theme.${th.value}`)}
             </button>
           );
         })}

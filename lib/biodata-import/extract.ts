@@ -4,6 +4,15 @@
 
 export type Progress = (message: string) => void;
 
+/** The progress lines, in the user's language (the component passes them in; this module has no language of its own). */
+export interface ProgressLabels {
+  word: string;
+  pdf: string;
+  ocrFirst: string;
+  ocrPrep: string;
+  ocrProgress: (percent: number) => string;
+}
+
 export const IMPORT_ACCEPT = "image/*,.pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document";
 export const MAX_IMPORT_BYTES = 10 * 1024 * 1024;
 const MAX_PDF_PAGES = 5;
@@ -19,17 +28,17 @@ export function importKind(file: File): ImportKind | null {
 }
 
 /** The document's text, as well as the browser can get it. Throws on an unreadable file. */
-export async function extractText(file: File, onProgress: Progress): Promise<string> {
+export async function extractText(file: File, onProgress: Progress, labels: ProgressLabels): Promise<string> {
   const kind = importKind(file);
   if (!kind) throw new Error("unsupported");
   if (kind === "docx") {
-    onProgress("Word ফাইল পড়া হচ্ছে…");
+    onProgress(labels.word);
     const mammoth = await import("mammoth/mammoth.browser.min.js");
     const { value } = await mammoth.extractRawText({ arrayBuffer: await file.arrayBuffer() });
     return value;
   }
   if (kind === "pdf") {
-    onProgress("PDF পড়া হচ্ছে…");
+    onProgress(labels.pdf);
     const pdfjs = await import("pdfjs-dist");
     pdfjs.GlobalWorkerOptions.workerSrc = new URL("pdfjs-dist/build/pdf.worker.min.mjs", import.meta.url).toString();
     const pdf = await pdfjs.getDocument({ data: await file.arrayBuffer() }).promise;
@@ -52,19 +61,19 @@ export async function extractText(file: File, onProgress: Progress): Promise<str
     }
     const typed = text.join("\n").trim();
     if (typed.length >= 80) return typed;
-    return ocr(images, onProgress);
+    return ocr(images, onProgress, labels);
   }
-  return ocr([file], onProgress);
+  return ocr([file], onProgress, labels);
 }
 
 /** Bangla and English OCR in the browser. The language data comes from Tesseract.js's CDN on first use. */
-async function ocr(images: Blob[], onProgress: Progress): Promise<string> {
-  onProgress("ছবি পড়ার জন্য তৈরি হচ্ছে… প্রথমবার একটু সময় লাগে");
+async function ocr(images: Blob[], onProgress: Progress, labels: ProgressLabels): Promise<string> {
+  onProgress(labels.ocrFirst);
   const { createWorker } = await import("tesseract.js");
   const worker = await createWorker(["ben", "eng"], 1, {
     logger: (m) => {
-      if (m.status === "recognizing text") onProgress(`ছবির লেখা পড়া হচ্ছে… ${Math.round(m.progress * 100)}%`);
-      else if (/loading|initializ/.test(m.status)) onProgress("ছবি পড়ার জন্য তৈরি হচ্ছে…");
+      if (m.status === "recognizing text") onProgress(labels.ocrProgress(Math.round(m.progress * 100)));
+      else if (/loading|initializ/.test(m.status)) onProgress(labels.ocrPrep);
     },
   });
   try {

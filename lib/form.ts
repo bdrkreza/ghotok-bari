@@ -1,4 +1,5 @@
 import { AppError, messageFor } from "./errors";
+import { getLang } from "./i18n/server";
 
 /** What a server action returns to a form. */
 export interface FormState {
@@ -21,14 +22,14 @@ export function fieldValues(form: FormData): Record<string, string> {
 }
 
 /**
- * Run a service call from a server action. An AppError becomes a Bangla message in the form;
+ * Run a service call from a server action. An AppError becomes a message in the user's language in the form;
  * anything else (including the redirect signal from Next) is re-thrown untouched.
  */
 export async function attempt(fn: () => Promise<FormState | void>, values?: Record<string, string>): Promise<FormState> {
   try {
     return (await fn()) ?? {};
   } catch (e) {
-    if (e instanceof AppError) return { error: messageFor(e.code), values };
+    if (e instanceof AppError) return { error: messageFor(e.code, await getLang()), values };
     throw e;
   }
 }

@@ -3,18 +3,21 @@ import { HomeSearch } from "@/components/home-search";
 import { Icon, type IconName } from "@/components/icons";
 import { Empty, ProfileBadge, ProposalBadge, outlineButton, primaryButton, quietButton } from "@/components/ui";
 import { requireAdmin } from "@/lib/auth/session";
-import { KIND_LABEL, bn, initial, taka } from "@/lib/bn";
+import { initial } from "@/lib/bn";
 import { getDb } from "@/lib/db";
+import type { Key, T } from "@/lib/i18n";
+import { getT } from "@/lib/i18n/server";
 import { dashboard } from "@/lib/services/dashboard";
 
-const PROMISES: { icon: IconName; title: string; text: string }[] = [
-  { icon: "shield", title: "তথ্য গোপন থাকে", text: "ছবি ও যোগাযোগ শুধু অনুমতিতে" },
-  { icon: "people", title: "পরিবারের সম্মতিতে", text: "প্রতিটি ধাপে পরিবার যুক্ত" },
-  { icon: "card", title: "পরিষ্কার হিসাব", text: "চুক্তি, জমা আর বাকি এক জায়গায়" },
+const PROMISES: { icon: IconName; title: Key; text: Key }[] = [
+  { icon: "shield", title: "dash.promise1Title", text: "dash.promise1Text" },
+  { icon: "people", title: "dash.promise2Title", text: "dash.promise2Text" },
+  { icon: "card", title: "dash.promise3Title", text: "dash.promise3Text" },
 ];
 
 export default async function HomePage() {
-  const user = await requireAdmin();
+  const [user, T] = await Promise.all([requireAdmin(), getT()]);
+  const { t } = T;
   const d = await dashboard(getDb(), user.ghotokId);
   // share of the agreed fees already in hand
   const pct = d.money.chukti > 0 ? Math.min(100, Math.round((d.money.joma / d.money.chukti) * 100)) : 0;
@@ -24,35 +27,35 @@ export default async function HomePage() {
       <section className="flex flex-col gap-5 rounded-3xl border border-primary-soft bg-linear-to-br from-primary-soft/60 via-bg to-surface p-5 lg:gap-7 lg:p-10">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between lg:gap-8">
           <div className="flex flex-col items-start gap-3">
-            <span className="rounded-full bg-primary-soft px-3 py-1 text-xs font-bold text-primary">ঘটকের ড্যাশবোর্ড</span>
+            <span className="rounded-full bg-primary-soft px-3 py-1 text-xs font-bold text-primary">{t("dash.badge")}</span>
             <h1 className="font-display text-3xl/[1.2] font-extrabold lg:text-5xl/[1.2]">
-              আসসালামু আলাইকুম,<br /><span className="text-primary">{user.name}</span>
+              {t("me.greeting")}<br /><span className="text-primary">{user.name}</span>
             </h1>
             <p className="text-muted lg:text-lg">
-              {d.live ? `আজ ${bn(d.live)}টি প্রস্তাব আলোচনায় আছে।` : "এখন কোনো প্রস্তাব আলোচনায় নেই।"} নতুন প্রোফাইল যোগ করুন বা নিচে খুঁজে দেখুন।
+              {d.live ? t("dash.live", { n: d.live }) : t("dash.noLive")} {t("dash.addHint")}
             </p>
           </div>
           <div className="grid grid-cols-2 gap-3 lg:flex lg:shrink-0">
-            <Link href="/profiles/new?kind=patro" className={outlineButton}><Icon name="plus" size={18} />নতুন পাত্র</Link>
-            <Link href="/profiles/new?kind=patri" className={primaryButton}><Icon name="plus" size={18} />নতুন পাত্রী</Link>
+            <Link href="/profiles/new?kind=patro" className={outlineButton}><Icon name="plus" size={18} />{t("dash.newPatro")}</Link>
+            <Link href="/profiles/new?kind=patri" className={primaryButton}><Icon name="plus" size={18} />{t("dash.newPatri")}</Link>
           </div>
         </div>
         <HomeSearch places={d.places} />
       </section>
 
-      <section aria-label="এক নজরে" className="grid grid-cols-2 gap-1 rounded-3xl border border-line bg-surface p-2 lg:grid-cols-4">
-        <Stat icon="groom" value={bn(d.patro)} label="পাত্র খুঁজছে" href="/patro" />
-        <Stat icon="bride" value={bn(d.patri)} label="পাত্রী খুঁজছে" href="/patri" />
-        <Stat icon="heart" value={bn(d.live)} label="চলমান প্রস্তাব" href="/proposals" />
-        <Stat icon="check" value={bn(d.fixed)} label="বিয়ে ঠিক / হয়েছে" href="/proposals?status=all" />
+      <section aria-label={t("me.glance")} className="grid grid-cols-2 gap-1 rounded-3xl border border-line bg-surface p-2 lg:grid-cols-4">
+        <Stat icon="groom" value={T.n(d.patro)} label={t("front.patroLooking")} href="/patro" />
+        <Stat icon="bride" value={T.n(d.patri)} label={t("front.patriLooking")} href="/patri" />
+        <Stat icon="heart" value={T.n(d.live)} label={t("dash.liveProposals")} href="/proposals" />
+        <Stat icon="check" value={T.n(d.fixed)} label={t("dash.fixed")} href="/proposals?status=all" />
       </section>
 
       {d.pending ? (
         <Link href="/dashboard/approvals" className="flex items-center gap-4 rounded-2xl border border-warn-line bg-warn p-4 text-warn-ink">
           <span aria-hidden className="grid size-11 shrink-0 place-items-center rounded-full bg-surface/70"><Icon name="note" size={22} /></span>
           <span className="min-w-0 flex-1">
-            <span className="block font-bold">{bn(d.pending)}টি বায়োডাটা অনুমোদনের অপেক্ষায়</span>
-            <span className="block text-sm">পরিবার জমা দিয়েছে; দেখে তালিকায় তুলুন বা ফেরত দিন</span>
+            <span className="block font-bold">{t("dash.pendingBanner", { n: d.pending })}</span>
+            <span className="block text-sm">{t("dash.pendingBannerText")}</span>
           </span>
           <Icon name="chevronRight" size={18} />
         </Link>
@@ -60,7 +63,7 @@ export default async function HomePage() {
 
       <div className="flex flex-col gap-5 lg:grid lg:grid-cols-[1fr_22rem] lg:items-start lg:gap-8">
         <section className="flex flex-col gap-4">
-          <SectionHead eyebrow="চলমান প্রস্তাব" title="আলোচনায় থাকা জুটি" links={[{ href: "/proposals", label: "সব প্রস্তাব দেখুন" }]} />
+          <SectionHead eyebrow={t("dash.liveProposals")} title={t("dash.liveTitle")} links={[{ href: "/proposals", label: t("dash.allProposals") }]} />
           {d.recent.length ? (
             <ul className="flex flex-col gap-3">
               {d.recent.map((p) => (
@@ -71,7 +74,7 @@ export default async function HomePage() {
                       <span className="grid size-12 place-items-center rounded-full bg-primary-soft font-display text-lg font-bold text-primary ring-2 ring-surface">{initial(p.patri.name)}</span>
                     </span>
                     <span className="min-w-0 flex-1">
-                      <span className="block truncate font-bold">{p.patro.name} ও {p.patri.name}</span>
+                      <span className="block truncate font-bold">{t("common.and", { a: p.patro.name, b: p.patri.name })}</span>
                       <span className="block truncate text-sm text-muted">{p.patro.district} · {p.patri.district}</span>
                     </span>
                     <ProposalBadge status={p.status} />
@@ -81,42 +84,42 @@ export default async function HomePage() {
               ))}
             </ul>
           ) : (
-            <Empty action={<Link href="/proposals/new" className={quietButton}>প্রথম প্রস্তাব দিন</Link>}>এখনো কোনো প্রস্তাব চলছে না।</Empty>
+            <Empty action={<Link href="/proposals/new" className={quietButton}>{t("dash.firstProposal")}</Link>}>{t("dash.noProposals")}</Empty>
           )}
         </section>
 
         <section className="flex flex-col gap-4">
-          <SectionHead eyebrow="টাকার হিসাব" title="আদায়ের অবস্থা" />
+          <SectionHead eyebrow={t("dash.moneyEyebrow")} title={t("dash.moneyTitle")} />
           <div className="flex flex-col gap-5 rounded-3xl border border-line bg-surface p-5 lg:p-6">
             <div>
-              <p className="text-sm text-muted">মোট চুক্তি</p>
-              <p className="font-display text-3xl font-bold tabular-nums lg:text-4xl">{taka(d.money.chukti)}</p>
+              <p className="text-sm text-muted">{t("dash.totalAgreed")}</p>
+              <p className="font-display text-3xl font-bold tabular-nums lg:text-4xl">{T.money(d.money.chukti)}</p>
             </div>
             <div className="flex flex-col gap-2">
-              <div role="progressbar" aria-label="আদায়" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100} className="h-2 overflow-hidden rounded-full bg-primary-soft">
+              <div role="progressbar" aria-label={t("dash.collection")} aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100} className="h-2 overflow-hidden rounded-full bg-primary-soft">
                 <div className="h-full rounded-full bg-primary" style={{ width: `${pct}%` }} />
               </div>
-              <p className="text-sm text-muted">{bn(pct)}% আদায় হয়েছে</p>
+              <p className="text-sm text-muted">{t("dash.collected", { p: pct })}</p>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="rounded-2xl bg-pos-soft p-4">
-                <p className="text-sm font-semibold text-pos">জমা</p>
-                <p className="font-display text-xl font-bold tabular-nums text-pos">{taka(d.money.joma)}</p>
+                <p className="text-sm font-semibold text-pos">{t("dash.received")}</p>
+                <p className="font-display text-xl font-bold tabular-nums text-pos">{T.money(d.money.joma)}</p>
               </div>
               <div className="rounded-2xl bg-neg-soft p-4">
-                <p className="text-sm font-semibold text-neg">বাকি</p>
-                <p className="font-display text-xl font-bold tabular-nums text-neg">{taka(d.money.baki)}</p>
+                <p className="text-sm font-semibold text-neg">{t("dash.due")}</p>
+                <p className="font-display text-xl font-bold tabular-nums text-neg">{T.money(d.money.baki)}</p>
               </div>
             </div>
-            <Link href="/hisab" className={outlineButton}>পুরো হিসাব দেখুন →</Link>
+            <Link href="/hisab" className={outlineButton}>{t("dash.fullLedger")}</Link>
           </div>
-          <LinkCard icon="note" title="বায়োডাটা অনুরোধ" text={d.pending ? `${bn(d.pending)}টি অপেক্ষায়` : "পরিবারের দেওয়া বায়োডাটা; এখন কিছু নেই"} href="/dashboard/approvals" />
-          <LinkCard icon="people" title="গ্রাহক ও অ্যাডমিন" text="সাইটে যারা অ্যাকাউন্ট খুলেছেন" href="/dashboard/customers" />
+          <LinkCard icon="note" title={t("dash.requestsCard")} text={d.pending ? t("dash.requestsPending", { n: d.pending }) : t("dash.requestsNone")} href="/dashboard/approvals" t={T} />
+          <LinkCard icon="people" title={t("dash.customersCard")} text={t("dash.customersText")} href="/dashboard/customers" t={T} />
         </section>
       </div>
 
       <section className="flex flex-col gap-4">
-        <SectionHead eyebrow="প্রোফাইল" title="সাম্প্রতিক প্রোফাইল" links={[{ href: "/patro", label: "সব পাত্র" }, { href: "/patri", label: "সব পাত্রী" }]} />
+        <SectionHead eyebrow={t("dash.profilesEyebrow")} title={t("dash.recentProfiles")} links={[{ href: "/patro", label: t("me.allPatro") }, { href: "/patri", label: t("me.allPatri") }]} />
         {d.people.length ? (
           <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
             {d.people.map((p) => (
@@ -128,30 +131,30 @@ export default async function HomePage() {
                       // eslint-disable-next-line @next/next/no-img-element
                       <img src={p.photoUrl} alt="" className="size-full object-cover" />
                     ) : (
-                      <span className="flex size-full flex-col items-center justify-center gap-1 text-xs text-muted"><Icon name="lock" size={22} />ছবি গোপন</span>
+                      <span className="flex size-full flex-col items-center justify-center gap-1 text-xs text-muted"><Icon name="lock" size={22} />{t("common.photoHidden")}</span>
                     )}
                     <span className="absolute top-2 right-2"><ProfileBadge status={p.status} /></span>
                   </span>
                   <span className="flex flex-col px-1 pb-1">
                     <span className="truncate font-bold">{p.name}</span>
-                    <span className="truncate text-sm text-muted">{KIND_LABEL[p.kind]} · {p.district}</span>
+                    <span className="truncate text-sm text-muted">{t(`kind.${p.kind}`)} · {p.district}</span>
                   </span>
                 </Link>
               </li>
             ))}
           </ul>
         ) : (
-          <Empty action={<Link href="/profiles/new?kind=patro" className={quietButton}><Icon name="plus" size={18} />প্রথম জনকে যোগ করুন</Link>}>এখনো কাউকে যোগ করা হয়নি।</Empty>
+          <Empty action={<Link href="/profiles/new?kind=patro" className={quietButton}><Icon name="plus" size={18} />{t("dash.addFirst")}</Link>}>{t("dash.noProfiles")}</Empty>
         )}
       </section>
 
-      <section aria-label="আলতার প্রতিশ্রুতি" className="grid gap-4 rounded-3xl bg-sky/40 p-5 sm:grid-cols-3 lg:p-6">
+      <section aria-label={t("dash.promises")} className="grid gap-4 rounded-3xl bg-sky/40 p-5 sm:grid-cols-3 lg:p-6">
         {PROMISES.map((p) => (
           <div key={p.title} className="flex items-center gap-4">
             <span aria-hidden className="grid size-12 shrink-0 place-items-center rounded-full bg-ink text-bg"><Icon name={p.icon} size={22} /></span>
             <span className="flex flex-col">
-              <span className="font-bold">{p.title}</span>
-              <span className="text-sm text-muted">{p.text}</span>
+              <span className="font-bold">{t(p.title)}</span>
+              <span className="text-sm text-muted">{t(p.text)}</span>
             </span>
           </div>
         ))}
@@ -174,7 +177,7 @@ function Stat({ icon, value, label, href }: { icon: IconName; value: string; lab
 }
 
 /** A row that opens one of the ghotok's secondary screens. */
-function LinkCard({ icon, title, text, href }: { icon: IconName; title: string; text: string; href: string }) {
+function LinkCard({ icon, title, text, href, t }: { icon: IconName; title: string; text: string; href: string; t: T }) {
   return (
     <div className="flex items-center gap-4 rounded-2xl border border-line bg-surface p-4">
       <span aria-hidden className="grid size-11 shrink-0 place-items-center rounded-full bg-primary-soft text-primary"><Icon name={icon} size={22} /></span>
@@ -182,7 +185,7 @@ function LinkCard({ icon, title, text, href }: { icon: IconName; title: string; 
         <span className="block font-bold">{title}</span>
         <span className="block text-sm text-muted">{text}</span>
       </span>
-      <Link href={href} className="shrink-0 text-sm font-bold text-primary">দেখুন →</Link>
+      <Link href={href} className="shrink-0 text-sm font-bold text-primary">{t.t("common.seeMore")}</Link>
     </div>
   );
 }

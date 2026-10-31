@@ -5,7 +5,7 @@ import { AppError } from "@/lib/errors";
 import { biodataNo, bnNumber, initial, initials, taka } from "@/lib/bn";
 import type { AdminSession } from "@/lib/auth/session";
 import { listCustomers, setRole } from "@/lib/services/customers";
-import { DEFAULT_TAGLINE, createSite, getSite, publicSite, updateSite } from "@/lib/services/site";
+import { createSite, getSite, publicSite, updateSite } from "@/lib/services/site";
 import { dashboard } from "@/lib/services/dashboard";
 import { addEntry, listEntries, totals } from "@/lib/services/ledger";
 import { suggestFor } from "@/lib/services/match";
@@ -187,7 +187,7 @@ describe("proposals", () => {
     expect(names).not.toContain("অন্য ধর্ম");
     expect(names).not.toContain("আগেই প্রস্তাব");
     expect(names).not.toContain("হাসান"); // married by now
-    expect(list[0].reasons).toEqual(expect.arrayContaining(["একই জেলা", "একই উপজেলা", "একই শিক্ষা"]));
+    expect(list[0].reasons.map((r) => r.key)).toEqual(expect.arrayContaining(["sameDistrict", "sameUpazila", "sameEducation"]));
     expect(list.find((s) => s.candidate.id === far)!.score).toBeLessThan(list.find((s) => s.candidate.id === near)!.score);
   });
 });
@@ -293,7 +293,7 @@ describe("the site and its roles", () => {
     expect(await roleOf(app.db, other.id)).toBe("customer");
 
     const pub = await publicSite(app.db);
-    expect(pub).toMatchObject({ name: "করিম ঘটক ম্যারেজ মিডিয়া", address: "সাভার, ঢাকা", whatsapp: "01712345678", phone: ghotok.phone, ghotokName: "আব্দুল ঘটক", tagline: DEFAULT_TAGLINE });
+    expect(pub).toMatchObject({ name: "করিম ঘটক ম্যারেজ মিডিয়া", address: "সাভার, ঢাকা", whatsapp: "01712345678", phone: ghotok.phone, ghotokName: "আব্দুল ঘটক", tagline: null });
     expect(pub!.patro).toBeGreaterThan(0);
     await updateSite(app.db, ghotok.id, { name: "করিম ঘটক ম্যারেজ মিডিয়া", tagline: "নতুন লাইন" });
     expect((await publicSite(app.db))!.tagline).toBe("নতুন লাইন");

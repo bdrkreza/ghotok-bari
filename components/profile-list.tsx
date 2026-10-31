@@ -5,12 +5,11 @@ import { FilterPanel } from "./filters";
 import { Icon, type IconName } from "./icons";
 import { Empty, PageHeader, ProfileBadge, primaryButton, quietButton } from "./ui";
 import { requireAdmin, requireCustomer } from "@/lib/auth/session";
-import { KIND_LABEL, MARITAL, PROFILE_STATUS, RELIGION, biodataNo, bn, heightLabel } from "@/lib/bn";
 import { getDb } from "@/lib/db";
 import type { MaritalStatus, ProfileKind, ProfileStatus, Religion } from "@/lib/db/schema";
-import {
-  AGE_RANGES, HEIGHT_RANGES, INCOME_MINS, ageLabel, heightLabelFor, incomeLabel, listHref, parseAmount, parseBand, parseNo, type ListParams,
-} from "@/lib/search";
+import type { T } from "@/lib/i18n";
+import { getT } from "@/lib/i18n/server";
+import { bandLabel, bandOptions, listHref, parseAmount, parseBand, parseNo, type ListParams } from "@/lib/search";
 import { browseBiodata } from "@/lib/services/biodata";
 import { MARITAL_STATUSES, RELIGIONS, listProfiles, places } from "@/lib/services/profiles";
 import { ageFromYear } from "@/lib/time";
@@ -20,7 +19,7 @@ export type Viewer = "admin" | "customer";
 
 const STATUSES: (ProfileStatus | "all")[] = ["active", "all", "engaged", "married", "inactive"];
 const text = (v: string | string[] | undefined) => (typeof v === "string" ? v.trim() : "");
-const pick = <T extends string>(all: readonly T[], v: string): T | undefined => ((all as readonly string[]).includes(v) ? (v as T) : undefined);
+const pick = <V extends string>(all: readonly V[], v: string): V | undefined => ((all as readonly string[]).includes(v) ? (v as V) : undefined);
 
 // compact controls for the filter column (the shared Field is sized for forms you fill in)
 const SELECT = "min-h-11 w-full rounded-xl border border-line bg-surface px-3 text-sm outline-none focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/40";
@@ -45,7 +44,8 @@ interface CardRow {
 
 /** The /patro and /patri screens: a filter column, status tabs with the count (ghotok only), and biodata cards. */
 export async function ProfileList({ kind, query, viewer }: { kind: ProfileKind; query: Record<string, string | string[] | undefined>; viewer: Viewer }) {
-  const who = viewer === "admin" ? await requireAdmin() : await requireCustomer();
+  const [who, T] = await Promise.all([viewer === "admin" ? requireAdmin() : requireCustomer(), getT()]);
+  const { t } = T;
   const p: Required<ListParams> = {
     status: text(query.status), q: text(query.q), no: text(query.no), age: text(query.age), district: text(query.district), upazila: text(query.upazila),
     religion: text(query.religion), marital: text(query.marital), education: text(query.education), profession: text(query.profession),
@@ -74,19 +74,20 @@ export async function ProfileList({ kind, query, viewer }: { kind: ProfileKind; 
   ]);
   const districts = [...new Set(seen.map((s) => s.district))];
   const upazilas = seen.filter((s): s is { district: string; upazila: string } => Boolean(s.upazila) && (!p.district || s.district === p.district));
+  const kindLabel = t(`kind.${kind}`);
 
   const chips = ([
     ["q", p.q && `“${p.q}”`],
-    ["no", no === undefined ? "" : `নম্বর ${bn(no)}`],
-    ["age", p.age && `${ageLabel(p.age)} বছর`],
+    ["no", no === undefined ? "" : t("list.number2", { n: no })],
+    ["age", p.age && `${bandLabel(T, "age", p.age)} ${t("list.age").toLowerCase()}`],
     ["district", p.district],
     ["upazila", p.upazila],
-    ["religion", religion ? RELIGION[religion] : ""],
-    ["marital", marital ? MARITAL[marital] : ""],
+    ["religion", religion ? t(`religion.${religion}`) : ""],
+    ["marital", marital ? t(`marital.${marital}`) : ""],
     ["education", p.education],
     ["profession", p.profession],
-    ["height", p.height && heightLabelFor(p.height)],
-    ["income", p.income && incomeLabel(p.income)],
+    ["height", p.height && bandLabel(T, "height", p.height)],
+    ["income", p.income && bandLabel(T, "income", p.income)],
   ] as [keyof ListParams, string][]).filter(([, label]) => label);
   const href = (over: Partial<ListParams>) => listHref(kind, { ...p, status: viewer === "admin" ? status : "", ...over });
   const without = (key: keyof ListParams) => href({ [key]: "" } as Partial<ListParams>);
@@ -95,56 +96,56 @@ export async function ProfileList({ kind, query, viewer }: { kind: ProfileKind; 
 
   return (
     <>
-      <PageHeader title={KIND_LABEL[kind]} sub={viewer === "admin" ? "বায়োডাটা" : "নাম-ছবি গোপন; পছন্দ হলে ঘটককে ফোন করুন"}
+      <PageHeader title={kindLabel} sub={viewer === "admin" ? t("list.subAdmin") : t("list.subFamily")}
         action={viewer === "admin"
-          ? <Link href={addHref} className={`${primaryButton} min-h-11 px-3`}><Icon name="plus" size={18} />নতুন</Link>
-          : <Link href={addHref} className={`${quietButton} min-h-11 px-3 text-sm`}><Icon name="plus" size={18} />বায়োডাটা দিন</Link>} />
+          ? <Link href={addHref} className={`${primaryButton} min-h-11 px-3`}><Icon name="plus" size={18} />{t("common.new")}</Link>
+          : <Link href={addHref} className={`${quietButton} min-h-11 px-3 text-sm`}><Icon name="plus" size={18} />{t("list.give")}</Link>} />
 
       <div className="flex flex-col gap-4 lg:grid lg:grid-cols-[17rem_1fr] lg:items-start lg:gap-6">
         <FilterPanel active={chips.length}>
           <form method="get" action={`/${kind}`} className="flex flex-col" role="search">
             {viewer === "admin" ? <input type="hidden" name="status" value={status} /> : null}
             <div className="p-4">
-              <label htmlFor="q" className="sr-only">খুঁজুন</label>
+              <label htmlFor="q" className="sr-only">{t("common.search")}</label>
               <div className="relative">
                 <Icon name="search" size={18} className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-muted" />
-                <input id="q" name="q" defaultValue={p.q} placeholder={viewer === "admin" ? "নাম, গ্রাম বা জেলা…" : "উপজেলা বা জেলা…"} inputMode="search" className={`${SELECT} pl-10`} />
+                <input id="q" name="q" defaultValue={p.q} placeholder={viewer === "admin" ? t("list.searchAdmin") : t("list.searchFamily")} inputMode="search" className={`${SELECT} pl-10`} />
               </div>
             </div>
-            <Group icon="groom" title="প্রাথমিক" open>
-              <TextField name="no" label="বায়োডাটা নম্বর" value={p.no} placeholder="যেমন: ১২" />
+            <Group icon="groom" title={t("list.basic")} open>
+              <TextField name="no" label={t("list.number")} value={p.no} placeholder={t("list.numberPlaceholder")} />
               <div className="flex flex-col gap-1">
-                <span className="text-xs font-bold text-muted">কাকে খুঁজছেন</span>
+                <span className="text-xs font-bold text-muted">{t("list.lookingFor")}</span>
                 <div className="grid grid-cols-2 gap-1.5">
                   {(["patro", "patri"] as const).map((k) => (
                     <Link key={k} href={listHref(k, { ...p, status: viewer === "admin" ? status : "" })} aria-current={k === kind ? "page" : undefined}
                       className={`inline-flex min-h-10 items-center justify-center rounded-xl text-sm font-bold ${k === kind ? "bg-primary text-on-primary" : "bg-sunk text-ink"}`}>
-                      {KIND_LABEL[k]}
+                      {t(`kind.${k}`)}
                     </Link>
                   ))}
                 </div>
               </div>
-              <Select name="age" label="বয়স" value={p.age} blank="সব বয়স" options={AGE_RANGES} />
-              <Select name="marital" label="বৈবাহিক অবস্থা" value={p.marital} blank="যেকোনো" options={MARITAL_STATUSES.map((m) => ({ value: m, label: MARITAL[m] }))} />
-              <Select name="religion" label="ধর্ম" value={p.religion} blank="যেকোনো" options={RELIGIONS.map((r) => ({ value: r, label: RELIGION[r] }))} />
+              <Select name="age" label={t("list.age")} value={p.age} blank={t("list.allAges")} options={bandOptions(T, "age")} />
+              <Select name="marital" label={t("form.marital")} value={p.marital} blank={t("list.any")} options={MARITAL_STATUSES.map((m) => ({ value: m, label: t(`marital.${m}`) }))} />
+              <Select name="religion" label={t("form.religion")} value={p.religion} blank={t("list.any")} options={RELIGIONS.map((r) => ({ value: r, label: t(`religion.${r}`) }))} />
             </Group>
-            <Group icon="location" title="ঠিকানা" open>
-              <Select name="district" label="জেলা" value={p.district} blank="সব জেলা" options={districts.map((d) => ({ value: d, label: d }))} />
-              <Select name="upazila" label="উপজেলা" value={p.upazila} blank="যেকোনো"
+            <Group icon="location" title={t("list.address")} open>
+              <Select name="district" label={t("list.district")} value={p.district} blank={t("list.allDistricts")} options={districts.map((d) => ({ value: d, label: d }))} />
+              <Select name="upazila" label={t("list.upazila")} value={p.upazila} blank={t("list.any")}
                 options={upazilas.map((u) => ({ value: u.upazila, label: p.district ? u.upazila : `${u.upazila}, ${u.district}` }))} />
             </Group>
-            <Group icon="school" title="শিক্ষা ও পেশা" open={Boolean(p.education || p.profession)}>
-              <TextField name="education" label="শিক্ষা" value={p.education} placeholder="যেমন: এইচএসসি" />
-              <TextField name="profession" label="পেশা" value={p.profession} placeholder="যেমন: শিক্ষক" />
+            <Group icon="school" title={t("list.eduWork")} open={Boolean(p.education || p.profession)}>
+              <TextField name="education" label={t("facts.education")} value={p.education} placeholder={t("list.eduPlaceholder")} />
+              <TextField name="profession" label={t("facts.profession")} value={p.profession} placeholder={t("list.profPlaceholder")} />
             </Group>
-            <Group icon="ruler" title="ব্যক্তিগত" open={Boolean(p.height || p.income)}>
-              <Select name="height" label="উচ্চতা" value={p.height} blank="যেকোনো" options={HEIGHT_RANGES} />
+            <Group icon="ruler" title={t("list.personal")} open={Boolean(p.height || p.income)}>
+              <Select name="height" label={t("list.height")} value={p.height} blank={t("list.any")} options={bandOptions(T, "height")} />
               {/* income is not shown to families, so they cannot filter by it either */}
-              {viewer === "admin" ? <Select name="income" label="মাসিক আয়" value={p.income} blank="যেকোনো" options={INCOME_MINS} /> : null}
+              {viewer === "admin" ? <Select name="income" label={t("list.income")} value={p.income} blank={t("list.any")} options={bandOptions(T, "income")} /> : null}
             </Group>
             <div className="grid grid-cols-2 gap-2 border-t border-line bg-surface p-3 lg:sticky lg:bottom-0">
-              <Link href={clearHref} className="inline-flex min-h-11 items-center justify-center rounded-xl border border-primary text-sm font-bold text-primary">ফিল্টার মুছুন</Link>
-              <button type="submit" className="inline-flex min-h-11 items-center justify-center gap-1.5 rounded-xl bg-primary text-sm font-bold text-on-primary"><Icon name="search" size={16} />খুঁজুন</button>
+              <Link href={clearHref} className="inline-flex min-h-11 items-center justify-center rounded-xl border border-primary text-sm font-bold text-primary">{t("list.clear")}</Link>
+              <button type="submit" className="inline-flex min-h-11 items-center justify-center gap-1.5 rounded-xl bg-primary text-sm font-bold text-on-primary"><Icon name="search" size={16} />{t("common.search")}</button>
             </div>
           </form>
         </FilterPanel>
@@ -152,39 +153,39 @@ export async function ProfileList({ kind, query, viewer }: { kind: ProfileKind; 
         <section className="flex min-w-0 flex-col gap-4">
           <div className="rounded-2xl border border-line bg-surface">
             {viewer === "admin" ? (
-              <nav aria-label="অবস্থা" className="flex gap-1 overflow-x-auto px-2">
+              <nav aria-label={t("list.status")} className="flex gap-1 overflow-x-auto px-2">
                 {STATUSES.map((s) => {
                   const on = s === status;
                   return (
                     <Link key={s} href={href({ status: s })} aria-current={on ? "page" : undefined}
                       className={`-mb-px shrink-0 border-b-2 px-3 py-3 text-sm font-bold ${on ? "border-primary text-primary" : "border-transparent text-muted hover:text-ink"}`}>
-                      {s === "all" ? "সব" : PROFILE_STATUS[s].label}
+                      {s === "all" ? t("list.all") : t(`profileStatus.${s}`)}
                     </Link>
                   );
                 })}
               </nav>
             ) : null}
             <div className={`flex flex-wrap items-center gap-x-3 gap-y-2 px-4 py-3 text-sm text-muted ${viewer === "admin" ? "border-t border-line" : ""}`}>
-              <span className="flex items-center gap-2"><Icon name="people" size={18} className="text-primary" /><span className="font-bold text-primary">{bn(rows.length)}</span>{" "}জন পাওয়া গেছে</span>
+              <span className="flex items-center gap-2"><Icon name="people" size={18} className="text-primary" />{t("list.found", { n: rows.length })}</span>
               {chips.map(([key, label]) => (
-                <Link key={key} href={without(key)} aria-label={`${label} ছাঁকনি সরান`}
+                <Link key={key} href={without(key)} aria-label={t("list.removeFilter", { label })}
                   className="inline-flex items-center gap-1 rounded-full bg-sunk px-2.5 py-0.5 font-semibold text-ink">
                   {label}<Icon name="close" size={14} />
                 </Link>
               ))}
-              {chips.length ? <Link href={clearHref} className="font-bold text-primary">সব মুছুন</Link> : null}
+              {chips.length ? <Link href={clearHref} className="font-bold text-primary">{t("list.clearAll")}</Link> : null}
             </div>
           </div>
 
           {rows.length ? (
             <ul className="grid gap-4 sm:grid-cols-2">
-              {rows.map((r) => <BiodataCard key={r.id} p={r} viewer={viewer} />)}
+              {rows.map((r) => <BiodataCard key={r.id} p={r} viewer={viewer} t={T} />)}
             </ul>
           ) : (
             <Empty action={chips.length
-              ? <Link href={clearHref} className={quietButton}>ফিল্টার মুছুন</Link>
-              : viewer === "admin" ? <Link href={addHref} className={primaryButton}><Icon name="plus" size={18} />{KIND_LABEL[kind]} যোগ করুন</Link> : null}>
-              {chips.length ? "এই ছাঁকনিতে কাউকে পাওয়া যায়নি।" : viewer === "admin" ? `এখনো কোনো ${KIND_LABEL[kind]} যোগ করা হয়নি।` : `এখনো কোনো ${KIND_LABEL[kind]} তালিকায় নেই।`}
+              ? <Link href={clearHref} className={quietButton}>{t("list.clear")}</Link>
+              : viewer === "admin" ? <Link href={addHref} className={primaryButton}><Icon name="plus" size={18} />{t("form.addKind", { kind: kindLabel })}</Link> : null}>
+              {chips.length ? t("list.noneFiltered") : viewer === "admin" ? t("list.noneAdmin", { kind: kindLabel }) : t("list.noneFamily", { kind: kindLabel })}
             </Empty>
           )}
         </section>
@@ -198,22 +199,22 @@ export async function ProfileList({ kind, query, viewer }: { kind: ProfileKind; 
  * For the ghotok the title is the name and the photo shows; for a family the number is the title and the picture is
  * always the silhouette.
  */
-function BiodataCard({ p, viewer }: { p: CardRow; viewer: Viewer }) {
-  const no = biodataNo(p.kind, p.code);
+function BiodataCard({ p, viewer, t }: { p: CardRow; viewer: Viewer; t: T }) {
+  const no = t.biodataNo(p.kind, p.code);
   const title = viewer === "admin" && p.name ? p.name : no;
   const facts: [IconName, string][] = [
-    ["calendar", `${bn(ageFromYear(p.birthYear))} বছর`],
+    ["calendar", t.years(ageFromYear(p.birthYear))],
     ["location", [p.upazila, p.district].filter(Boolean).join(", ")],
-    ["rings", MARITAL[p.maritalStatus]],
+    ["rings", t.t(`marital.${p.maritalStatus}`)],
   ];
-  if (p.heightCm) facts.push(["ruler", heightLabel(p.heightCm)]);
+  if (p.heightCm) facts.push(["ruler", t.height(p.heightCm)]);
   if (p.profession) facts.push(["briefcase", p.profession]);
   else if (p.education) facts.push(["school", p.education]);
   return (
     <li className="grid grid-cols-[6.5rem_1fr] overflow-hidden rounded-2xl border border-line bg-surface sm:grid-cols-[7.5rem_1fr]">
       <div className="flex flex-col items-center justify-center gap-3 bg-sunk p-3">
         <Avatar kind={p.kind} photoUrl={viewer === "admin" ? p.photoUrl : null} className="size-18 sm:size-20" />
-        <span className="rounded-full bg-surface px-2.5 py-0.5 text-xs font-bold text-muted">{viewer === "admin" ? no : RELIGION[p.religion]}</span>
+        <span className="rounded-full bg-surface px-2.5 py-0.5 text-xs font-bold text-muted">{viewer === "admin" ? no : t.t(`religion.${p.religion}`)}</span>
       </div>
       <div className="flex min-w-0 flex-col gap-2.5 p-4">
         <div className="flex items-start justify-between gap-2">
@@ -230,9 +231,9 @@ function BiodataCard({ p, viewer }: { p: CardRow; viewer: Viewer }) {
         </ul>
         <div className="mt-auto flex justify-end pt-1">
           {/* the title goes into the link's spoken label, so twelve "বায়োডাটা" links are still told apart */}
-          <Link href={viewer === "admin" ? `/profiles/${p.id}` : `/biodata/${p.id}`} aria-label={`${title}: বায়োডাটা দেখুন`}
+          <Link href={viewer === "admin" ? `/profiles/${p.id}` : `/biodata/${p.id}`} aria-label={t.t("list.viewAria", { title })}
             className="inline-flex min-h-9 items-center gap-1 rounded-full bg-primary-soft px-3.5 text-sm font-bold text-primary">
-            বায়োডাটা<Icon name="chevronRight" size={16} />
+            {t.t("common.biodata")}<Icon name="chevronRight" size={16} />
           </Link>
         </div>
       </div>

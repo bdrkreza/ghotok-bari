@@ -47,6 +47,8 @@ const follow = async (tab, link, pattern) => {
 let n = 0;
 const shot = async (tab, name, number = String(++n).padStart(2, "0")) => {
   const file = `${out}/${number}-${name}.png`;
+  // applied again right before the capture: a late re-render can otherwise bring the floating tab bar back
+  await tab.addStyleTag({ content: CAPTURE_CSS });
   await tab.screenshot({ path: file, fullPage: true });
   console.log(file);
 };
@@ -193,6 +195,25 @@ const customerWeb = await (await browser.newContext({ ...WIDE, storageState: awa
 await webShot(customerWeb, "/me", "customer-home");
 await webShot(customerWeb, "/patri", "customer-patri-list");
 await webShot(customerWeb, seenPath, "customer-biodata");
+
+// The same site in English: the `lang` cookie picks the language. A guest's front page, the ghotok's dashboard,
+// and a family's home and form, at laptop width; the family's home on a phone too.
+const english = async (opts) => {
+  const ctx = await browser.newContext(opts);
+  await ctx.addCookies([{ name: "lang", value: "en", domain: new URL(base).hostname, path: "/" }]);
+  return ctx.newPage();
+};
+const enGuest = await english(WIDE);
+await webShot(enGuest, "/", "front-page-en");
+const enGhotok = await english({ ...WIDE, storageState: await page.context().storageState() });
+await webShot(enGhotok, "/dashboard", "dashboard-en");
+await webShot(enGhotok, "/patro", "patro-list-en");
+const enCustomer = await english({ ...WIDE, storageState: await customer.context().storageState() });
+await webShot(enCustomer, "/me", "customer-home-en");
+await webShot(enCustomer, "/me/biodata/new?kind=patri", "customer-new-biodata-en");
+const enPhone = await english({ ...PHONE, storageState: await customer.context().storageState() });
+await go(enPhone, "/me");
+await shot(enPhone, "customer-home-en");
 
 await browser.close();
 

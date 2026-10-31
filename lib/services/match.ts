@@ -1,14 +1,19 @@
 import { and, eq, or } from "drizzle-orm";
 import type { Db } from "../db";
 import { profile, proposal, type Profile } from "../db/schema";
-import { bn } from "../bn";
 import { ageFromYear } from "../time";
+
+/** Why two people might suit each other; the page turns the key into words in the user's language ("reason.*"). */
+export interface Reason {
+  key: "sameDistrict" | "sameUpazila" | "ageGap" | "sameEducation" | "maritalMatch";
+  /** the age gap in years, for "ageGap" */
+  n?: number;
+}
 
 export interface Suggestion {
   candidate: Profile;
   score: number;
-  /** short Bangla reasons shown as chips, e.g. "একই জেলা" */
-  reasons: string[];
+  reasons: Reason[];
 }
 
 const norm = (s: string | null) => (s ?? "").trim().toLowerCase();
@@ -17,16 +22,16 @@ const norm = (s: string | null) => (s ?? "").trim().toLowerCase();
  * A simple, explainable score: same religion is required (filtered before this runs); then the same
  * area, a sensible age gap and a similar background each add points. The ghotok still decides.
  */
-export function scorePair(patro: Profile, patri: Profile): { score: number; reasons: string[] } {
-  const reasons: string[] = [];
+export function scorePair(patro: Profile, patri: Profile): { score: number; reasons: Reason[] } {
+  const reasons: Reason[] = [];
   let score = 0;
-  if (norm(patro.district) === norm(patri.district)) { score += 3; reasons.push("একই জেলা"); }
-  if (patro.upazila && norm(patro.upazila) === norm(patri.upazila)) { score += 2; reasons.push("একই উপজেলা"); }
+  if (norm(patro.district) === norm(patri.district)) { score += 3; reasons.push({ key: "sameDistrict" }); }
+  if (patro.upazila && norm(patro.upazila) === norm(patri.upazila)) { score += 2; reasons.push({ key: "sameUpazila" }); }
   const gap = ageFromYear(patro.birthYear) - ageFromYear(patri.birthYear);
-  if (gap >= 0 && gap <= 10) { score += 3; reasons.push(`বয়সের ব্যবধান ${bn(gap)} বছর`); }
-  else if (gap > -3 && gap <= 15) { score += 1; reasons.push(`বয়সের ব্যবধান ${bn(Math.abs(gap))} বছর`); }
-  if (patro.education && norm(patro.education) === norm(patri.education)) { score += 1; reasons.push("একই শিক্ষা"); }
-  if ((patro.maritalStatus === "obibahito") === (patri.maritalStatus === "obibahito")) { score += 1; reasons.push("বৈবাহিক অবস্থা মেলে"); }
+  if (gap >= 0 && gap <= 10) { score += 3; reasons.push({ key: "ageGap", n: gap }); }
+  else if (gap > -3 && gap <= 15) { score += 1; reasons.push({ key: "ageGap", n: Math.abs(gap) }); }
+  if (patro.education && norm(patro.education) === norm(patri.education)) { score += 1; reasons.push({ key: "sameEducation" }); }
+  if ((patro.maritalStatus === "obibahito") === (patri.maritalStatus === "obibahito")) { score += 1; reasons.push({ key: "maritalMatch" }); }
   return { score, reasons };
 }
 
