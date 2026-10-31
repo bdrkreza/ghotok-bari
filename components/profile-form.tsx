@@ -7,6 +7,7 @@ import { Icon } from "@/components/icons";
 import { primaryButton, quietButton } from "@/components/ui";
 import type { Imported } from "@/lib/biodata-import/parse";
 import type { Profile, ProfileKind } from "@/lib/db/schema";
+import type { Key } from "@/lib/i18n";
 import { useT } from "@/lib/i18n/client";
 import { submitBiodataAction, updateBiodataAction } from "@/lib/actions/biodata";
 import { createProfileAction, updateProfileAction } from "@/lib/actions/profiles";
@@ -36,6 +37,8 @@ interface Props {
 }
 
 const STEPS = 6;
+/** the short names on the step line */
+const STEP_NAMES: Key[] = ["form.stepName1", "form.stepName2", "form.stepName3", "form.stepName4", "form.stepName5", "form.stepName6"];
 
 /**
  * The same form for a new person and for editing one; `profile` fills it in for editing. Six steps shown one at a
@@ -45,7 +48,7 @@ const STEPS = 6;
  * existing biodata can fill the fields first.
  */
 export function ProfileForm({ kind, profile, minYear, maxYear, viewer = "admin", importable = false, ai = false }: Props) {
-  const { t, options } = useT();
+  const { t, n, options } = useT();
   const edit = !!profile;
   const family = viewer === "customer";
   // what an uploaded file filled in; bumping `version` remounts the form so the new defaults show
@@ -61,9 +64,12 @@ export function ProfileForm({ kind, profile, minYear, maxYear, viewer = "admin",
     ? (edit ? t("form.submitFamilyEdit") : t("form.submitFamilyNew"))
     : (edit ? t("common.save") : t("form.addKind", { kind: t(`kind.${kind}`) }));
 
-  // the wizard: which step shows, and how many of its questions have an answer
+  // the wizard: which step shows, which have been seen, how many of this step's questions have an answer, and
+  // whether the last attempt to move on was stopped by an empty required field
   const [step, setStep] = useState(0);
+  const [seenSteps, setSeenSteps] = useState<number[]>([0]);
   const [done, setDone] = useState({ n: 0, total: 0 });
+  const [blocked, setBlocked] = useState(false);
   const steps = useRef<(HTMLDivElement | null)[]>([]);
   const top = useRef<HTMLDivElement>(null);
   const last = step === STEPS - 1;
@@ -82,16 +88,29 @@ export function ProfileForm({ kind, profile, minYear, maxYear, viewer = "admin",
   useEffect(recount, [recount, version]);
 
   const go = (to: number) => {
-    setStep(Math.max(0, Math.min(STEPS - 1, to)));
+    const i = Math.max(0, Math.min(STEPS - 1, to));
+    setStep(i);
+    setSeenSteps((s) => (s.includes(i) ? s : [...s, i]));
+    setBlocked(false);
     top.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    // with a keyboard and mouse, land in the step's first box; on a phone that would pop the keyboard up
+    if (window.matchMedia("(pointer: fine)").matches) {
+      setTimeout(() => steps.current[i]?.querySelector<HTMLElement>("input:not([type=hidden]):not([type=radio]), textarea")?.focus({ preventScroll: true }), 350);
+    }
   };
-  /** moves on only when every field on this step is valid (the browser shows the first problem) */
-  const next = () => {
+  /** true when every field on this step is valid; otherwise shows the browser's message on the first problem and our note */
+  const stepValid = () => {
     const root = steps.current[step];
     for (const el of root?.querySelectorAll<HTMLInputElement>("input, select, textarea") ?? []) {
-      if (!el.checkValidity()) { el.reportValidity(); return; }
+      if (!el.checkValidity()) { el.reportValidity(); setBlocked(true); return false; }
     }
-    go(step + 1);
+    return true;
+  };
+  const next = () => { if (stepValid()) go(step + 1); };
+  /** the step line: back to any step already seen at once; forward only past a valid current step */
+  const jump = (to: number) => {
+    if (to === step) return;
+    if (to < step || seenSteps.includes(to) || stepValid()) go(to);
   };
 
   const seen = (by: "all" | "ghotok") => by === "all"
@@ -130,14 +149,35 @@ export function ProfileForm({ kind, profile, minYear, maxYear, viewer = "admin",
         </p>
       ) : null}
 
+      {/* the step line: numbered circles joined by a line, a tick on the steps already seen; tap one to go there */}
+      <ol aria-label={t("form.stepsAria")} className="flex items-start rounded-3xl border border-line bg-surface px-3 py-3 sm:px-5">
+        {STEP_NAMES.map((name, i) => {
+          const current = i === step;
+          const seenIt = seenSteps.includes(i) && !current;
+          return (
+            <li key={name} className="flex min-w-0 flex-1 items-start">
+              <button type="button" onClick={() => jump(i)} aria-current={current ? "step" : undefined}
+                className="flex min-w-0 flex-1 flex-col items-center gap-1.5 rounded-2xl px-1 py-1 text-center hover:bg-sunk">
+                <span className={`grid size-9 shrink-0 place-items-center rounded-full border-2 font-display text-sm font-bold ${current ? "border-primary bg-primary text-on-primary" : seenIt ? "border-primary bg-primary-soft text-primary" : "border-line bg-surface text-muted"}`}>
+                  {seenIt ? <Icon name="check" size={16} strokeWidth={2.6} /> : n(i + 1)}
+                </span>
+                <span className={`hidden w-full truncate text-xs sm:block ${current ? "font-bold text-ink" : "text-muted"}`}>{t(name)}</span>
+                <span className="sr-only">{current ? t("form.stepCurrent") : seenIt ? t("form.stepDone") : ""}</span>
+              </button>
+              {i < STEPS - 1 ? <span aria-hidden className={`mt-5 h-0.5 w-3 shrink-0 sm:w-6 ${seenSteps.includes(i) && (seenSteps.includes(i + 1) || i + 1 === step) ? "bg-primary" : "bg-line"}`} /> : null}
+            </li>
+          );
+        })}
+      </ol>
+
       <div className="flex flex-col gap-3 px-1 sm:flex-row sm:items-end sm:justify-between sm:gap-6">
         <div className="min-w-0">
           <p className="text-xs font-bold text-primary">{t("form.step", { n: step + 1, total: STEPS })}</p>
           <h2 className="font-display text-2xl font-bold lg:text-3xl">{title}</h2>
           {hint ? <p className="text-sm text-muted">{hint}</p> : null}
         </div>
-        <div className="flex w-full flex-col gap-1.5 sm:w-56 sm:shrink-0">
-          <div className="flex items-center justify-between text-sm">
+        <div className="flex w-full flex-col gap-1.5 sm:w-60 sm:shrink-0">
+          <div className="flex items-center justify-between gap-3 text-sm">
             <span className="text-muted">{t("form.progress")}</span>
             <span className="font-bold tabular-nums">{t("form.progressOf", { n: done.n, total: done.total })}</span>
           </div>
@@ -153,13 +193,22 @@ export function ProfileForm({ kind, profile, minYear, maxYear, viewer = "admin",
         submitLabel={submit}
         pendingLabel={family ? t("form.submitting") : undefined}
         footer={(button) => (
-          <div className="flex flex-col gap-3 border-t border-line pt-4 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-sm text-muted">{t("form.laterNote")}</p>
-            <div className="flex flex-col-reverse gap-2 sm:flex-row sm:shrink-0">
-              {step > 0 ? <button type="button" onClick={() => go(step - 1)} className={quietButton}><Icon name="back" size={18} />{t("form.prev")}</button> : null}
-              {last ? <div className="sm:min-w-56">{button}</div> : (
-                <button type="button" onClick={next} className={primaryButton}>{t("form.next")}<Icon name="chevronRight" size={18} /></button>
-              )}
+          <div className="flex flex-col gap-3 border-t border-line pt-4">
+            {blocked ? (
+              <p role="alert" className="flex items-start gap-2 rounded-2xl bg-neg-soft px-4 py-3 text-sm font-semibold text-neg">
+                <Icon name="shield" size={16} className="mt-0.5 shrink-0" />{t("form.fillRequired")}
+              </p>
+            ) : null}
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-sm text-muted">{last ? t("form.lastStepNote") : t("form.laterNote")}</p>
+              <div className="flex flex-col-reverse gap-2 sm:flex-row sm:shrink-0">
+                {step > 0 ? (
+                  <button type="button" onClick={() => go(step - 1)} className={quietButton}><Icon name="back" size={18} />{t(STEP_NAMES[step - 1])}</button>
+                ) : null}
+                {last ? <div className="sm:min-w-56">{button}</div> : (
+                  <button type="button" onClick={next} className={primaryButton}>{t("form.nextNamed", { name: t(STEP_NAMES[step + 1]) })}<Icon name="chevronRight" size={18} /></button>
+                )}
+              </div>
             </div>
           </div>
         )}
