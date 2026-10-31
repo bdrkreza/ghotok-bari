@@ -23,9 +23,9 @@ const ACTIONS = {
 /** Beside a field's label on the family's form: whether other families get to see it. */
 function Seen({ by }: { by: "all" | "ghotok" }) {
   return by === "all" ? (
-    <span className="inline-flex items-center gap-1 rounded-full bg-mint px-2 py-0.5 text-[11px] font-bold text-mint-ink"><Icon name="eye" size={12} />তালিকায় দেখা যায়</span>
+    <span className="inline-flex items-center gap-1 rounded-full bg-mint px-2 py-0.5 text-[11px] font-bold text-mint-ink"><Icon name="eye" size={12} />অন্যরা দেখবে</span>
   ) : (
-    <span className="inline-flex items-center gap-1 rounded-full bg-sunk px-2 py-0.5 text-[11px] font-bold text-muted"><Icon name="lock" size={12} />শুধু ঘটক</span>
+    <span className="inline-flex items-center gap-1 rounded-full bg-sunk px-2 py-0.5 text-[11px] font-bold text-muted"><Icon name="lock" size={12} />শুধু ঘটক দেখবেন</span>
   );
 }
 
@@ -81,7 +81,7 @@ export function ProfileForm({ kind, profile, minYear, maxYear, viewer = "admin",
       {fileKind && fileKind !== kind ? (
         <p className="flex items-start gap-2 rounded-2xl border border-warn-line bg-warn px-4 py-3 text-sm font-semibold text-warn-ink">
           <Icon name="shield" size={18} className="mt-0.5 shrink-0" />
-          ফাইলটি {KIND_OF[fileKind]} বায়োডাটা মনে হচ্ছে, কিন্তু এই ফর্ম {KIND_OF[kind]}। ওপরে {KIND_LABEL[fileKind]} বেছে নিন, তারপর ফাইলটি আবার দিন।
+          ফাইলটি মনে হচ্ছে {KIND_OF[fileKind]} বায়োডাটা, কিন্তু আপনি {KIND_OF[kind]} ফর্মে আছেন। ওপরে {KIND_LABEL[fileKind]} বেছে নিয়ে ফাইলটি আবার দিন।
         </p>
       ) : null}
       <ActionForm key={version} action={edit ? ACTIONS[viewer].update : ACTIONS[viewer].create} submitLabel={submit} pendingLabel={family ? "জমা হচ্ছে…" : undefined}>
@@ -92,15 +92,15 @@ export function ProfileForm({ kind, profile, minYear, maxYear, viewer = "admin",
               <Hidden name="kind" value={kind} />
               {profile ? <Hidden name="id" value={profile.id} /> : null}
 
-              <Section n={1} title="পরিচয়" hint="নাম আর জন্ম সাল লাগবেই; বাকিটা জানা থাকলে লিখুন।">
+              <Section n={1} title="পরিচয়" hint="নাম আর জন্ম সাল অবশ্যই লাগবে। বাকিগুলো জানা থাকলে লিখুন।">
                 <Wide>
                   <Field name="name" label={`${KIND_OF[kind]} নাম`} required defaultValue={v.name} autoComplete="off" placeholder="পূর্ণ নাম" tag={tags("name", "ghotok")} />
                 </Wide>
                 <Field name="fatherName" label="বাবার নাম" defaultValue={v.fatherName} tag={tags("fatherName", "ghotok")} />
                 <Field name="motherName" label="মায়ের নাম" defaultValue={v.motherName} tag={tags("motherName", "ghotok")} />
                 <Field name="birthYear" label="জন্ম সাল" required type="number" inputMode="numeric" min={String(minYear)} max={String(maxYear)} placeholder="যেমন 1998" defaultValue={v.birthYear}
-                  hint={`বয়স এখান থেকেই হিসাব হয়; ${kind === "patro" ? "কমপক্ষে ২১" : "কমপক্ষে ১৮"} বছর`} tag={tags("birthYear", "all")} />
-                <Field name="heightCm" label="উচ্চতা (সেমি)" type="number" inputMode="numeric" min="100" max="250" placeholder="যেমন 165" defaultValue={v.heightCm} hint="৫ ফুট ≈ ১৫২ সেমি, ৫ ফুট ৬ ≈ ১৬৮" tag={tags("heightCm", "all")} />
+                  hint={`ইংরেজি সালে লিখুন। বয়স এখান থেকে হিসাব হবে (কমপক্ষে ${kind === "patro" ? "২১" : "১৮"} বছর)।`} tag={tags("birthYear", "all")} />
+                <Field name="heightCm" label="উচ্চতা (সেমি)" type="number" inputMode="numeric" min="100" max="250" placeholder="যেমন 165" defaultValue={v.heightCm} hint="৫ ফুট = ১৫২, ৫ ফুট ৪ ইঞ্চি = ১৬৩, ৫ ফুট ৮ ইঞ্চি = ১৭৩" tag={tags("heightCm", "all")} />
                 <Select name="religion" label="ধর্ম" options={options(RELIGION)} defaultValue={v.religion || "islam"} tag={tags("religion", "all")} />
                 <Select name="maritalStatus" label="বৈবাহিক অবস্থা" options={options(MARITAL)} defaultValue={v.maritalStatus || "obibahito"} tag={tags("maritalStatus", "all")} />
               </Section>
@@ -111,27 +111,27 @@ export function ProfileForm({ kind, profile, minYear, maxYear, viewer = "admin",
                 <Field name="monthlyIncome" label="মাসিক আয় (টাকা)" type="number" inputMode="numeric" min="0" placeholder="যেমন 25000" defaultValue={v.monthlyIncome} tag={tags("monthlyIncome", "ghotok")} />
               </Section>
 
-              <Section n={3} title="ঠিকানা" hint="জেলা লাগবেই; উপজেলা দিলে কাছাকাছি মিল খুঁজতে সুবিধা।">
+              <Section n={3} title="ঠিকানা" hint="জেলা অবশ্যই লিখুন। উপজেলা লিখলে কাছাকাছি এলাকায় মিল খুঁজতে সুবিধা হয়।">
                 <Field name="village" label="গ্রাম" defaultValue={v.village} tag={tags("village", "ghotok")} />
                 <Field name="upazila" label="উপজেলা" defaultValue={v.upazila} tag={tags("upazila", "all")} />
                 <Field name="district" label="জেলা" required defaultValue={v.district} tag={tags("district", "all")} />
               </Section>
 
-              <Section n={4} title="অভিভাবক ও পরিবার" hint={family ? "ঘটক এই নম্বরে কথা বলবেন; অন্য কেউ দেখবে না।" : undefined}>
+              <Section n={4} title="অভিভাবক ও পরিবার" hint={family ? "দরকার হলে ঘটক এই নম্বরে ফোন করবেন। অন্য কেউ নম্বরটি দেখবে না।" : undefined}>
                 <Field name="guardianName" label="অভিভাবকের নাম" placeholder="যেমন মো. রহিম (বাবা)" defaultValue={v.guardianName} tag={tags("guardianName", "ghotok")} />
                 <Field name="guardianPhone" label="অভিভাবকের মোবাইল" type="tel" inputMode="tel" placeholder="01XXXXXXXXX" defaultValue={v.guardianPhone} tag={tags("guardianPhone", "ghotok")} />
                 <Wide>
-                  <TextArea name="familyDetails" label="পরিবারের বিবরণ" placeholder="ভাইবোন, জমিজমা, পারিবারিক অবস্থা…" defaultValue={v.familyDetails} rows={v.familyDetails && v.familyDetails.length > 120 ? 6 : 3} tag={tags("familyDetails", "all")} />
+                  <TextArea name="familyDetails" label="পরিবারের বিবরণ" placeholder="কয় ভাই-বোন, বাবা-মা কী করেন, বাড়ি-জমি, পারিবারিক অবস্থা…" defaultValue={v.familyDetails} rows={v.familyDetails && v.familyDetails.length > 120 ? 6 : 3} tag={tags("familyDetails", "all")} />
                 </Wide>
               </Section>
 
-              <Section n={5} title="প্রত্যাশা ও ছবি" hint={family ? "প্রত্যাশা স্পষ্ট লিখলে ঘটক ভালো মিল খুঁজতে পারেন।" : undefined}>
+              <Section n={5} title="প্রত্যাশা ও ছবি" hint={family ? "কেমন পাত্র বা পাত্রী চান, খোলাখুলি লিখুন। তাতে ঘটক ভালো মিল খুঁজতে পারবেন।" : undefined}>
                 <Wide>
-                  <TextArea name="expectations" label="কেমন পাত্র/পাত্রী চান" placeholder="পরিবারের চাওয়া: শিক্ষা, এলাকা, পেশা…" defaultValue={v.expectations} tag={tags("expectations", "all")} />
+                  <TextArea name="expectations" label="কেমন পাত্র/পাত্রী চান" placeholder="যেমন: শিক্ষিত, চাকরিজীবী, কাছের এলাকার, ধার্মিক পরিবার…" defaultValue={v.expectations} tag={tags("expectations", "all")} />
                 </Wide>
                 <Wide>
                   <Field name="photoUrl" label="ছবির লিংক" type="url" inputMode="url" placeholder="https://…" defaultValue={v.photoUrl}
-                    hint="আপাতত ছবির লিংক বসান; সরাসরি আপলোড পরে আসবে।" tag={tags("photoUrl", "ghotok")} />
+                    hint="এখন শুধু ছবির লিংক দেওয়া যায় (যেমন Google Drive বা Facebook-এর ছবির লিংক)। সরাসরি আপলোড পরে আসবে।" tag={tags("photoUrl", "ghotok")} />
                 </Wide>
                 {family ? null : (
                   <Wide>
@@ -143,7 +143,7 @@ export function ProfileForm({ kind, profile, minYear, maxYear, viewer = "admin",
               {family ? (
                 <p className="flex items-start gap-2 text-sm text-muted">
                   <Icon name="shield" size={16} className="mt-0.5 shrink-0 text-primary" />
-                  জমা দিলে ঘটক দেখে তালিকায় তুলবেন; তার আগে অন্য কেউ দেখবে না। পরে যেকোনো সময় বদলানো যাবে।
+                  জমা দিলে আগে ঘটক দেখবেন, তারপর তালিকায় উঠবে। তার আগে অন্য কেউ দেখবে না। পরে যখন খুশি বদলাতে পারবেন।
                 </p>
               ) : null}
             </>

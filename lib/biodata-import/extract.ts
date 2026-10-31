@@ -59,12 +59,12 @@ export async function extractText(file: File, onProgress: Progress): Promise<str
 
 /** Bangla and English OCR in the browser. The language data comes from Tesseract.js's CDN on first use. */
 async function ocr(images: Blob[], onProgress: Progress): Promise<string> {
-  onProgress("ছবি পড়ার যন্ত্র নামছে… (প্রথমবার একটু সময় লাগে)");
+  onProgress("ছবি পড়ার জন্য তৈরি হচ্ছে… প্রথমবার একটু সময় লাগে");
   const { createWorker } = await import("tesseract.js");
   const worker = await createWorker(["ben", "eng"], 1, {
     logger: (m) => {
-      if (m.status === "recognizing text") onProgress(`লেখা পড়া হচ্ছে… ${Math.round(m.progress * 100)}%`);
-      else if (/loading|initializ/.test(m.status)) onProgress("ছবি পড়ার যন্ত্র তৈরি হচ্ছে…");
+      if (m.status === "recognizing text") onProgress(`ছবির লেখা পড়া হচ্ছে… ${Math.round(m.progress * 100)}%`);
+      else if (/loading|initializ/.test(m.status)) onProgress("ছবি পড়ার জন্য তৈরি হচ্ছে…");
     },
   });
   try {

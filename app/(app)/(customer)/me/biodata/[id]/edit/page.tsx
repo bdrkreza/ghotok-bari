@@ -20,7 +20,7 @@ export default async function EditMyBiodataPage(props: PageProps<"/me/biodata/[i
   const year = currentYear();
   return (
     <>
-      <PageHeader title={p.name} back={`/me/biodata/${p.id}`} sub="বদলে জমা দিলে ঘটক আবার দেখে তালিকায় তুলবেন" />
+      <PageHeader title={p.name} back={`/me/biodata/${p.id}`} sub="যা বদলাতে চান বদলে জমা দিন। ঘটক আবার দেখে নেবেন, তারপর তালিকায় উঠবে।" />
       <div className="flex flex-col gap-5 lg:grid lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start lg:gap-8">
         <ProfileForm kind={p.kind} profile={p} minYear={year - 100} maxYear={year - MIN_AGE[p.kind]} viewer="customer" />
         <BiodataFormAside site={site} />

@@ -42,7 +42,7 @@ export function BiodataImport({ ai, onResult }: { ai: boolean; onResult: (fields
           if (!result.ok) throw new Error(result.error);
           fields = result.fields;
         } else {
-          setStatus("ঘরগুলো মেলানো হচ্ছে…");
+          setStatus("তথ্য সাজানো হচ্ছে…");
           fields = parseBiodataText(text);
         }
       }
@@ -55,10 +55,10 @@ export function BiodataImport({ ai, onResult }: { ai: boolean; onResult: (fields
       const msg = e instanceof Error ? e.message : "";
       setStatus(null);
       setError(
-        msg === "unsupported" ? "ছবি (JPG/PNG), PDF বা Word (.docx) ফাইল দিন।"
-          : msg === "too_big" ? "ফাইল ১০ মেগাবাইটের বেশি; ছোট করে দিন।"
-            : msg === "empty" ? "ফাইল থেকে কোনো ঘর ভরার মতো তথ্য পাওয়া যায়নি। পরিষ্কার ছবি দিন, বা নিজে ভরুন।"
-              : msg && /[ঀ-৿]/.test(msg) ? msg : "ফাইলটি পড়া গেল না। অন্য ছবি দিন, বা ঘরগুলো নিজে ভরুন।",
+        msg === "unsupported" ? "শুধু ছবি (JPG/PNG), PDF বা Word (.docx) ফাইল দেওয়া যায়।"
+          : msg === "too_big" ? "ফাইলটি বড় বেশি (১০ মেগাবাইটের বেশি)। ছোট করে আবার দিন।"
+            : msg === "empty" ? "ফাইলটি থেকে কিছু পড়া গেল না। আরও পরিষ্কার ছবি দিন, বা ঘরগুলো নিজেই লিখুন।"
+              : msg && /[ঀ-৿]/.test(msg) ? msg : "ফাইলটি পড়া গেল না। অন্য ছবি দিন, বা ঘরগুলো নিজেই লিখুন।",
       );
     } finally {
       setBusy(false);
@@ -71,10 +71,10 @@ export function BiodataImport({ ai, onResult }: { ai: boolean; onResult: (fields
       <div className="flex items-start gap-3">
         <span aria-hidden className="grid size-10 shrink-0 place-items-center rounded-full bg-surface text-primary"><Icon name="note" size={20} /></span>
         <div className="min-w-0 flex-1">
-          <p className="font-bold">আগের বায়োডাটা আছে? ফাইল থেকে ভরুন</p>
+          <p className="font-bold">আগে থেকে বায়োডাটা লেখা আছে? ছবি বা ফাইল দিন</p>
           <p className="text-sm text-muted">
-            ছবি, PDF বা Word ফাইল দিন; ঘরগুলো নিজে থেকে ভরে যাবে, আপনি মিলিয়ে নেবেন।{" "}
-            {ai ? "ফাইলটি পড়ার জন্য AI-তে পাঠানো হয়, রাখা হয় না।" : "সবকিছু আপনার ফোনেই হয়, ফাইল কোথাও যায় না।"}
+            বায়োডাটার ছবি তুলে দিন, বা PDF / Word ফাইল দিন। আমরা পড়ে নিচের ঘরগুলো ভরে দেব। তারপর আপনি একবার দেখে নেবেন, ভুল থাকলে ঠিক করবেন।{" "}
+            {ai ? "ফাইলটি পড়ার জন্য সার্ভারে পাঠানো হয়, পড়ার পর রাখা হয় না।" : "ফাইলটি আপনার ফোনেই থাকে, বাইরে যায় না।"}
           </p>
         </div>
       </div>
@@ -83,10 +83,10 @@ export function BiodataImport({ ai, onResult }: { ai: boolean; onResult: (fields
       <div className="flex flex-wrap items-center gap-3">
         <button type="button" disabled={busy} onClick={() => input.current?.click()}
           className="inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl border border-primary bg-surface px-4 font-bold text-primary disabled:opacity-60">
-          <Icon name={busy ? "sparkle" : "plus"} size={18} />{busy ? "পড়া হচ্ছে…" : "ছবি / PDF / Word বাছুন"}
+          <Icon name={busy ? "sparkle" : "plus"} size={18} />{busy ? "পড়া হচ্ছে…" : "ছবি বা ফাইল বাছুন"}
         </button>
         {status ? <p role="status" className="text-sm text-muted">{status}</p> : null}
-        {done ? <p role="status" className="flex items-center gap-1.5 text-sm font-semibold text-pos"><Icon name="check" size={16} />{bn(done)}টি ঘর ভরা হয়েছে; নিচে মিলিয়ে নিন</p> : null}
+        {done ? <p role="status" className="flex items-center gap-1.5 text-sm font-semibold text-pos"><Icon name="check" size={16} />{bn(done)}টি ঘর ভরে দেওয়া হয়েছে। নিচে একবার দেখে নিন।</p> : null}
       </div>
       {error ? <p role="alert" className="rounded-2xl bg-neg-soft px-4 py-3 text-sm font-semibold text-neg">{error}</p> : null}
     </div>
