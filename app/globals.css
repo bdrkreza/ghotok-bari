@@ -35,6 +35,8 @@
   --panel: #4a1c0c;
   --on-panel: #ffffff;
   --panel-soft: #f5e1d4;
+  /* zari gold, for the ornaments on a deep ground; the same in both schemes */
+  --gold: #e3b55a;
 }
 
 /* Dark follows the phone, unless a theme was picked in settings: data-theme on <html>, see lib/theme.ts. */
@@ -126,6 +128,7 @@
   --color-panel: var(--panel);
   --color-on-panel: var(--on-panel);
   --color-panel-soft: var(--panel-soft);
+  --color-gold: var(--gold);
   --color-mango: var(--mango);
   --color-mango-ink: var(--mango-ink);
   --color-mint: var(--mint);
@@ -227,14 +230,24 @@ body::before {
   bottom: auto;
 }
 
-/* The coloured head of a family's biodata card: deep henna, two faint discs, the lattice band along its foot in the
-   panel's own text colour. The picture hangs half over it (components/biodata.tsx). */
+/* The head of a family's biodata card: deep henna shading to the accent, a gold floor-alpona rising from its foot
+   (public/henna/alpona.svg, centred on the card's foot so the upper half shows), a gold glow where it meets the card,
+   and the lattice band along the foot in gold. The picture hangs over its left end (components/biodata.tsx). */
 .biodata-head {
   position: relative;
   background-color: var(--panel);
   background-image:
-    radial-gradient(circle at 85% 120%, color-mix(in oklab, var(--on-panel) 14%, transparent) 0 60px, transparent 61px),
-    radial-gradient(circle at 10% -40%, color-mix(in oklab, var(--on-panel) 10%, transparent) 0 70px, transparent 71px);
+    radial-gradient(circle at 50% 100%, color-mix(in oklab, var(--gold) 28%, transparent) 0 30px, transparent 120px),
+    linear-gradient(160deg, color-mix(in oklab, var(--panel) 70%, var(--primary)) 0%, var(--panel) 55%, color-mix(in oklab, var(--panel) 80%, black) 100%);
+}
+.biodata-head::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: var(--gold);
+  opacity: 0.85;
+  mask: url("/henna/alpona.svg") no-repeat center bottom -120px / 240px 240px;
 }
 .biodata-head::after {
   content: "";
@@ -243,8 +256,8 @@ body::before {
   bottom: 0;
   height: 8px;
   pointer-events: none;
-  background: var(--on-panel);
-  opacity: 0.45;
+  background: var(--gold);
+  opacity: 0.8;
   mask: url("/henna/band.svg") repeat-x center / 48px 8px;
 }
 

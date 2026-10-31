@@ -250,8 +250,8 @@ export const bn = {
   "facts.expectAgeMin": "বয়স {n} বা বেশি",
   "facts.expectAgeMax": "বয়স {n} পর্যন্ত",
   "facts.expectEdu": "অন্তত {x}",
-  "bv.verified": "ঘটক যাচাই করে তুলেছেন · {date}",
-  "bv.ghotokWrote": "ঘটক নিজে লিখেছেন · {date}",
+  "bv.checked": "ঘটক যাচাই করেছেন",
+  "bv.wrote": "ঘটক নিজে লিখেছেন",
 
   // family home
   "me.title": "আমার পাতা",
@@ -997,8 +997,8 @@ export const en: Record<Key, string> = {
   "facts.expectAgeMin": "Age {n} or more",
   "facts.expectAgeMax": "Age up to {n}",
   "facts.expectEdu": "At least {x}",
-  "bv.verified": "Checked and listed by the ghotok · {date}",
-  "bv.ghotokWrote": "Written by the ghotok · {date}",
+  "bv.checked": "Checked by the ghotok",
+  "bv.wrote": "Written by the ghotok",
 
   "me.title": "My page",
   "me.greeting": "Assalamu alaikum,",

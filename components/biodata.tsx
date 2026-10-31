@@ -51,9 +51,9 @@ export function afterMarriageRows(b: Pick<FamilyView, "kind" | "afterStudy" | "a
   return rows;
 }
 
-/** The trust line under the number: checked by the ghotok on a date (a family's entry), or written by the ghotok (their own). */
-export const trustLine = (b: Pick<FamilyView, "approvedAt" | "createdAt">, t: T): string =>
-  b.approvedAt ? t.t("bv.verified", { date: t.date(b.approvedAt) }) : t.t("bv.ghotokWrote", { date: t.date(b.createdAt) });
+/** The trust mark under the number: checked by the ghotok on a date (a family's entry), or written by the ghotok (their own). */
+export const trustMark = (b: Pick<FamilyView, "approvedAt" | "createdAt">, t: T): { label: string; date: string } =>
+  b.approvedAt ? { label: t.t("bv.checked"), date: t.date(b.approvedAt) } : { label: t.t("bv.wrote"), date: t.date(b.createdAt) };
 
 /** Beside the family's biodata form on a wide screen: how to fill it in, who sees what, and the ghotok to call. */
 export function BiodataFormAside({ site, t }: { site: PublicSite | null; t: T }) {
@@ -112,6 +112,7 @@ export function FamilyBiodata({ b, t, aside }: { b: FamilyView; t: T; aside?: Re
   const districts = (b.expectDistricts ?? "").split(/[,،]/).map((s) => s.trim()).filter(Boolean);
   const after = afterMarriageRows(b, t);
   const age = expectedAge(b, t);
+  const trust = trustMark(b, t);
 
   const address: Row[] = [
     { label: t.t("bv.permanentAddress"), value: <>{[b.upazila, b.district].filter(Boolean).join(", ")}<small className="block text-sm font-normal text-muted">{t.t("bv.villageHidden")}</small></> },
@@ -140,17 +141,21 @@ export function FamilyBiodata({ b, t, aside }: { b: FamilyView; t: T; aside?: Re
   return (
     <div className="flex flex-col gap-5 lg:grid lg:grid-cols-[20rem_minmax(0,1fr)] lg:items-start lg:gap-6">
       <aside className="overflow-hidden rounded-3xl border border-line bg-surface lg:sticky lg:top-24">
-        <div aria-hidden className="biodata-head h-24" />
-        <div className="-mt-12 flex justify-center">
-          <span className="rounded-full border-4 border-surface bg-surface"><Avatar kind={b.kind} className="size-24" /></span>
-        </div>
-        <div className="flex flex-col items-center gap-1.5 px-5 pt-3 text-center">
-          <p className="text-xs text-muted">{t.t("bv.number")}</p>
-          <p className="font-display text-3xl font-extrabold leading-none">{t.biodataNo(b.kind, b.code)}</p>
-          <div className="mt-1 flex flex-wrap justify-center gap-1.5">
-            <ProfileBadge status={b.status} />
-            <span className="inline-flex items-center gap-1 rounded-full bg-pos-soft px-2.5 py-0.5 text-xs font-bold text-pos"><Icon name="check" size={13} />{trustLine(b, t)}</span>
+        <div aria-hidden className="biodata-head h-21" />
+        {/* the picture hangs over the head's left end, the number beside it; `relative` keeps it above the head's pattern */}
+        <div className="flex items-end gap-3.5 px-5">
+          <span className="relative -mt-11 shrink-0 rounded-full border-4 border-surface bg-surface ring-2 ring-gold"><Avatar kind={b.kind} className="size-22" /></span>
+          <div className="min-w-0 pt-2">
+            <p className="text-xs text-muted">{t.t("bv.number")}</p>
+            <p className="truncate font-display text-3xl font-extrabold leading-none">{t.biodataNo(b.kind, b.code)}</p>
           </div>
+        </div>
+        <div className="flex flex-col gap-1.5 px-5 pt-3">
+          <div className="flex flex-wrap items-center gap-1.5">
+            <ProfileBadge status={b.status} />
+            <span className="inline-flex items-center gap-1 rounded-full bg-pos-soft px-2.5 py-0.5 text-xs font-bold text-pos"><Icon name="check" size={13} />{trust.label}</span>
+          </div>
+          <p className="text-xs text-muted">{trust.date}</p>
         </div>
         <dl className="flex flex-col divide-y divide-line px-5 pt-3 text-sm">
           {facts.filter((f) => f.value).map(({ icon, label, value }) => (
