@@ -204,6 +204,35 @@ describe("reading a biodata file", () => {
     expect(q).toMatchObject({ village: "চরভাটপাড়া", upazila: "কাশিয়ানী", district: "গোপালগঞ্জ" });
   });
 
+  it("reads a designed two-column CV as the cleaned, column-split OCR gives it: cut letters, odd separators, junk lines", () => {
+    // the left column (purple ground, so OCR drops the first letter of some labels), then the right
+    const p = parseBiodataText([
+      "+8801881092657", "|annatulferdoushi 356 @gmail com", "তো মো", "illage: Chhayna", "Post office: Madaripur", "Police station: Madaripur",
+      "District. Madarnpur", "PRESENT ADDRES", "abibullah road, Ibrahimpur,", "ochukhet, Dhaka Cantonment", "PRASIC IN hoes",
+      "Date of Birth: 06 Oct 2001", "eight: 5' 4\"", "cight: 47 KG", "Religion: Muslim", "Blood group: 0+", "EDUCATION",
+      "Bachelor of Science in Textile", "gineering", "ERNSTITUTION", "Bhyamoli textile engineering", "pollege constitution of University",
+      "df Dhaka (2020-2024)", "GPA 3.71", "College: Bogura Cantonment", "Public School and College", "car. 2019", "PA-5.00",
+      "", "MST, JANNATL চা", "৯» ABOUT ME", "Assalamualaikum,", "I'm from a well mannered, middle class family. am",
+      "a straightforward and dedicated person, especially", "prefer someone with a strong personality, who is", "> INTERESTED AREA",
+      "* Art related work", "১ Handicraft", "» FAMILY DETAILS", "Father: Sgt. Md Humayun Kabir", "00000810100. Army (retired) Currently DGF1 HQ,",
+      "Dhaka Cantonment.", "Mather; Mst. Nazmunnaher Lizu", "Occupation: Housewife", "» SIBILING", "Ssister: 1. Fauma Tuj Zohura (younger sister)",
+      "Uncle: 1. Md Mehndi Hasan", "Unty: 1. Mrs Salma Akter Housewife.",
+    ].join("\n"));
+    expect(p).toMatchObject({
+      guardianPhone: "01881092657", village: "Chhayna", upazila: "Madaripur", district: "মাদারীপুর", presentAddress: "ঢাকা",
+      birthYear: "2001", heightCm: "163", weightKg: "47", religion: "islam", bloodGroup: "O+",
+      fatherName: "Sgt. Md Humayun Kabir", motherName: "Mst. Nazmunnaher Lizu",
+    });
+    expect(p.profession).toBeUndefined(); // "Occupation: Housewife" is the mother's
+    expect(p.education).toContain("Textile");
+    expect(p.expectations).toContain("prefer someone");
+    for (const line of ["Occupation: Housewife", "Uncle: 1. Md Mehndi Hasan"]) expect(p.familyDetails).toContain(line);
+    // a district off by one letter, and a district at the start of a longer place
+    expect(districtOf("Madarnpur")).toBe("মাদারীপুর");
+    expect(districtOf("Dhaka Cantonment")).toBe("ঢাকা");
+    expect(districtOf("Azimpur")).toBeNull();
+  });
+
   it("reads the looks, the medium, the workplace, siblings, a present address and the age hoped for", () => {
     const p = parseBiodataText([
       "Name: Rafiq", "Complexion: Fair", "Weight: 68 kg", "Blood Group: O (+ve)", "Medium: Madrasa", "Occupation: Teacher",

@@ -41,12 +41,36 @@ const DISTRICTS: [bn: string, ...en: string[]][] = [
 
 const squash = (s: string) => s.toLowerCase().replace(/[^a-zঀ-৿]/g, "");
 
-/** The Bangla name of a district, from an English or Bangla spelling inside `token`; null when none matches. */
+/** Edit distance between two short strings, for OCR's one-letter slips ("Madarnpur"). */
+function editDistance(a: string, b: string): number {
+  const prev = Array.from({ length: b.length + 1 }, (_, j) => j);
+  for (let i = 1; i <= a.length; i++) {
+    let diag = prev[0];
+    prev[0] = i;
+    for (let j = 1; j <= b.length; j++) {
+      const tmp = prev[j];
+      prev[j] = Math.min(prev[j] + 1, prev[j - 1] + 1, diag + (a[i - 1] === b[j - 1] ? 0 : 1));
+      diag = tmp;
+    }
+  }
+  return prev[b.length];
+}
+
+/**
+ * The Bangla name of a district, from an English or Bangla spelling inside `token`; null when none matches.
+ * "Dist.: Narail", "Dhaka Cantonment" and OCR's "Madarnpur" all resolve: a district may end or start the token,
+ * and an English spelling may be off by a letter (two for the long names).
+ */
 export function districtOf(token: string): string | null {
   const t = squash(token);
   if (!t) return null;
   for (const [bn, ...en] of DISTRICTS) {
-    if (t === squash(bn) || t.endsWith(squash(bn)) || en.some((e) => t === e || t.endsWith(e))) return bn;
+    if (t === squash(bn) || t.endsWith(squash(bn)) || en.some((e) => t === e || t.endsWith(e) || (e.length >= 5 && t.startsWith(e)))) return bn;
+  }
+  if (t.length >= 6 && /^[a-z]+$/.test(t)) {
+    for (const [bn, ...en] of DISTRICTS) {
+      if (en.some((e) => Math.abs(e.length - t.length) <= 1 && editDistance(t, e) <= (e.length >= 10 ? 2 : 1))) return bn;
+    }
   }
   return null;
 }
@@ -112,11 +136,13 @@ type Rule<F extends string> = { field: F; re: RegExp };
 const LABELS: Rule<LabelField>[] = [
   { field: "name", re: /^(?:full\s*)?name(?: of (?:the )?(?:bride|groom|candidate))?|^(?:পাত্রীর|পাত্রের|নিজের)?\s*নাম/i },
   { field: "fatherName", re: /^father(?:'?s)?(?: name)?|^বাবার নাম|^পিতার নাম|^পিতা|^বাবা/i },
-  { field: "motherName", re: /^mother(?:'?s)?(?: name)?|^মায়ের নাম|^মাতার নাম|^মাতা|^মা(?=\s|[:ঃ\-])/i },
+  // "Mather" is how OCR reads it off a photo now and then
+  { field: "motherName", re: /^m[ao]ther(?:'?s)?(?: name)?|^মায়ের নাম|^মাতার নাম|^মাতা|^মা(?=\s|[:ঃ\-])/i },
   { field: "dob", re: /^date of birth|^d\.?o\.?b\.?|^birth ?date|^born|^জন্ম ?তারিখ|^জন্ম ?সাল|^জন্ম(?!স্থান)/i },
   { field: "age", re: /^age|^বয়স/i },
-  { field: "height", re: /^height|^উচ্চতা/i },
-  { field: "weight", re: /^weight|^ওজন/i },
+  // a photo's cropped first letter leaves "eight:"; the value says which one it was (see the switch below)
+  { field: "height", re: /^h?eight(?!s)|^উচ্চতা/i },
+  { field: "weight", re: /^[wc]?[ec]ight(?!s)|^ওজন/i },
   { field: "blood", re: /^blood(?: group)?|^রক্তের গ্রুপ|^রক্ত/i },
   { field: "complexion", re: /^complexion|^skin|^গায়ের রং|^গাত্রবর্ণ/i },
   { field: "religion", re: /^religion|^ধর্ম/i },
@@ -124,11 +150,11 @@ const LABELS: Rule<LabelField>[] = [
   { field: "profession", re: /^profession|^occupation|^job(?: experience| title)?|^designation|^পেশা|^পদের নাম|^পদবি|^চাকুরী|^চাকরি/i },
   { field: "workplace", re: /^workplace|^employer|^company|^organi[sz]ation|^কর্মস্থল|^প্রতিষ্ঠান/i },
   { field: "monthlyIncome", re: /^(?:monthly )?income|^salary|^(?:মাসিক )?আয়|^বেতন/i },
-  { field: "village", re: /^village|^vill\.?|^গ্রাম/i },
+  { field: "village", re: /^v?illage|^vill\.?|^গ্রাম/i },
   { field: "upazila", re: /^upazil+a|^thana|^police station|^p\.?s\.?(?=\s*[:ঃ\-])|^উপজেলা|^থানা/i },
   { field: "district", re: /^district|^dist\.?|^জেলা/i },
-  { field: "permanent", re: /^permanent(?: address)?|^স্থায়ী ঠিকানা/i },
-  { field: "present", re: /^present(?: address)?|^current address|^বর্তমান ঠিকানা|^জন্মস্থান/i },
+  { field: "permanent", re: /^permanent(?: addres+)?|^স্থায়ী ঠিকানা/i },
+  { field: "present", re: /^present(?: addres+)?|^current addres+|^বর্তমান ঠিকানা|^জন্মস্থান/i },
   { field: "address", re: /^address|^ঠিকানা/i },
   { field: "phone", re: /^(?:mobile|phone|contact|cell)(?: no\.?| number)?|^মোবাইল(?: নং| নম্বর)?|^ফোন|^যোগাযোগ/i },
   { field: "medium", re: /^medium(?: of (?:education|study))?|^শিক্ষার মাধ্যম|^মাধ্যম/i },
@@ -150,14 +176,23 @@ const SECTIONS: Rule<SectionField>[] = [
   { field: "present", re: /^(?:present address|current address|বর্তমান ঠিকানা)$/i },
 ];
 
-const SEP = /^\s*[:ঃ\-–—|]\s*/;
+// what sits between a label and its value: a colon, a dash, or what OCR makes of a colon (". ", "; ", "' ")
+const SEP = /^\s*[:ঃ;.'’\-–—|]\s*/;
 // list markers, and the symbols OCR turns them into (®, ©, °)
-const BULLET = /^\s*(?:[-•●▪■➢➤►*·®©°¤]|\d+[.)])\s*/;
+// list markers and the arrows designed CVs use, plus what OCR turns them into: a stray "|", a digit before a "»"
+const BULLET = /^\s*(?:[-•●▪■➢➤►*·®©°¤>»›|]|\d{1,2}[.)]|\d{1,2}\s*[>»›])\s*/;
 /** lines that only decorate: headings like "BIO-DATA" or "Personal Information", page furniture */
 const NOISE = /^(?:bio-?\s?data|biodata|curriculum vitae|cv|resume|জীবন ?বৃত্তান্ত|বায়োডাটা|personal(?: information| details)?|basic (?:info|information|indo)|পরিচয়|ব্যক্তিগত তথ্য|interested area|hobbies|hobby)\s*[:ঃ]?$/i;
 const TITLE = /^(?:personal\s*\/?\s*)?(?:(bride|groom)\s*)?(?:details|bio-?data|biodata|cv)\s+[o0]f\s*(.*)$/i;
 const isLabel = (line: string) => LABELS.some((r) => r.re.test(line));
-const isHeader = (line: string) => SECTIONS.some((s) => s.re.test(line.replace(/\s*[:ঃ]\s*$/, "")));
+/** The section a line opens, if it is a header: tried as is and without OCR's leading junk ("7৮ ABOUT ME", "LAL » FAMILY DETAILS"). */
+const headerOf = (line: string): SectionField | null => {
+  const bare = line.replace(/\s*[:ঃ]\s*$/, "");
+  const candidates = [bare, bare.replace(/^[^A-Za-zঀ-৿]+/, ""), bare.split(/[>»›]\s*/).pop() ?? bare];
+  for (const c of candidates) { const s = SECTIONS.find((sec) => sec.re.test(c)); if (s) return s.field; }
+  return null;
+};
+const isHeader = (line: string) => headerOf(line) !== null;
 
 /* ---------- the parser ---------- */
 
@@ -176,7 +211,7 @@ export function parseBiodataText(raw: string): Imported {
   const addresses: Partial<Record<"permanent" | "present" | "address", string[]>> = {};
   let section: SectionField | null = null;
 
-  const clean = (value: string) => value.replace(/\s+/g, " ").trim().replace(/\s*[.,;।|]+$/, "");
+  const clean = (value: string) => value.replace(/\s+/g, " ").trim().replace(/\s*[.,;।|\]]+$/, "");
   const put = (field: ImportField, value: string) => {
     const v = field === "name" || field === "fatherName" || field === "motherName" ? cleanName(value) : clean(value);
     if (v && !out[field]) out[field] = v;
@@ -196,8 +231,8 @@ export function parseBiodataText(raw: string): Imported {
       continue;
     }
 
-    const header = SECTIONS.find((s) => s.re.test(line.replace(/\s*[:ঃ]\s*$/, "")));
-    if (header) { section = header.field; continue; }
+    const header = headerOf(line);
+    if (header) { section = header; continue; }
 
     const rule = LABELS.find((r) => r.re.test(line));
     if (rule) {
@@ -213,8 +248,15 @@ export function parseBiodataText(raw: string): Imported {
       switch (rule.field) {
         case "dob": { const y = yearOf(value); if (y) put("birthYear", String(y)); break; }
         case "age": { const y = yearOf(`${value} years`); if (y && !out.birthYear) put("birthYear", String(y)); break; }
-        case "height": { const cm = heightToCm(value); if (cm) put("heightCm", String(cm)); break; }
-        case "weight": { const kg = value.match(/\d{2,3}/); if (kg) put("weightKg", kg[0]); else extras.push(`ওজন ${value}`); break; }
+        // "Height" and "Weight" both come back as "eight:" when a photo's left edge is cut; the value settles it
+        case "height": case "weight": {
+          const cm = heightToCm(value);
+          const kg = value.match(/(?<!\d)(\d{2,3})(?!\d)/); // "47 KG" and OCR's "47KG" alike
+          const asWeight = rule.field === "weight" ? !cm || /kg|কেজি|কে\.?\s?জি/i.test(value) : !cm && /kg|কেজি|কে\.?\s?জি/i.test(value);
+          if (asWeight) { if (kg) put("weightKg", kg[1]); else extras.push(`ওজন ${value}`); }
+          else if (cm) put("heightCm", String(cm));
+          break;
+        }
         case "blood": { const g = bloodGroupOf(value); if (g) put("bloodGroup", g); else extras.push(`রক্তের গ্রুপ ${value}`); break; }
         case "complexion": { const c = complexionOf(value); if (c) put("complexion", c); else extras.push(`গায়ের রং ${value}`); break; }
         case "medium": { const m = mediumOf(value); if (m) put("educationMedium", m); break; }
@@ -285,8 +327,9 @@ export function parseBiodataText(raw: string): Imported {
     if (range && Number(range[1]) <= Number(range[2])) { put("expectAgeMin", range[1]); put("expectAgeMax", range[2]); }
   }
 
-  // the permanent address is where a family is "from"; the present one is the fallback
-  const addr = addresses.permanent ?? addresses.address ?? addresses.present;
+  // the permanent address is where a family is "from"; the present one is the fallback, unless the village, upazila
+  // or district already came in on lines of their own, in which case the present address is just that
+  const addr = addresses.permanent ?? addresses.address ?? (out.village || out.upazila || out.district ? undefined : addresses.present);
   if (addr) applyAddress(out, addr.join(", "));
   if (out.district) { const d = districtOf(out.district); if (d) out.district = d; else delete out.district; }
   // a present address beside the permanent one: where they live now, by district where it names one

@@ -65,7 +65,9 @@ paths, chosen by whether `ANTHROPIC_API_KEY` is set:
 
 - **Free, in the browser** (no key): Word and PDF text is read exactly (`mammoth`, `pdf.js`); a photo, or a PDF that
   is only a scan, goes through OCR in the page (Tesseract.js, Bangla + English, loading its language data from its
-  CDN on first use). Then `lib/biodata-import/parse.ts` maps labels and sections to fields by rules: "Name"/"নাম",
+  CDN on first use). The photo is cleaned first on a canvas: scaled up, turned grey, then black-and-white by an
+  adaptive threshold so text on a coloured panel survives, and a two-column sheet is cut at its gutter and read
+  column by column. Then `lib/biodata-import/parse.ts` maps labels and sections to fields by rules: "Name"/"নাম",
   "Date of Birth" to the year, 5'3" to centimetres, the permanent address split into village / upazila / district
   with the district's English spelling turned into Bangla, parents, siblings, "About me". Nothing leaves the phone.
 - **With a key**: the file goes to Claude (`claude-opus-5-5` unless `BIODATA_AI_MODEL` says otherwise) through a
