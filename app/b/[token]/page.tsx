@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { FamilyBiodata } from "@/components/biodata";
 import { Icon } from "@/components/icons";
 import { LangSwitch } from "@/components/lang-switch";
+import { primaryButton } from "@/components/ui";
 import { currentSite } from "@/lib/auth/session";
 import { getDb } from "@/lib/db";
 import { getT } from "@/lib/i18n/server";
@@ -40,14 +41,11 @@ export default async function PublicBiodataPage(props: PageProps<"/b/[token]">) 
 
       <main className="mx-auto flex w-full max-w-4xl flex-1 flex-col gap-5 px-4 py-6 lg:py-10">
         <FamilyBiodata b={b} t={T} aside={
-          <section className="flex flex-col gap-3 rounded-3xl border border-primary-soft bg-primary-soft/40 p-5">
-            <h2 className="flex items-center gap-2 font-display text-base font-bold"><Icon name="phone" size={18} className="text-primary" />{t("pub.callTitle")}</h2>
-            <p className="text-sm text-muted">{t("pub.callText")}</p>
-            <p className="font-bold">{b.ghotok.name}</p>
-            <a href={`tel:${b.ghotok.phone}`} className="inline-flex min-h-12 w-fit items-center gap-2 rounded-2xl bg-primary px-5 font-bold text-on-primary">
-              <Icon name="phone" size={18} />{T.n(b.ghotok.phone)}
-            </a>
-          </section>
+          <>
+            <a href={`tel:${b.ghotok.phone}`} className={primaryButton}><Icon name="phone" size={18} />{T.n(b.ghotok.phone)}</a>
+            <p className="text-center text-sm font-bold">{b.ghotok.name}</p>
+            <p className="text-center text-xs text-muted">{t("pub.callText")}</p>
+          </>
         } />
       </main>
 

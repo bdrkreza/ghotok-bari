@@ -5,10 +5,10 @@ import type { T } from "@/lib/i18n";
 // Pieces of the ghotok's public face, shared by the front page and a family's own page. No hooks: they render on
 // the server and take the language (`t`) from the page.
 
-/** Call and WhatsApp buttons for the ghotok's numbers. */
-export function ContactButtons({ phone, whatsapp, t, className = "" }: { phone: string; whatsapp: string; t: T; className?: string }) {
+/** Call and WhatsApp buttons for the ghotok's numbers: side by side, or one under the other (`stack`) in a narrow column. */
+export function ContactButtons({ phone, whatsapp, t, className = "", stack = false }: { phone: string; whatsapp: string; t: T; className?: string; stack?: boolean }) {
   return (
-    <div className={`grid grid-cols-2 gap-3 ${className}`}>
+    <div className={`grid gap-3 ${stack ? "" : "grid-cols-2"} ${className}`}>
       <a href={`tel:${phone}`} className={primaryButton}><Icon name="phone" size={18} />{t.n(phone)}</a>
       <a href={`https://wa.me/88${whatsapp}`} target="_blank" rel="noopener noreferrer" className={outlineButton}>
         <Icon name="share" size={18} />{t.t("common.whatsapp")}

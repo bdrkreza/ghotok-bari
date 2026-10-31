@@ -227,6 +227,27 @@ body::before {
   bottom: auto;
 }
 
+/* The coloured head of a family's biodata card: deep henna, two faint discs, the lattice band along its foot in the
+   panel's own text colour. The picture hangs half over it (components/biodata.tsx). */
+.biodata-head {
+  position: relative;
+  background-color: var(--panel);
+  background-image:
+    radial-gradient(circle at 85% 120%, color-mix(in oklab, var(--on-panel) 14%, transparent) 0 60px, transparent 61px),
+    radial-gradient(circle at 10% -40%, color-mix(in oklab, var(--on-panel) 10%, transparent) 0 70px, transparent 71px);
+}
+.biodata-head::after {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  height: 8px;
+  pointer-events: none;
+  background: var(--on-panel);
+  opacity: 0.45;
+  mask: url("/henna/band.svg") repeat-x center / 48px 8px;
+}
+
 @media (min-width: 1024px) {
   .henna-sides::before,
   .henna-sides::after {

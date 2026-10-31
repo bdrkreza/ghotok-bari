@@ -23,13 +23,20 @@ export function familyTags(b: Pick<FamilyView, "brothers" | "sisters" | "familyS
 /** The match hoped for, as chips: age range, least education, marital status, districts. */
 export function expectationTags(b: Pick<FamilyView, "expectAgeMin" | "expectAgeMax" | "expectEducation" | "expectMarital" | "expectDistricts">, t: T): string[] {
   const tags: string[] = [];
-  if (b.expectAgeMin !== null && b.expectAgeMax !== null) tags.push(t.t("facts.expectAge", { a: b.expectAgeMin, b: b.expectAgeMax }));
-  else if (b.expectAgeMin !== null) tags.push(t.t("facts.expectAgeMin", { n: b.expectAgeMin }));
-  else if (b.expectAgeMax !== null) tags.push(t.t("facts.expectAgeMax", { n: b.expectAgeMax }));
+  const age = expectedAge(b, t);
+  if (age) tags.push(age);
   if (b.expectEducation) tags.push(t.t("facts.expectEdu", { x: t.t(`expectEdu.${b.expectEducation}`) }));
   if (b.expectMarital) tags.push(t.t(`expectMarital.${b.expectMarital}`));
   if (b.expectDistricts) tags.push(b.expectDistricts);
   return tags;
+}
+
+/** "২২ থেকে ২৮ বছর", "২৫ বছর বা বেশি", "৩২ বছর পর্যন্ত", or "" when no age was given. */
+export function expectedAge(b: Pick<FamilyView, "expectAgeMin" | "expectAgeMax">, t: T): string {
+  if (b.expectAgeMin !== null && b.expectAgeMax !== null) return t.t("bv.ageBetween", { a: b.expectAgeMin, b: b.expectAgeMax });
+  if (b.expectAgeMin !== null) return t.t("bv.ageFrom", { n: b.expectAgeMin });
+  if (b.expectAgeMax !== null) return t.t("bv.ageTo", { n: b.expectAgeMax });
+  return "";
 }
 
 /** The "after marriage" answers as question / answer pairs, only those given; the questions differ by kind. */
@@ -81,67 +88,123 @@ export function BiodataFormAside({ site, t }: { site: PublicSite | null; t: T })
 }
 
 /**
- * A biodata as a family sees it: a card with the number, the ghotok's check and the facts asked first, then the
- * family, religious practice, the "after marriage" answers and the match hoped for, then whatever the page puts
- * beside it (how to reach the ghotok). Used by the public link and the signed-in view.
+ * A biodata as a family sees it. Left: a profile card with a coloured head, the picture over it, the number, the
+ * status, the ghotok's check, the facts asked first, and whatever the page passes as `aside` (the buttons that reach
+ * the ghotok). Right: one section per topic, each with an icon and a label / value table: address, education and
+ * work, family, after marriage, the match hoped for, and who sees what. Used by the public link and the signed-in view.
  */
 export function FamilyBiodata({ b, t, aside }: { b: FamilyView; t: T; aside?: ReactNode }) {
-  const facts: [IconName, string, string][] = [
-    ["calendar", t.t("facts.age"), t.years(ageFromYear(b.birthYear))],
-    ["rings", t.t("facts.marital"), t.t(`marital.${b.maritalStatus}`)],
-    ["ruler", t.t("facts.height"), b.heightCm ? t.height(b.heightCm) : ""],
-    ["bride", t.t("facts.complexion"), b.complexion ? t.t(`complexion.${b.complexion}`) : ""],
-    ["ruler", t.t("facts.weight"), b.weightKg ? t.t("facts.kg", { n: b.weightKg }) : ""],
-    ["heart", t.t("facts.blood"), b.bloodGroup ?? ""],
-    ["people", t.t("facts.religion"), t.t(`religion.${b.religion}`)],
-    ["location", t.t("facts.address"), [b.upazila, b.district].filter(Boolean).join(", ")],
-    ["location", t.t("facts.presentAddress"), b.presentAddress ?? ""],
-    ["school", t.t("facts.education"), [b.education, b.educationMedium ? t.t(`medium.${b.educationMedium}`) : null].filter(Boolean).join(" · ")],
-    ["briefcase", t.t("facts.profession"), b.profession ?? ""],
-    ["briefcase", t.t("facts.workplace"), b.workplace ?? ""],
+  const facts: { icon: IconName; label: string; value: string }[] = [
+    { icon: "calendar", label: t.t("facts.age"), value: t.years(ageFromYear(b.birthYear)) },
+    { icon: "rings", label: t.t("facts.marital"), value: t.t(`marital.${b.maritalStatus}`) },
+    { icon: "ruler", label: t.t("facts.height"), value: b.heightCm ? t.height(b.heightCm) : "" },
+    { icon: "sun", label: t.t("facts.complexion"), value: b.complexion ? t.t(`complexion.${b.complexion}`) : "" },
+    { icon: "ruler", label: t.t("facts.weight"), value: b.weightKg ? t.t("facts.kg", { n: b.weightKg }) : "" },
+    { icon: "heart", label: t.t("facts.blood"), value: b.bloodGroup ?? "" },
+    { icon: "people", label: t.t("facts.religion"), value: t.t(`religion.${b.religion}`) },
+    { icon: "briefcase", label: t.t("facts.profession"), value: b.profession ?? "" },
   ];
-  const family = familyTags(b, t);
+  const chips = (items: string[]) => (
+    <span className="flex flex-wrap gap-1.5">{items.map((x) => <span key={x} className="rounded-full bg-primary-soft px-2.5 py-0.5 text-sm font-bold text-primary">{x}</span>)}</span>
+  );
+  const prose = (text: string) => <span className="font-normal whitespace-pre-line">{text}</span>;
+  const siblings = familyTags({ brothers: b.brothers, sisters: b.sisters, familyStatus: null }, t);
+  const districts = (b.expectDistricts ?? "").split(/[,،]/).map((s) => s.trim()).filter(Boolean);
   const after = afterMarriageRows(b, t);
-  const wants = expectationTags(b, t);
+  const age = expectedAge(b, t);
+
+  const address: Row[] = [
+    { label: t.t("bv.permanentAddress"), value: <>{[b.upazila, b.district].filter(Boolean).join(", ")}<small className="block text-sm font-normal text-muted">{t.t("bv.villageHidden")}</small></> },
+    { label: t.t("facts.presentAddress"), value: b.presentAddress },
+  ];
+  const work: Row[] = [
+    { label: t.t("facts.medium"), value: b.educationMedium ? t.t(`medium.${b.educationMedium}`) : null },
+    { label: t.t("form.education"), value: b.education },
+    { label: t.t("facts.profession"), value: b.profession },
+    { label: t.t("facts.workplace"), value: b.workplace },
+  ];
+  const family: Row[] = [
+    { label: t.t("bv.siblings"), value: siblings.length ? chips(siblings) : null },
+    { label: t.t("facts.familyStatus"), value: b.familyStatus ? t.t(`famStatus.${b.familyStatus}`) : null },
+    { label: t.t("form.family"), value: b.familyDetails ? prose(b.familyDetails) : null },
+    { label: t.t("facts.religiousPractice"), value: b.religiousPractice },
+  ];
+  const wants: Row[] = [
+    { label: t.t("facts.age"), value: age },
+    { label: t.t("form.education"), value: b.expectEducation ? t.t("facts.expectEdu", { x: t.t(`expectEdu.${b.expectEducation}`) }) : null },
+    { label: t.t("facts.marital"), value: b.expectMarital ? t.t(`expectMarital.${b.expectMarital}`) : null },
+    { label: t.t("form.district"), value: districts.length ? chips(districts) : null },
+    { label: t.t("bv.inOwnWords"), value: b.expectations ? prose(b.expectations) : null },
+  ];
+
   return (
-    <div className="flex flex-col gap-5 lg:grid lg:grid-cols-[18rem_1fr] lg:items-start lg:gap-6">
-      <section className="flex flex-col items-center gap-3 rounded-3xl border border-line bg-surface p-6 text-center">
-        <Avatar kind={b.kind} className="size-24" />
-        <div>
-          <p className="text-sm text-muted">{t.t("bv.number")}</p>
-          <h1 className="font-display text-2xl font-bold">{t.biodataNo(b.kind, b.code)}</h1>
+    <div className="flex flex-col gap-5 lg:grid lg:grid-cols-[20rem_minmax(0,1fr)] lg:items-start lg:gap-6">
+      <aside className="overflow-hidden rounded-3xl border border-line bg-surface lg:sticky lg:top-24">
+        <div aria-hidden className="biodata-head h-24" />
+        <div className="-mt-12 flex justify-center">
+          <span className="rounded-full border-4 border-surface bg-surface"><Avatar kind={b.kind} className="size-24" /></span>
         </div>
-        <ProfileBadge status={b.status} />
-        <p className="inline-flex items-center gap-1.5 rounded-full bg-pos-soft px-3 py-1 text-xs font-bold text-pos"><Icon name="check" size={14} />{trustLine(b, t)}</p>
-        <dl className="mt-2 flex w-full flex-col divide-y divide-line text-sm">
-          {facts.filter(([, , value]) => value).map(([icon, label, value]) => (
+        <div className="flex flex-col items-center gap-1.5 px-5 pt-3 text-center">
+          <p className="text-xs text-muted">{t.t("bv.number")}</p>
+          <p className="font-display text-3xl font-extrabold leading-none">{t.biodataNo(b.kind, b.code)}</p>
+          <div className="mt-1 flex flex-wrap justify-center gap-1.5">
+            <ProfileBadge status={b.status} />
+            <span className="inline-flex items-center gap-1 rounded-full bg-pos-soft px-2.5 py-0.5 text-xs font-bold text-pos"><Icon name="check" size={13} />{trustLine(b, t)}</span>
+          </div>
+        </div>
+        <dl className="flex flex-col divide-y divide-line px-5 pt-3 text-sm">
+          {facts.filter((f) => f.value).map(({ icon, label, value }) => (
             <div key={label} className="flex items-center gap-3 py-2.5">
-              <dt className="flex flex-1 items-center gap-2 text-muted"><Icon name={icon} size={16} className="text-primary" />{label}</dt>
+              <dt className="flex flex-1 items-center gap-2 text-muted"><Icon name={icon} size={15} className="text-primary" />{label}</dt>
               <dd className="text-right font-bold">{value}</dd>
             </div>
           ))}
         </dl>
-      </section>
+        {aside ? <div className="flex flex-col gap-3 px-5 pt-3 pb-5">{aside}</div> : <div className="pb-3" />}
+      </aside>
 
       <div className="flex flex-col gap-5">
-        {aside}
-        {family.length || b.familyDetails ? <Block icon="people" title={t.t("facts.family")} tags={family} text={b.familyDetails} /> : null}
-        {b.religiousPractice ? <Block icon="shield" title={t.t("facts.religiousPractice")} text={b.religiousPractice} /> : null}
-        {after.length ? (
-          <Block icon="rings" title={t.t("facts.after")}>
-            <dl className="flex flex-col divide-y divide-line text-sm">
-              {after.map(([q, a]) => (
-                <div key={q} className="flex items-start justify-between gap-4 py-2">
-                  <dt className="text-muted">{q}</dt>
-                  <dd className="shrink-0 text-right font-bold">{a}</dd>
-                </div>
-              ))}
-            </dl>
-          </Block>
-        ) : null}
-        {wants.length || b.expectations ? <Block icon="heart" title={t.t("facts.expectations")} tags={wants} text={b.expectations} /> : null}
+        <Section icon="location" title={t.t("facts.address")} rows={address} />
+        <Section icon="school" title={t.t("form.s2")} rows={work} />
+        <Section icon="people" title={t.t("facts.family")} rows={family} />
+        <Section icon="home" title={t.t("facts.after")} rows={after.map(([label, value]) => ({ label, value }))} />
+        <Section icon="heart" title={t.t("facts.expectations")} rows={wants} />
+        <section className="flex flex-col gap-3 rounded-3xl border border-dashed border-line bg-surface p-5 lg:p-6">
+          <SectionHead icon="shield" title={t.t("aside.whoTitle")} />
+          <p className="text-sm text-muted">{t.t("bv.whoSees")}</p>
+        </section>
       </div>
     </div>
+  );
+}
+
+interface Row { label: string; value: ReactNode | null | undefined }
+
+/** One topic: an icon, a title and a label / value table. Rows without a value are left out; an empty topic is not shown. */
+function Section({ icon, title, rows }: { icon: IconName; title: string; rows: Row[] }) {
+  const shown = rows.filter((r) => r.value !== null && r.value !== undefined && r.value !== "");
+  if (!shown.length) return null;
+  return (
+    <section className="flex flex-col gap-4 rounded-3xl border border-line bg-surface p-5 lg:p-6">
+      <SectionHead icon={icon} title={title} />
+      <dl className="overflow-hidden rounded-2xl border border-line">
+        {shown.map((r, i) => (
+          <div key={r.label} className="grid border-t border-line first:border-t-0 sm:grid-cols-[13rem_minmax(0,1fr)]">
+            <dt className="bg-sunk px-4 pt-2.5 pb-1 text-sm font-semibold text-muted sm:py-3.5">{r.label}</dt>
+            <dd className={`bg-sunk px-4 pt-1 pb-3 font-semibold sm:py-3.5 ${i % 2 ? "sm:bg-sunk/45" : "sm:bg-transparent"}`}>{r.value}</dd>
+          </div>
+        ))}
+      </dl>
+    </section>
+  );
+}
+
+function SectionHead({ icon, title }: { icon: IconName; title: string }) {
+  return (
+    <header className="flex items-center gap-3">
+      <span aria-hidden className="grid size-11 shrink-0 place-items-center rounded-full bg-primary-soft text-primary"><Icon name={icon} size={20} /></span>
+      <h2 className="font-display text-xl font-bold">{title}</h2>
+    </header>
   );
 }
 
@@ -163,21 +226,5 @@ export function FamilyBiodataCard({ b, t }: { b: FamilyView & { id: string }; t:
       </span>
       <Icon name="chevronRight" size={18} className="shrink-0 text-muted" />
     </Link>
-  );
-}
-
-/** One titled card: a row of chips, a paragraph, or anything else, in that order. */
-function Block({ icon, title, tags = [], text, children }: { icon: IconName; title: string; tags?: string[]; text?: string | null; children?: ReactNode }) {
-  return (
-    <section className="flex flex-col gap-2 rounded-3xl border border-line bg-surface p-5">
-      <h2 className="flex items-center gap-2 font-display text-base font-bold"><Icon name={icon} size={18} className="text-primary" />{title}</h2>
-      {tags.length ? (
-        <p className="flex flex-wrap gap-1.5">
-          {tags.map((x) => <span key={x} className="rounded-full bg-sunk px-2.5 py-0.5 text-sm font-semibold">{x}</span>)}
-        </p>
-      ) : null}
-      {text ? <p className="whitespace-pre-line">{text}</p> : null}
-      {children}
-    </section>
   );
 }
