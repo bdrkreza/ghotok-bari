@@ -113,6 +113,7 @@ export function FamilyBiodata({ b, t, aside }: { b: FamilyView; t: T; aside?: Re
   const after = afterMarriageRows(b, t);
   const age = expectedAge(b, t);
   const trust = trustMark(b, t);
+  const no = t.biodataNo(b.kind, b.code);
 
   const address: Row[] = [
     { label: t.t("bv.permanentAddress"), value: <>{[b.upazila, b.district].filter(Boolean).join(", ")}<small className="block text-sm font-normal text-muted">{t.t("bv.villageHidden")}</small></> },
@@ -147,7 +148,8 @@ export function FamilyBiodata({ b, t, aside }: { b: FamilyView; t: T; aside?: Re
           <span className="relative -mt-11 shrink-0 rounded-full border-4 border-surface bg-surface ring-2 ring-gold"><Avatar kind={b.kind} className="size-22" /></span>
           <div className="min-w-0 pt-2">
             <p className="text-xs text-muted">{t.t("bv.number")}</p>
-            <p className="truncate font-display text-3xl font-extrabold leading-none">{t.biodataNo(b.kind, b.code)}</p>
+            {/* a long number ("Groom-50000") gets a smaller size and may break after the hyphen instead of being cut */}
+            <p className={`font-display font-extrabold leading-none wrap-break-word ${no.length > 9 ? "text-2xl" : "text-3xl"}`}>{no}</p>
           </div>
         </div>
         <div className="flex flex-col gap-1.5 px-5 pt-3">
