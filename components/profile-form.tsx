@@ -14,7 +14,7 @@ import { normalizePhone } from "@/lib/auth/phone";
 import { createProfileAction, updateProfileAction } from "@/lib/actions/profiles";
 import {
   AFTER_HOMES, BLOOD_GROUPS, CHOICES, COMPLEXIONS, DOWRIES, EDUCATION_MEDIUMS, EXPECT_EDUCATIONS, EXPECT_MARITALS, FAMILY_STATUSES,
-  MARITAL_STATUSES, MIN_AGE, RELIGIONS,
+  MARITAL_STATUSES, MIN_AGE, RELIGIONS, missing,
 } from "@/lib/services/profiles";
 
 /** Who is filling the form: the ghotok (full form, their private notes) or a family (their own biodata, no notes). */
@@ -120,7 +120,7 @@ export function ProfileForm({ kind, profile, minYear, maxYear, viewer = "admin",
     const value = el.value.trim();
     const v = el.validity;
     if (v.badInput) return t("fe.number"); // letters in a number box: the browser reports the box as empty
-    if (!value) return el.required ? t("fe.required") : null;
+    if (!value) return el.required ? t(`fe.${missing(el.name, kind).code}`) : null;
     if (el.minLength > 0 && value.length < el.minLength) return t("fe.short", { n: el.minLength });
     if (el.maxLength > 0 && value.length > el.maxLength) return t("fe.long", { n: el.maxLength });
     if (el instanceof HTMLInputElement && el.type === "number") {

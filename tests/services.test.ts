@@ -81,7 +81,7 @@ describe("people", () => {
       photoUrl: "photo",
     })))).toEqual({
       name: { code: "short", vars: { n: 2 } },
-      district: { code: "required" },
+      district: { code: "need_district" },
       guardianPhone: { code: "phone" },
       heightCm: { code: "range", vars: { min: 100, max: 250 } },
       brothers: { code: "number" },
@@ -90,7 +90,7 @@ describe("people", () => {
     });
     // the age order is checked once every field on its own is fine
     expect(fieldsOf(() => parseProfile(personForm({ expectAgeMin: "30", expectAgeMax: "25" })))).toEqual({ expectAgeMax: { code: "age_order" } });
-    expect(fieldsOf(() => parseProfile(personForm({ birthYear: "" })))).toEqual({ birthYear: { code: "required" } });
+    expect(fieldsOf(() => parseProfile(personForm({ birthYear: "" })))).toEqual({ birthYear: { code: "need_birth_year" } });
     expect(fieldsOf(() => parseProfile(personForm({ kind: "patro", birthYear: String(y - 20) }))))
       .toEqual({ birthYear: { code: "young_patro", vars: { age: 21, year: y - 21 } } });
     // each reason reads as a sentence in both languages, with the language's digits

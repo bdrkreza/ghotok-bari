@@ -24,7 +24,7 @@ export type AppErrorCode =
 
 /** Why one field was refused; the form shows "fe.<code>" from the dictionary under that field, with `vars` filled in. */
 export type FieldErrorCode =
-  | "required" | "short" | "long" | "number" | "range" | "min" | "phone" | "url" | "choice" | "age_order"
+  | "required" | "need_name_patro" | "need_name_patri" | "need_birth_year" | "need_district" | "short" | "long" | "number" | "range" | "min" | "phone" | "url" | "choice" | "age_order"
   | "young_patro" | "young_patri" | "pledge";
 export interface FieldIssue { code: FieldErrorCode; vars?: Record<string, number> }
 export type FieldIssues = Record<string, FieldIssue>;

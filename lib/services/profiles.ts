@@ -91,9 +91,18 @@ const profileInput = z.object({
 /** Every field the form may send; a missing one is read as empty. */
 const FIELDS = Object.keys(profileInput.shape);
 
+/** What to say when a required field was left empty: it names what to write, not just "fill this". */
+export function missing(name: string, kind: ProfileKind): FieldIssue {
+  if (name === "name") return { code: kind === "patri" ? "need_name_patri" : "need_name_patro" };
+  if (name === "birthYear") return { code: "need_birth_year" };
+  if (name === "district") return { code: "need_district" };
+  return { code: "required" };
+}
+
 /** One zod issue as the reason the form shows under that field. */
-function fieldIssue(issue: z.core.$ZodIssue, value: string): FieldIssue {
-  if (issue.code === "too_small") return value.trim() ? { code: "short", vars: { n: Number(issue.minimum) } } : { code: "required" };
+function fieldIssue(issue: z.core.$ZodIssue, value: string, kind: ProfileKind): FieldIssue {
+  const name = String(issue.path[0] ?? "");
+  if (issue.code === "too_small") return value.trim() ? { code: "short", vars: { n: Number(issue.minimum) } } : missing(name, kind);
   if (issue.code === "too_big") return { code: "long", vars: { n: Number(issue.maximum) } };
   if (issue.code === "custom") {
     if (issue.message === "range") {
@@ -102,7 +111,7 @@ function fieldIssue(issue: z.core.$ZodIssue, value: string): FieldIssue {
     }
     if (issue.message === "number" || issue.message === "phone") return { code: issue.message };
     if (issue.message === "age_range") return { code: "age_order" };
-    return { code: "required" }; // the birth year's "must have one" check
+    return missing(name, kind); // the birth year's "must have one" check
   }
   if (issue.path[0] === "photoUrl") return { code: "url" };
   return { code: "choice" };
@@ -119,7 +128,7 @@ export function parseProfile(raw: Record<string, string>) {
     const fields: FieldIssues = {};
     for (const issue of parsed.error.issues) {
       const name = String(issue.path[0] ?? "");
-      if (name && !fields[name]) fields[name] = fieldIssue(issue, filled[name] ?? "");
+      if (name && !fields[name]) fields[name] = fieldIssue(issue, filled[name] ?? "", filled.kind === "patri" ? "patri" : "patro");
     }
     throw new AppError("invalid_input", parsed.error.message, fields);
   }

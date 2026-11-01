@@ -737,7 +737,11 @@ export const bn = {
 
   // messages from the server
   "form.stepFix": "এখানে ঠিক করার ঘর আছে",
-  "fe.required": "এই ঘরটি ভরতে হবে।",
+  "fe.required": "এটুকু লিখে দিন।",
+  "fe.need_name_patro": "পাত্রের পুরো নাম লিখুন।",
+  "fe.need_name_patri": "পাত্রীর পুরো নাম লিখুন।",
+  "fe.need_birth_year": "জন্মের সাল লিখুন, যেমন ১৯৯৮।",
+  "fe.need_district": "জেলার নাম লিখুন, যেমন রংপুর।",
   "fe.short": "কমপক্ষে {n} অক্ষর লিখুন।",
   "fe.long": "সর্বোচ্চ {n} অক্ষর লেখা যায়; একটু ছোট করুন।",
   "fe.number": "শুধু পূর্ণ সংখ্যা লিখুন, দশমিক বা অক্ষর ছাড়া।",
@@ -1505,7 +1509,11 @@ export const en: Record<Key, string> = {
   "st.signedIn": "Signed in",
 
   "form.stepFix": "has fields to fix",
-  "fe.required": "This field is needed.",
+  "fe.required": "Please fill this in.",
+  "fe.need_name_patro": "Write the groom's full name.",
+  "fe.need_name_patri": "Write the bride's full name.",
+  "fe.need_birth_year": "Write the year of birth, like 1998.",
+  "fe.need_district": "Write the district, like Rangpur.",
   "fe.short": "Write at least {n} letters.",
   "fe.long": "At most {n} letters fit here; please shorten it.",
   "fe.number": "Write a whole number only, without decimals or letters.",
