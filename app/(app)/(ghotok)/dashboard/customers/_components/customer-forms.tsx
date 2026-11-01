@@ -1,6 +1,6 @@
 "use client";
 
-import { ActionForm, Hidden } from "./form";
+import { ActionForm, Hidden } from "@/components/form";
 import { setRoleAction } from "@/lib/actions/customers";
 import { useT } from "@/lib/i18n/client";
 

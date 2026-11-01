@@ -3,7 +3,7 @@ import { afterMarriageRows, expectationTags, familyTags } from "@/components/bio
 import { ApprovalForm } from "@/components/biodata-forms";
 import { Icon } from "@/components/icons";
 import { DeleteProfileForm, ProfileStatusForm } from "@/components/proposal-forms";
-import { ShareCard } from "@/components/share";
+import { ShareCard } from "./_components/share";
 import { ApprovalBadge, Badge, Card, Empty, Facts, PageHeader, ProfileBadge, ProposalBadge, RowLink, primaryButton, quietButton } from "@/components/ui";
 import { requireAdmin } from "@/lib/auth/session";
 import { getDb } from "@/lib/db";

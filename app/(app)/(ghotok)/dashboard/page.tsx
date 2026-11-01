@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { HomeSearch } from "@/components/home-search";
+import { HomeSearch } from "./_components/home-search";
 import { Icon, type IconName } from "@/components/icons";
 import { Empty, ProfileBadge, ProposalBadge, outlineButton, primaryButton, quietButton } from "@/components/ui";
 import { requireAdmin } from "@/lib/auth/session";

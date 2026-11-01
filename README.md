@@ -204,7 +204,8 @@ npm run dev
 app/            routes; (public) = the front page, (auth) = login, register and setup, offline = no-internet page
 app/(app)/      behind sign-in: (ghotok) = the admin side, (customer) = /me and /biodata, patro + patri + settings = both roles
 app/manifest.ts web app manifest for installing on a phone
-components/     UI building blocks and client-side forms; nav.tsx = tab bar + top bar per role, biodata.tsx = a family's view
+components/     shared UI building blocks and client-side forms; biodata.tsx = a family's view
+app/**/_components/  pieces used by one route only, next to it; (app)/_components/nav.tsx = tab bar + top bar per role
 lib/db/         Drizzle connection and schema (site, profile, proposal, ledger; Better Auth's tables in auth-schema.ts)
 lib/auth/       Better Auth setup, roles, session helpers (requireAdmin / requireCustomer), login and setup actions
 lib/services/   all reads and writes, scoped to the site's ghotok (biodata.ts also to the family), throwing AppError

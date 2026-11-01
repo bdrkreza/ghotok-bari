@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Icon } from "@/components/icons";
 import { LangSwitch } from "@/components/lang-switch";
-import { Nav, TopNav } from "@/components/nav";
+import { Nav, TopNav } from "./_components/nav";
 import { ThemeButton } from "@/components/theme";
 import { homeFor, requireSite, requireUser } from "@/lib/auth/session";
 import { getT } from "@/lib/i18n/server";

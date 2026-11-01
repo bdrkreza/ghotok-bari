@@ -1,9 +1,9 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { Avatar } from "./avatar";
+import { Avatar } from "@/components/avatar";
 import { FilterPanel } from "./filters";
-import { Icon, type IconName } from "./icons";
-import { Empty, PageHeader, ProfileBadge, primaryButton, quietButton } from "./ui";
+import { Icon, type IconName } from "@/components/icons";
+import { Empty, PageHeader, ProfileBadge, primaryButton, quietButton } from "@/components/ui";
 import { requireAdmin, requireCustomer } from "@/lib/auth/session";
 import { getDb } from "@/lib/db";
 import type { MaritalStatus, ProfileKind, ProfileStatus, Religion } from "@/lib/db/schema";

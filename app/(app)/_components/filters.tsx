@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
-import { Icon } from "./icons";
+import { Icon } from "@/components/icons";
 import { useT } from "@/lib/i18n/client";
 
 /**

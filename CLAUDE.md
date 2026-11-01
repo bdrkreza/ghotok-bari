@@ -36,8 +36,10 @@ Read README.md for the screens, roles, data model and setup.
 - Colour comes only from the tokens in `app/globals.css` (light, then the two dark blocks, kept identical); the mehedi
   ornaments are the `.henna-*` classes there, CSS masks over `public/henna/*.svg`, so they recolour with the theme. New
   surfaces use the tokens, never a hex value in JSX.
+- A component used by one route (or one layout) lives beside it in that segment's `_components/` folder; one used
+  by several routes lives in `components/`. Move it to `components/` once a second route needs it.
 - Two layouts from one tree: phone (top bar, `max-w-md` column, bottom tab bar) and `lg:` web (top nav bar in
-  `components/nav.tsx`, wider page, cards regrouped into columns). Keep the phone DOM order; let `lg:` classes only
+  `app/(app)/_components/nav.tsx`, wider page, cards regrouped into columns). Keep the phone DOM order; let `lg:` classes only
   change placement. `/`, `/setup`, the manifest, `public/sw.js`, `/offline` and `/b/*` (shared biodata) are public in
   `proxy.ts`; keep them so.
 - Schema changes: edit `lib/db/schema.ts`, run `npm run db:generate`, commit the new file in `drizzle/`. With the embedded

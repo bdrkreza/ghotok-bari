@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { ActionForm, Hidden } from "./form";
-import { Icon } from "./icons";
-import { Card, quietButton } from "./ui";
+import { ActionForm, Hidden } from "@/components/form";
+import { Icon } from "@/components/icons";
+import { Card, quietButton } from "@/components/ui";
 import { shareBiodataAction, unshareBiodataAction } from "@/lib/actions/share";
 import { useT } from "@/lib/i18n/client";
 

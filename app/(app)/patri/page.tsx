@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { ProfileList } from "@/components/profile-list";
+import { ProfileList } from "../_components/profile-list";
 import { requireUser } from "@/lib/auth/session";
 import { getT } from "@/lib/i18n/server";
 

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { RoleForm } from "@/components/customer-forms";
+import { RoleForm } from "./_components/customer-forms";
 import { Icon } from "@/components/icons";
 import { Badge, Card, Empty, PageHeader } from "@/components/ui";
 import { requireAdmin } from "@/lib/auth/session";

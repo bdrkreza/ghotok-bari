@@ -2,8 +2,8 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { inputClass } from "./form";
-import { Icon } from "./icons";
+import { inputClass } from "@/components/form";
+import { Icon } from "@/components/icons";
 import type { ProfileKind } from "@/lib/db/schema";
 import { useT } from "@/lib/i18n/client";
 import { bandOptions, listHref, type Place } from "@/lib/search";

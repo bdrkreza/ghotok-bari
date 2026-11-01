@@ -6,9 +6,9 @@ import { initials } from "@/lib/bn";
 import type { Role } from "@/lib/db/schema";
 import type { Key } from "@/lib/i18n";
 import { useT } from "@/lib/i18n/client";
-import { Icon, type IconName } from "./icons";
-import { LangSwitch } from "./lang-switch";
-import { ThemeButton } from "./theme";
+import { Icon, type IconName } from "@/components/icons";
+import { LangSwitch } from "@/components/lang-switch";
+import { ThemeButton } from "@/components/theme";
 
 interface Tab {
   href: string;
