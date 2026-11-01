@@ -13,7 +13,8 @@ export async function createProfileAction(_prev: FormState, form: FormData): Pro
   const user = await requireAdmin();
   const values = fieldValues(form);
   return attempt(async () => {
-    const id = await createProfile(getDb(), user.ghotokId, values);
+    // "আলাদা মানুষ, তবুও যোগ করুন" posts anyway=on after the same-person warning
+    const id = await createProfile(getDb(), user.ghotokId, values, undefined, { warnSame: field(form, "anyway") !== "on" });
     revalidatePath("/dashboard");
     redirect(`/profiles/${id}`);
   }, values);

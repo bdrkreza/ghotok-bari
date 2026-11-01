@@ -20,7 +20,9 @@ export type AppErrorCode =
   | "import_failed"
   | "ai_busy"
   | "file_too_big"
-  | "pledge_required";
+  | "pledge_required"
+  | "biodata_exists"
+  | "maybe_same";
 
 /** Why one field was refused; the form shows "fe.<code>" from the dictionary under that field, with `vars` filled in. */
 export type FieldErrorCode =
@@ -29,9 +31,15 @@ export type FieldErrorCode =
 export interface FieldIssue { code: FieldErrorCode; vars?: Record<string, number> }
 export type FieldIssues = Record<string, FieldIssue>;
 
+/** The biodata a refusal points at (the same person, already in the book), so the form can link to it. */
+export interface Existing { id: string; kind: "patro" | "patri"; code: number }
+
 export class AppError extends Error {
-  /** @param fields which form fields were refused and why, so the form can mark each one */
-  constructor(public readonly code: AppErrorCode, detail?: string, public readonly fields?: FieldIssues) {
+  /**
+   * @param fields which form fields were refused and why, so the form can mark each one
+   * @param existing the biodata already there, for "this person is in the book already"
+   */
+  constructor(public readonly code: AppErrorCode, detail?: string, public readonly fields?: FieldIssues, public readonly existing?: Existing) {
     super(detail ?? code);
     this.name = "AppError";
   }

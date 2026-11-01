@@ -2,7 +2,7 @@ import { and, desc, eq } from "drizzle-orm";
 import type { Db } from "../db";
 import { profile, type Profile } from "../db/schema";
 import { AppError } from "../errors";
-import { createProfile, parseProfile, profileWhere, type ProfileFilter } from "./profiles";
+import { createProfile, findSame, parseProfile, profileWhere, type ProfileFilter } from "./profiles";
 import { FAMILY_VIEW } from "./share";
 
 // A family's side of biodata. Their own entries are scoped twice: to the site's ghotok and to their account
@@ -28,9 +28,20 @@ const pledged = (raw: Record<string, string>): Date => {
   return new Date();
 };
 
+/**
+ * A family hands each person in once: the same kind, name and birth year from the same account is the same person,
+ * so a second one is refused with AppError("biodata_exists") pointing at the first, which they edit instead. A
+ * son's and a daughter's, or two sisters', are different people and go in as usual.
+ */
+async function handedInBefore(db: Db, ghotokId: string, ownerUserId: string, data: ReturnType<typeof parseProfile>, exceptId?: string) {
+  const same = await findSame(db, ghotokId, { kind: data.kind, name: data.name, birthYear: data.birthYear, ownerUserId, exceptId });
+  if (same) throw new AppError("biodata_exists", undefined, undefined, same);
+}
+
 /** Hand in a biodata: it waits for the ghotok as "pending". The ghotok's notes field is not the family's to write. */
 export async function submitBiodata(db: Db, ghotokId: string, ownerUserId: string, raw: Record<string, string>): Promise<string> {
   const pledgedAt = pledged(raw);
+  await handedInBefore(db, ghotokId, ownerUserId, parseProfile({ ...raw, notes: "" }));
   return createProfile(db, ghotokId, { ...raw, notes: "" }, { ownerUserId, pledgedAt });
 }
 
@@ -39,6 +50,7 @@ export async function updateMyBiodata(db: Db, ghotokId: string, ownerUserId: str
   const existing = await getMyBiodata(db, ghotokId, ownerUserId, id);
   const pledgedAt = pledged(raw);
   const data = parseProfile({ ...raw, kind: existing.kind, notes: existing.notes ?? "" });
+  await handedInBefore(db, ghotokId, ownerUserId, data, id);
   await db.update(profile).set({ ...data, pledgedAt, approval: "pending", returnNote: null, approvedAt: null })
     .where(and(eq(profile.id, id), mine(ghotokId, ownerUserId)));
 }

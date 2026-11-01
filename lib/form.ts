@@ -1,4 +1,5 @@
 import { AppError, fieldMessages, messageFor } from "./errors";
+import { makeT } from "./i18n";
 import { getLang } from "./i18n/server";
 
 /** What a server action returns to a form. */
@@ -10,6 +11,8 @@ export interface FormState {
   notice?: string;
   /** a message per refused field, shown under that field */
   fieldErrors?: Record<string, string>;
+  /** the biodata the refusal points at: its id and its number as the user reads it ("পাত্রী-৭") */
+  existing?: { id: string; label: string };
 }
 
 export const field = (form: FormData, key: string) => String(form.get(key) ?? "").trim();
@@ -33,7 +36,11 @@ export async function attempt(fn: () => Promise<FormState | void>, values?: Reco
   } catch (e) {
     if (e instanceof AppError) {
       const lang = await getLang();
-      return { error: messageFor(e.code, lang), values, ...(e.fields ? { fieldErrors: fieldMessages(e.fields, lang) } : {}) };
+      return {
+        error: messageFor(e.code, lang), values,
+        ...(e.fields ? { fieldErrors: fieldMessages(e.fields, lang) } : {}),
+        ...(e.existing ? { existing: { id: e.existing.id, label: makeT(lang).biodataNo(e.existing.kind, e.existing.code) } } : {}),
+      };
     }
     throw e;
   }

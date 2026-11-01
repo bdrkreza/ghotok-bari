@@ -10,7 +10,7 @@ import { dashboard } from "@/lib/services/dashboard";
 import { addEntry, listEntries, totals } from "@/lib/services/ledger";
 import { suggestFor } from "@/lib/services/match";
 import { listHref, parseAge } from "@/lib/search";
-import { activeCounts, createProfile, parseProfile, getProfile, listProfiles, pendingCount, places, setApproval, submittedProfiles, updateProfile } from "@/lib/services/profiles";
+import { activeCounts, createProfile, deleteProfile, parseProfile, getProfile, listProfiles, pendingCount, places, setApproval, submittedProfiles, updateProfile } from "@/lib/services/profiles";
 import { browseBiodata, browseOne, deleteMyBiodata, getMyBiodata, myBiodata, submitBiodata, updateMyBiodata } from "@/lib/services/biodata";
 import { addNote, changeStatus, createProposal, getProposal, listProposals, proposalsFor } from "@/lib/services/proposals";
 import { getShare, publicBiodata, shareBiodata, unshareBiodata } from "@/lib/services/share";
@@ -96,6 +96,22 @@ describe("people", () => {
     // each reason reads as a sentence in both languages, with the language's digits
     expect(fieldMessages({ heightCm: { code: "range", vars: { min: 100, max: 250 } } }, "bn").heightCm).toBe("১০০ থেকে ২৫০ এর মধ্যে একটি সংখ্যা লিখুন।");
     expect(fieldMessages({ heightCm: { code: "range", vars: { min: 100, max: 250 } } }, "en").heightCm).toBe("Write a number from 100 to 250.");
+  });
+
+  it("warns the ghotok about the same person, and adds them anyway when asked", async () => {
+    const form = personForm({ name: "জমির  আলী", birthYear: "1994", district: "দিনাজপুর" });
+    const first = await createProfile(app.db, ghotok.id, form);
+    const same = createProfile(app.db, ghotok.id, { ...form, name: " জমির আলী " }, undefined, { warnSame: true });
+    expect(await code(same)).toBe("maybe_same");
+    const err = await same.catch((e: AppError) => e);
+    expect(err).toMatchObject({ existing: { id: first, kind: "patro" } });
+    // another district or another year is another person; and "add anyway" goes through
+    expect(await code(createProfile(app.db, ghotok.id, { ...form, district: "রংপুর" }, undefined, { warnSame: true }))).toBeNull();
+    expect(await code(createProfile(app.db, ghotok.id, { ...form, birthYear: "1995" }, undefined, { warnSame: true }))).toBeNull();
+    expect(await code(createProfile(app.db, ghotok.id, form))).toBeNull();
+    // another ghotok's book is not looked at
+    const elsewhere = await createProfile(app.db, other.id, form, undefined, { warnSame: true });
+    await deleteProfile(app.db, other.id, elsewhere);
   });
 
   it("is scoped to the ghotok who wrote it", async () => {
@@ -378,6 +394,20 @@ describe("biodata handed in by families", () => {
     expect(waiting.find((w) => w.profile.id === id)?.owner).toEqual({ name: "রহিমা বেগম", phone: family.phone });
     expect(await pendingCount(app.db, ghotok.id)).toBeGreaterThanOrEqual(1);
     expect(before.patri).toBe((await activeCounts(app.db, ghotok.id)).patri);
+  });
+
+  it("takes each person once per family: the same one again is refused, a brother or sister is not", async () => {
+    const again = submitBiodata(app.db, ghotok.id, family.id, personForm({ kind: "patri", name: "সুমাইয়া ", birthYear: "2003", district: "রাজশাহী" }));
+    expect(await code(again)).toBe("biodata_exists");
+    expect(await again.catch((e: AppError) => e)).toMatchObject({ existing: { id, kind: "patri" } });
+    // another family may write someone of the same name; this family's son, or another daughter, go in as usual
+    const theirs = await submitBiodata(app.db, ghotok.id, stranger.id, personForm({ kind: "patri", name: "সুমাইয়া", birthYear: "2003" }));
+    const son = await submitBiodata(app.db, ghotok.id, family.id, personForm({ kind: "patro", name: "সুমাইয়া", birthYear: "2003" }));
+    const sister = await submitBiodata(app.db, ghotok.id, family.id, personForm({ kind: "patri", name: "সাদিয়া", birthYear: "2003" }));
+    // editing the sister into the first daughter is refused too; editing her own details is fine
+    expect(await code(updateMyBiodata(app.db, ghotok.id, family.id, sister, personForm({ kind: "patri", name: "সুমাইয়া", birthYear: "2003" })))).toBe("biodata_exists");
+    expect(await code(updateMyBiodata(app.db, ghotok.id, family.id, sister, personForm({ kind: "patri", name: "সাদিয়া", birthYear: "2004" })))).toBeNull();
+    for (const [owner, row] of [[stranger.id, theirs], [family.id, son], [family.id, sister]] as const) await deleteMyBiodata(app.db, ghotok.id, owner, row);
   });
 
   it("is listed once approved, shown to families without names or contacts, and goes back to pending when they edit it", async () => {

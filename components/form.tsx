@@ -235,7 +235,7 @@ interface ActionFormProps {
   /** spoken name of the button when its label is only an icon */
   submitAriaLabel?: string;
   /** draws the form's foot around the submit button (e.g. a wizard's previous / next row); the button is passed in */
-  footer?: (submit: ReactNode) => ReactNode;
+  footer?: (submit: ReactNode, state: FormState) => ReactNode;
   /**
    * The form's own checks in place of the browser's pop-ups: the browser does not check the fields, and the form is
    * posted only when this returns true.
@@ -290,7 +290,7 @@ export function ActionForm({
       ) : children?.(state.values ?? {}, state)}
       {state.error ? <p role="alert" className="rounded-2xl bg-neg-soft px-4 py-3 text-sm font-semibold text-neg">{state.error}</p> : null}
       {state.notice ? <p role="status" className="rounded-2xl bg-pos-soft px-4 py-3 text-sm font-semibold text-pos">{state.notice}</p> : null}
-      {inline ? null : footer ? footer(button) : button}
+      {inline ? null : footer ? footer(button, state) : button}
     </form>
   );
 }

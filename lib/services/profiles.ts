@@ -5,13 +5,16 @@ import {
   profile, user, type AfterHome, type Approval, type BloodGroup, type Choice, type Complexion, type Dowry, type EducationMedium,
   type ExpectEducation, type ExpectMarital, type FamilyStatus, type MaritalStatus, type Profile, type ProfileKind, type ProfileStatus, type Religion,
 } from "../db/schema";
-import { AppError, type FieldIssue, type FieldIssues } from "../errors";
+import { AppError, type Existing, type FieldIssue, type FieldIssues } from "../errors";
 import { normalizePhone } from "../auth/phone";
 import type { Place } from "../search";
 import { currentYear } from "../time";
 
 // Legal minimum ages in Bangladesh (Child Marriage Restraint Act 2017): groom 21, bride 18.
 export const MIN_AGE: Record<ProfileKind, number> = { patro: 21, patri: 18 };
+
+/** runs of spaces become one, so "রহিম  উদ্দিন" and "রহিম উদ্দিন" are the same name */
+function oneSpace(s: string) { return s.split(/\s+/).join(" "); }
 
 const optional = (max: number) => z.string().trim().max(max).transform((s) => s || null);
 /** "" -> null, otherwise a whole number in range; Bangla digits are accepted */
@@ -40,7 +43,7 @@ export const EXPECT_MARITALS: readonly [ExpectMarital, ...ExpectMarital[]] = ["o
 
 const profileInput = z.object({
   kind: z.enum(["patro", "patri"]),
-  name: z.string().trim().min(2).max(80),
+  name: z.string().trim().min(2).max(80).transform(oneSpace),
   fatherName: optional(80),
   motherName: optional(80),
   birthYear: optionalInt(1900, 2100).refine((n): n is number => n !== null),
@@ -149,8 +152,38 @@ export function parseProfile(raw: Record<string, string>) {
  * the ghotok's approval (lib/services/biodata.ts). The biodata number is handed out either way, so families can
  * quote it when they call.
  */
-export async function createProfile(db: Db, ghotokId: string, raw: Record<string, string>, owner?: { ownerUserId: string; pledgedAt: Date }): Promise<string> {
+/**
+ * A biodata that looks like the same person: the same kind, name (spaces and letter case aside) and birth year,
+ * optionally also the same district, or written from the same family account. `exceptId` leaves one row out (the one
+ * being edited). Scoped to the ghotok like every read.
+ */
+export async function findSame(db: Db, ghotokId: string, who: {
+  kind: ProfileKind; name: string; birthYear: number; district?: string; ownerUserId?: string; exceptId?: string;
+}): Promise<Existing | null> {
+  const name = oneSpace(who.name.trim()).toLowerCase();
+  const [row] = await db.select({ id: profile.id, kind: profile.kind, code: profile.code }).from(profile).where(and(
+    eq(profile.ghotokId, ghotokId), eq(profile.kind, who.kind), eq(profile.birthYear, who.birthYear),
+    sql`lower(regexp_replace(btrim(${profile.name}), '[[:space:]]+', ' ', 'g')) = ${name}`,
+    who.district ? sql`lower(btrim(${profile.district})) = ${who.district.trim().toLowerCase()}` : undefined,
+    who.ownerUserId ? eq(profile.ownerUserId, who.ownerUserId) : undefined,
+    who.exceptId ? sql`${profile.id} <> ${who.exceptId}` : undefined,
+  )).orderBy(desc(profile.createdAt)).limit(1);
+  return row ?? null;
+}
+
+/**
+ * Add a person.
+ * @param warnSame the ghotok's form: if someone with the same name, birth year and district is already in the book,
+ *   refuse with AppError("maybe_same") pointing at them; the form then offers "add anyway", which posts without it.
+ */
+export async function createProfile(
+  db: Db, ghotokId: string, raw: Record<string, string>, owner?: { ownerUserId: string; pledgedAt: Date }, { warnSame = false } = {},
+): Promise<string> {
   const data = parseProfile(raw);
+  if (warnSame) {
+    const same = await findSame(db, ghotokId, { kind: data.kind, name: data.name, birthYear: data.birthYear, district: data.district });
+    if (same) throw new AppError("maybe_same", undefined, undefined, same);
+  }
   const id = crypto.randomUUID();
   // the next biodata number for this ghotok and kind. People are added one at a time; should two inserts ever
   // race, the unique index (ghotok, kind, code) makes one fail instead of handing out the same number twice.

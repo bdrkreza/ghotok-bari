@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { BiodataImport } from "@/components/biodata-import";
 import { ActionForm, Choice, ConfirmCheck, Field, FieldErrors, Hidden, TextArea } from "@/components/form";
@@ -297,8 +298,22 @@ export function ProfileForm({ kind, profile, minYear, maxYear, viewer = "admin",
         action={edit ? ACTIONS[viewer].update : ACTIONS[viewer].create}
         submitLabel={submit}
         pendingLabel={family ? t("form.submitting") : undefined}
-        footer={(button) => (
+        footer={(button, state) => (
           <div className="flex flex-col gap-3 border-t border-line pt-4">
+            {state.existing && !edit ? (
+              // the same person is already there: open that one, or (the ghotok only) add this one anyway, which takes
+              // the place of the usual button, since pressing that again would only warn again
+              <div className="flex flex-col gap-2 sm:flex-row">
+                <Link href={family ? `/me/biodata/${state.existing.id}/edit` : `/profiles/${state.existing.id}`} className={`${primaryButton} sm:flex-1`}>
+                  <Icon name={family ? "edit" : "eye"} size={18} />{t(family ? "dup.editThat" : "dup.openThat", { no: state.existing.label })}
+                </Link>
+                {family ? null : (
+                  <button type="submit" name="anyway" value="on" className={`${quietButton} sm:flex-1`}>
+                    <Icon name="plus" size={18} />{t("dup.addAnyway")}
+                  </button>
+                )}
+              </div>
+            ) : null}
             {tried && toFix ? (
               <p role="alert" className="flex items-start gap-2 rounded-2xl bg-neg-soft px-4 py-3 text-sm font-semibold text-neg">
                 <Icon name="shield" size={16} className="mt-0.5 shrink-0" />{t("form.fixCount", { n: toFix })}
@@ -310,7 +325,7 @@ export function ProfileForm({ kind, profile, minYear, maxYear, viewer = "admin",
                 {step > 0 ? (
                   <button type="button" onClick={() => go(step - 1)} className={quietButton}><Icon name="back" size={18} />{t(STEP_NAMES[step - 1])}</button>
                 ) : null}
-                {last ? <div className="sm:min-w-56">{button}</div> : (
+                {last ? (state.existing && !edit && !family ? null : <div className="sm:min-w-56">{button}</div>) : (
                   <button type="button" onClick={next} className={primaryButton}>{t("form.nextNamed", { name: t(STEP_NAMES[step + 1]) })}<Icon name="chevronRight" size={18} /></button>
                 )}
               </div>
