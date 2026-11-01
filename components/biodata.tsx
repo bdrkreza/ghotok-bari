@@ -16,7 +16,7 @@ export type { FamilyView };
  * What only the ghotok and the family who wrote it see. Given to FamilyBiodata, these join the same layout with a
  * lock beside each; `notes` is the ghotok's own, passed on their page only.
  */
-export type PrivateFields = Pick<Profile, "name" | "fatherName" | "motherName" | "guardianName" | "guardianPhone" | "village" | "monthlyIncome" | "photoUrl">
+export type PrivateFields = Pick<Profile, "name" | "fatherName" | "motherName" | "guardianName" | "guardianPhone" | "monthlyIncome" | "photoUrl">
   & { notes?: string | null };
 
 /** The family in numbers, as chips: "২ ভাই", "১ বোন", "মধ্যবিত্ত". */
@@ -103,7 +103,7 @@ interface Props {
   t: T;
   /** at the foot of the profile card: the buttons that reach the ghotok, or the page's own state and actions */
   aside?: ReactNode;
-  /** the full biodata (the family's own, or the ghotok's page): name, parents, guardian, village, income, photo, notes */
+  /** the full biodata (the family's own, or the ghotok's page): name, parents, guardian, income, photo, notes */
   full?: PrivateFields;
   /** in place of the status and trust line under the number, e.g. where a family's own entry stands with the ghotok */
   badges?: ReactNode;
@@ -142,9 +142,7 @@ export function FamilyBiodata({ b, t, aside, full, badges, more }: Props) {
   const no = t.biodataNo(b.kind, b.code);
 
   const address: Row[] = [
-    full
-      ? { label: t.t("bv.permanentAddress"), value: [full.village, b.upazila, b.district].filter(Boolean).join(", "), locked: !!full.village }
-      : { label: t.t("bv.permanentAddress"), value: <>{[b.upazila, b.district].filter(Boolean).join(", ")}<small className="block text-sm font-normal text-muted">{t.t("bv.villageHidden")}</small></> },
+    { label: t.t("bv.permanentAddress"), value: [b.village, b.upazila, b.district].filter(Boolean).join(", ") },
     { label: t.t("facts.presentAddress"), value: b.presentAddress },
   ];
   const work: Row[] = [

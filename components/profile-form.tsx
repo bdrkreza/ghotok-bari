@@ -375,7 +375,7 @@ export function ProfileForm({ kind, profile, minYear, maxYear, viewer = "admin",
               </Section>
 
               <Section ref={at(2)} active={step === 2} title={titles[2][0]}>
-                <Field name="village" maxLength={80} label={t("form.village")} placeholder={t("form.villagePlaceholder")} defaultValue={v.village} tag={tags("village", "ghotok")} />
+                <Field name="village" maxLength={80} label={t("form.village")} placeholder={t("form.villagePlaceholder")} defaultValue={v.village} tag={tags("village", "all")} />
                 <Field name="upazila" maxLength={80} label={t("form.upazila")} placeholder={t("form.upazilaPlaceholder")} defaultValue={v.upazila} tag={tags("upazila", "all")} />
                 <Field name="district" maxLength={80} minLength={2} label={t("form.district")} placeholder={t("form.districtPlaceholder")} required defaultValue={v.district} tag={tags("district", "all")} />
                 <Field name="presentAddress" maxLength={160} label={t("form.presentAddress")} placeholder={t("form.presentAddressPlaceholder")} defaultValue={v.presentAddress} hint={t("form.presentAddressHint")} tag={tags("presentAddress", "all")} />

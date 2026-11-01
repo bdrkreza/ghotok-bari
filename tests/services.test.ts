@@ -303,9 +303,9 @@ describe("sharing a biodata", () => {
     expect(await code(shareBiodata(app.db, other.id, id))).toBe("not_found");
 
     const pub = await publicBiodata(app.db, token);
-    expect(pub).toMatchObject({ kind: "patri", heightCm: 160, familyDetails: "সম্ভ্রান্ত পরিবার", district: "কুমিল্লা", ghotok: { name: "আব্দুল ঘটক", phone: ghotok.phone } });
+    expect(pub).toMatchObject({ kind: "patri", heightCm: 160, familyDetails: "সম্ভ্রান্ত পরিবার", village: "চরপাড়া", district: "কুমিল্লা", ghotok: { name: "আব্দুল ঘটক", phone: ghotok.phone } });
     const shown = JSON.stringify(pub);
-    for (const secret of ["গোপন নাম", "01811111111", "12000", "ব্যক্তিগত নোট", "চরপাড়া", "করিম উদ্দিন"]) expect(shown).not.toContain(secret);
+    for (const secret of ["গোপন নাম", "01811111111", "12000", "ব্যক্তিগত নোট", "করিম উদ্দিন"]) expect(shown).not.toContain(secret);
     expect(await publicBiodata(app.db, "nope")).toBeNull();
 
     await unshareBiodata(app.db, other.id, id); // another ghotok's switch does nothing
@@ -418,10 +418,11 @@ describe("biodata handed in by families", () => {
 
     const rows = await browseBiodata(app.db, ghotok.id, { kind: "patri", q: "সাভার" });
     const shown = rows.find((r) => r.id === id)!;
-    expect(shown).toMatchObject({ kind: "patri", district: "ঢাকা", upazila: "সাভার" });
+    expect(shown).toMatchObject({ kind: "patri", village: "চরপাড়া", district: "ঢাকা", upazila: "সাভার" });
     const text = JSON.stringify([shown, await browseOne(app.db, ghotok.id, id)]);
-    for (const secret of ["সুমাইয়া", "01811111111", "করিম উদ্দিন", "চরপাড়া", "গোপন নোট", family.id]) expect(text).not.toContain(secret);
+    for (const secret of ["সুমাইয়া", "01811111111", "করিম উদ্দিন", "গোপন নোট", family.id]) expect(text).not.toContain(secret);
     expect((await browseBiodata(app.db, ghotok.id, { kind: "patri", q: "সুমাইয়া" })).map((r) => r.id)).not.toContain(id); // names are not searchable
+    expect((await browseBiodata(app.db, ghotok.id, { kind: "patri", q: "চরপাড়া" })).map((r) => r.id)).toContain(id); // the village is
     expect(await code(deleteMyBiodata(app.db, ghotok.id, family.id, id))).toBe("ask_ghotok");
 
     await updateMyBiodata(app.db, ghotok.id, family.id, id, personForm({ kind: "patri", name: "সুমাইয়া আক্তার", birthYear: "2003", district: "ঢাকা", upazila: "সাভার", notes: "মুছে দেওয়ার চেষ্টা" }));

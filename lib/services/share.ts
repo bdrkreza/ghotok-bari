@@ -34,12 +34,12 @@ export async function unshareBiodata(db: Db, ghotokId: string, profileId: string
 
 /**
  * The columns a family may see of someone else's biodata, decided here once and used by the public link and by the
- * signed-in lists (lib/services/biodata.ts). Left out on purpose: name, photo, parents, guardian, village, income,
- * the ghotok's notes, and who handed the biodata in.
+ * signed-in lists (lib/services/biodata.ts). The village is shown (the ghotok wants families to see where someone is
+ * from); left out on purpose: name, photo, parents, guardian, income, the ghotok's notes, and who handed it in.
  */
 export const FAMILY_VIEW = {
   code: profile.code, kind: profile.kind, birthYear: profile.birthYear, heightCm: profile.heightCm, religion: profile.religion,
-  maritalStatus: profile.maritalStatus, education: profile.education, profession: profile.profession, upazila: profile.upazila,
+  maritalStatus: profile.maritalStatus, education: profile.education, profession: profile.profession, village: profile.village, upazila: profile.upazila,
   district: profile.district, familyDetails: profile.familyDetails, expectations: profile.expectations, status: profile.status,
   complexion: profile.complexion, weightKg: profile.weightKg, bloodGroup: profile.bloodGroup, educationMedium: profile.educationMedium,
   workplace: profile.workplace, presentAddress: profile.presentAddress, brothers: profile.brothers, sisters: profile.sisters,

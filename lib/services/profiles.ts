@@ -240,7 +240,7 @@ export interface ProfileFilter {
   incomeMin?: number;
   /** which biodata to include; the lists show only approved ones unless told otherwise */
   approval?: Approval | "all";
-  /** match `q` against upazila and district only (what a family is shown), never the name or village */
+  /** match `q` against the places a family is shown (village, upazila, district), never the name */
   placesOnly?: boolean;
 }
 
@@ -267,7 +267,7 @@ export function profileWhere(ghotokId: string, filter: ProfileFilter): SQL | und
   if (filter.q) {
     const like = `%${filter.q}%`;
     const match = filter.placesOnly
-      ? or(ilike(profile.upazila, like), ilike(profile.district, like))
+      ? or(ilike(profile.village, like), ilike(profile.upazila, like), ilike(profile.district, like))
       : or(ilike(profile.name, like), ilike(profile.village, like), ilike(profile.upazila, like), ilike(profile.district, like));
     if (match) where.push(match);
   }
