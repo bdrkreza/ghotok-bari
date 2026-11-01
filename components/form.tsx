@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useRef, useState, useTransition, type ReactNode } from "react";
+import { createContext, useActionState, useContext, useEffect, useRef, useState, useTransition, type ReactNode } from "react";
 import { Icon } from "@/components/icons";
 import type { FormState } from "@/lib/form";
 import { useT } from "@/lib/i18n/client";
@@ -9,6 +9,25 @@ type Action = (prev: FormState, form: FormData) => Promise<FormState>;
 
 /** The text-box look; shared with selects elsewhere, e.g. the dashboard search bar. */
 export const inputClass = "min-h-12 w-full rounded-2xl border border-line bg-surface px-4 text-base outline-none focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/40";
+/** added to a box whose answer was refused */
+const invalidClass = "border-neg bg-neg-soft/30 focus-visible:border-neg focus-visible:ring-neg/30";
+
+/**
+ * A message per field name, for the fields a form wants marked. A form provides it around its fields; Field, TextArea
+ * and ConfirmCheck pick their own message up, so the form does not pass an `error` to each one.
+ */
+export const FieldErrors = createContext<Record<string, string>>({});
+
+/** The red line under a refused field. */
+function ErrorLine({ id, message }: { id: string; message: string }) {
+  return (
+    <p id={id} className="flex items-start gap-1.5 text-sm font-semibold text-neg">
+      <Icon name="shield" size={15} className="mt-0.5 shrink-0" />{message}
+    </p>
+  );
+}
+
+const describedBy = (...ids: (string | false | undefined)[]) => ids.filter(Boolean).join(" ") || undefined;
 
 interface FieldProps {
   name: string;
@@ -21,18 +40,23 @@ interface FieldProps {
   required?: boolean;
   min?: string;
   max?: string;
+  minLength?: number;
   maxLength?: number;
   placeholder?: string;
   hint?: string;
   defaultValue?: string;
   /** a small chip after the label, e.g. who gets to see this field */
   tag?: ReactNode;
+  /** why the answer was refused; defaults to this field's entry in FieldErrors */
+  error?: string;
 }
 
-export function Field({ name, label, type = "text", hint, required = false, id = name, tag, ...rest }: FieldProps) {
+export function Field({ name, label, type = "text", hint, required = false, id = name, tag, error, ...rest }: FieldProps) {
   // a password can be shown, so a typing slip on a phone is seen before it is sent
   const [shown, setShown] = useState(false);
   const { t } = useT();
+  const marked = useContext(FieldErrors)[name];
+  const message = error ?? marked;
   const isPassword = type === "password";
   const input = (
     <input
@@ -40,8 +64,9 @@ export function Field({ name, label, type = "text", hint, required = false, id =
       name={name}
       type={isPassword && shown ? "text" : type}
       required={required}
-      aria-describedby={hint ? `${id}-hint` : undefined}
-      className={`${inputClass} ${isPassword ? "pr-14" : ""}`}
+      aria-invalid={message ? true : undefined}
+      aria-describedby={describedBy(!!message && `${id}-error`, !!hint && `${id}-hint`)}
+      className={`${inputClass} ${message ? invalidClass : ""} ${isPassword ? "pr-14" : ""}`}
       {...(isPassword ? { autoCapitalize: "none", autoCorrect: "off", spellCheck: false } : {})}
       {...rest}
     />
@@ -61,20 +86,26 @@ export function Field({ name, label, type = "text", hint, required = false, id =
           </button>
         </div>
       ) : input}
+      {message ? <ErrorLine id={`${id}-error`} message={message} /> : null}
       {hint ? <p id={`${id}-hint`} className="text-sm text-muted">{hint}</p> : null}
     </div>
   );
 }
 
-export function TextArea({ name, label, hint, defaultValue, placeholder, rows = 3, required = false, id = name, tag }: {
+export function TextArea({ name, label, hint, defaultValue, placeholder, rows = 3, required = false, id = name, tag, maxLength, error }: {
   name: string; id?: string; label: string; hint?: string; defaultValue?: string; placeholder?: string; rows?: number; required?: boolean; tag?: ReactNode;
+  maxLength?: number; error?: string;
 }) {
+  const marked = useContext(FieldErrors)[name];
+  const message = error ?? marked;
   return (
     <div className="flex flex-col gap-1">
       <label htmlFor={id} className="text-sm font-bold text-muted">{label}{tag ? <span className="ml-2 inline-flex align-middle">{tag}</span> : null}</label>
-      <textarea id={id} name={name} rows={rows} defaultValue={defaultValue} placeholder={placeholder} required={required}
-        className={`${inputClass} py-3 leading-relaxed`} />
-      {hint ? <p className="text-sm text-muted">{hint}</p> : null}
+      <textarea id={id} name={name} rows={rows} defaultValue={defaultValue} placeholder={placeholder} required={required} maxLength={maxLength}
+        aria-invalid={message ? true : undefined} aria-describedby={describedBy(!!message && `${id}-error`, !!hint && `${id}-hint`)}
+        className={`${inputClass} ${message ? invalidClass : ""} py-3 leading-relaxed`} />
+      {message ? <ErrorLine id={`${id}-error`} message={message} /> : null}
+      {hint ? <p id={`${id}-hint`} className="text-sm text-muted">{hint}</p> : null}
     </div>
   );
 }
@@ -167,12 +198,18 @@ export function Checkbox({ name, label, defaultChecked = false, id = name }: { n
 }
 
 /** A required tick box used instead of a confirm() dialog for actions that cannot be undone. */
-export function ConfirmCheck({ name = "confirm", label, defaultChecked = false }: { name?: string; label: string; defaultChecked?: boolean }) {
+export function ConfirmCheck({ name = "confirm", label, defaultChecked = false, error }: { name?: string; label: string; defaultChecked?: boolean; error?: string }) {
+  const marked = useContext(FieldErrors)[name];
+  const message = error ?? marked;
   return (
-    <label className="flex items-start gap-3 text-sm font-semibold">
-      <input type="checkbox" name={name} required defaultChecked={defaultChecked} className="mt-0.5 size-5 shrink-0 accent-primary" />
-      <span>{label}</span>
-    </label>
+    <div className="flex flex-col gap-1.5">
+      <label className={`flex items-start gap-3 text-sm font-semibold ${message ? "text-neg" : ""}`}>
+        <input type="checkbox" name={name} required defaultChecked={defaultChecked} aria-invalid={message ? true : undefined}
+          aria-describedby={message ? `${name}-error` : undefined} className="mt-0.5 size-5 shrink-0 accent-primary" />
+        <span>{label}</span>
+      </label>
+      {message ? <ErrorLine id={`${name}-error`} message={message} /> : null}
+    </div>
   );
 }
 
@@ -199,12 +236,19 @@ interface ActionFormProps {
   submitAriaLabel?: string;
   /** draws the form's foot around the submit button (e.g. a wizard's previous / next row); the button is passed in */
   footer?: (submit: ReactNode) => ReactNode;
+  /**
+   * The form's own checks in place of the browser's pop-ups: the browser does not check the fields, and the form is
+   * posted only when this returns true.
+   */
+  check?: (form: HTMLFormElement) => boolean;
+  /** called with each result the action returns, e.g. to mark the fields the server refused */
+  onResult?: (state: FormState) => void;
 }
 
 /** A form bound to a server action: shows the returned error or notice, disables the button while it runs. */
 export function ActionForm({
   action, submitLabel, pendingLabel, children, tone = "primary",
-  resetOnSuccess = false, inline = false, compact = false, submitAriaLabel, footer,
+  resetOnSuccess = false, inline = false, compact = false, submitAriaLabel, footer, check, onResult,
 }: ActionFormProps) {
   const { t } = useT();
   const waiting = pendingLabel ?? t("common.wait");
@@ -214,6 +258,10 @@ export function ActionForm({
   useEffect(() => {
     if (resetOnSuccess && state.notice && !state.error) ref.current?.reset();
   }, [state, resetOnSuccess]);
+  // the latest onResult, so a new function each render does not count as a new result
+  const resultRef = useRef(onResult);
+  useEffect(() => { resultRef.current = onResult; });
+  useEffect(() => { resultRef.current?.(state); }, [state]);
   const size = compact ? "min-h-10 rounded-xl px-3 text-sm" : "min-h-12 rounded-2xl px-4 py-3 text-base";
   const button = (
     <button type="submit" disabled={pending} aria-label={submitAriaLabel}
@@ -224,9 +272,11 @@ export function ActionForm({
   return (
     <form
       ref={ref}
+      noValidate={!!check}
       onSubmit={(e) => {
         // Submitting through onSubmit (not <form action>) keeps the fields as typed after an error.
         e.preventDefault();
+        if (check && !check(e.currentTarget)) return;
         const data = new FormData(e.currentTarget, (e.nativeEvent as SubmitEvent).submitter);
         startTransition(() => formAction(data));
       }}

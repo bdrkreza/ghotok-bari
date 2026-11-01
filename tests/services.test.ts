@@ -1,7 +1,7 @@
 import { beforeAll, describe, expect, it } from "vitest";
 import { login } from "@/lib/auth/service";
 import { roleOf } from "@/lib/auth/roles";
-import { AppError } from "@/lib/errors";
+import { AppError, fieldMessages, type FieldIssues } from "@/lib/errors";
 import { biodataNo, bnNumber, initial, initials, taka } from "@/lib/bn";
 import type { AdminSession } from "@/lib/auth/session";
 import { listCustomers, setRole } from "@/lib/services/customers";
@@ -10,7 +10,7 @@ import { dashboard } from "@/lib/services/dashboard";
 import { addEntry, listEntries, totals } from "@/lib/services/ledger";
 import { suggestFor } from "@/lib/services/match";
 import { listHref, parseAge } from "@/lib/search";
-import { activeCounts, createProfile, getProfile, listProfiles, pendingCount, places, setApproval, submittedProfiles, updateProfile } from "@/lib/services/profiles";
+import { activeCounts, createProfile, parseProfile, getProfile, listProfiles, pendingCount, places, setApproval, submittedProfiles, updateProfile } from "@/lib/services/profiles";
 import { browseBiodata, browseOne, deleteMyBiodata, getMyBiodata, myBiodata, submitBiodata, updateMyBiodata } from "@/lib/services/biodata";
 import { addNote, changeStatus, createProposal, getProposal, listProposals, proposalsFor } from "@/lib/services/proposals";
 import { getShare, publicBiodata, shareBiodata, unshareBiodata } from "@/lib/services/share";
@@ -18,6 +18,11 @@ import { currentYear } from "@/lib/time";
 import { createTestApp, personForm } from "./testdb";
 
 type App = Awaited<ReturnType<typeof createTestApp>>;
+
+/** the per-field reasons a refusal carries, or null when it carries none */
+const fieldsOf = (fn: () => unknown): FieldIssues | null => {
+  try { fn(); return null; } catch (e) { return e instanceof AppError ? (e.fields ?? null) : null; }
+};
 
 const code = async (p: Promise<unknown>) => {
   try { await p; return null; } catch (e) { return e instanceof AppError ? e.code : `other:${String(e)}`; }
@@ -67,6 +72,30 @@ describe("people", () => {
   it("rejects a bad guardian phone and a missing district", async () => {
     expect(await code(createProfile(app.db, ghotok.id, personForm({ guardianPhone: "12345" })))).toBe("invalid_input");
     expect(await code(createProfile(app.db, ghotok.id, personForm({ district: "" })))).toBe("invalid_input");
+  });
+
+  it("says which field was refused and why, so the form can mark each one", () => {
+    const y = currentYear();
+    expect(fieldsOf(() => parseProfile(personForm({
+      name: "ক", district: "", guardianPhone: "12345", heightCm: "৯০", brothers: "1.5", monthlyIncome: "-5",
+      photoUrl: "photo",
+    })))).toEqual({
+      name: { code: "short", vars: { n: 2 } },
+      district: { code: "required" },
+      guardianPhone: { code: "phone" },
+      heightCm: { code: "range", vars: { min: 100, max: 250 } },
+      brothers: { code: "number" },
+      monthlyIncome: { code: "min", vars: { min: 0 } },
+      photoUrl: { code: "url" },
+    });
+    // the age order is checked once every field on its own is fine
+    expect(fieldsOf(() => parseProfile(personForm({ expectAgeMin: "30", expectAgeMax: "25" })))).toEqual({ expectAgeMax: { code: "age_order" } });
+    expect(fieldsOf(() => parseProfile(personForm({ birthYear: "" })))).toEqual({ birthYear: { code: "required" } });
+    expect(fieldsOf(() => parseProfile(personForm({ kind: "patro", birthYear: String(y - 20) }))))
+      .toEqual({ birthYear: { code: "young_patro", vars: { age: 21, year: y - 21 } } });
+    // each reason reads as a sentence in both languages, with the language's digits
+    expect(fieldMessages({ heightCm: { code: "range", vars: { min: 100, max: 250 } } }, "bn").heightCm).toBe("১০০ থেকে ২৫০ এর মধ্যে একটি সংখ্যা লিখুন।");
+    expect(fieldMessages({ heightCm: { code: "range", vars: { min: 100, max: 250 } } }, "en").heightCm).toBe("Write a number from 100 to 250.");
   });
 
   it("is scoped to the ghotok who wrote it", async () => {

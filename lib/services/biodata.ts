@@ -24,7 +24,7 @@ export async function getMyBiodata(db: Db, ghotokId: string, ownerUserId: string
 
 /** The family must tick "my guardian knows, and all of this is true" (the form's `pledge` box) each time they hand in. */
 const pledged = (raw: Record<string, string>): Date => {
-  if (raw.pledge !== "on") throw new AppError("pledge_required");
+  if (raw.pledge !== "on") throw new AppError("pledge_required", undefined, { pledge: { code: "pledge" } });
   return new Date();
 };
 

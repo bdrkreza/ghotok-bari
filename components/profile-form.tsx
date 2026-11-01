@@ -1,8 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { BiodataImport } from "@/components/biodata-import";
-import { ActionForm, Choice, ConfirmCheck, Field, Hidden, TextArea } from "@/components/form";
+import { ActionForm, Choice, ConfirmCheck, Field, FieldErrors, Hidden, TextArea } from "@/components/form";
 import { Icon } from "@/components/icons";
 import { primaryButton, quietButton } from "@/components/ui";
 import type { Imported } from "@/lib/biodata-import/parse";
@@ -10,10 +10,11 @@ import type { Profile, ProfileKind } from "@/lib/db/schema";
 import type { Key } from "@/lib/i18n";
 import { useT } from "@/lib/i18n/client";
 import { submitBiodataAction, updateBiodataAction } from "@/lib/actions/biodata";
+import { normalizePhone } from "@/lib/auth/phone";
 import { createProfileAction, updateProfileAction } from "@/lib/actions/profiles";
 import {
   AFTER_HOMES, BLOOD_GROUPS, CHOICES, COMPLEXIONS, DOWRIES, EDUCATION_MEDIUMS, EXPECT_EDUCATIONS, EXPECT_MARITALS, FAMILY_STATUSES,
-  MARITAL_STATUSES, RELIGIONS,
+  MARITAL_STATUSES, MIN_AGE, RELIGIONS,
 } from "@/lib/services/profiles";
 
 /** Who is filling the form: the ghotok (full form, their private notes) or a family (their own biodata, no notes). */
@@ -40,6 +41,13 @@ const STEPS = 6;
 /** the short names on the step line */
 const STEP_NAMES: Key[] = ["form.stepName1", "form.stepName2", "form.stepName3", "form.stepName4", "form.stepName5", "form.stepName6"];
 
+/** A box the form checks itself: text, number, phone and link boxes, text areas and the pledge tick. */
+type Box = HTMLInputElement | HTMLTextAreaElement;
+const isBox = (el: EventTarget): el is Box =>
+  (el instanceof HTMLInputElement && el.type !== "hidden" && el.type !== "radio") || el instanceof HTMLTextAreaElement;
+/** The fields marked as refused: what to say under each, and the step it sits on. */
+type Marked = Record<string, { message: string; step: number }>;
+
 /**
  * The same form for a new person and for editing one; `profile` fills it in for editing. Six steps shown one at a
  * time, with a progress line and previous / next buttons; every step stays in the form, so one submit at the end
@@ -64,12 +72,14 @@ export function ProfileForm({ kind, profile, minYear, maxYear, viewer = "admin",
     ? (edit ? t("form.submitFamilyEdit") : t("form.submitFamilyNew"))
     : (edit ? t("common.save") : t("form.addKind", { kind: t(`kind.${kind}`) }));
 
-  // the wizard: which step shows, which have been seen, how many of this step's questions have an answer, and
-  // whether the last attempt to move on was stopped by an empty required field
+  // the wizard: which step shows, which have been seen, how many of this step's questions have an answer, which
+  // fields are marked as refused, and whether the last attempt to move on (or hand in) was stopped by one
   const [step, setStep] = useState(0);
   const [seenSteps, setSeenSteps] = useState<number[]>([0]);
   const [done, setDone] = useState({ n: 0, total: 0 });
-  const [blocked, setBlocked] = useState(false);
+  const [marked, setMarked] = useState<Marked>({});
+  const [tried, setTried] = useState(false);
+  const messages = useMemo(() => Object.fromEntries(Object.entries(marked).map(([k, m]) => [k, m.message])), [marked]);
   const steps = useRef<(HTMLDivElement | null)[]>([]);
   const top = useRef<HTMLDivElement>(null);
   const last = step === STEPS - 1;
@@ -87,31 +97,122 @@ export function ProfileForm({ kind, profile, minYear, maxYear, viewer = "admin",
   }, [step]);
   useEffect(recount, [recount, version]);
 
-  const go = (to: number) => {
+  /** show step `to`; `land` scrolls to the top of the form and, with a mouse, puts the cursor in its first box */
+  const go = (to: number, land = true) => {
     const i = Math.max(0, Math.min(STEPS - 1, to));
     setStep(i);
     setSeenSteps((s) => (s.includes(i) ? s : [...s, i]));
-    setBlocked(false);
+    setTried(false);
+    if (!land) return;
     top.current?.scrollIntoView({ behavior: "smooth", block: "start" });
     // with a keyboard and mouse, land in the step's first box; on a phone that would pop the keyboard up
     if (window.matchMedia("(pointer: fine)").matches) {
       setTimeout(() => steps.current[i]?.querySelector<HTMLElement>("input:not([type=hidden]):not([type=radio]), textarea")?.focus({ preventScroll: true }), 350);
     }
   };
-  /** true when every field on this step is valid; otherwise shows the browser's message on the first problem and our note */
-  const stepValid = () => {
-    const root = steps.current[step];
-    for (const el of root?.querySelectorAll<HTMLInputElement>("input, select, textarea") ?? []) {
-      if (!el.checkValidity()) { el.reportValidity(); setBlocked(true); return false; }
+
+  /**
+   * Why this box's answer would be refused, in plain words of the user's language, or null when it is fine. The same
+   * rules as the server (parseProfile), so a refusal is seen on the step it belongs to, not after handing in.
+   */
+  const problem = (el: Box): string | null => {
+    if (el instanceof HTMLInputElement && el.type === "checkbox") return el.required && !el.checked ? t("fe.pledge") : null;
+    const value = el.value.trim();
+    const v = el.validity;
+    if (v.badInput) return t("fe.number"); // letters in a number box: the browser reports the box as empty
+    if (!value) return el.required ? t("fe.required") : null;
+    if (el.minLength > 0 && value.length < el.minLength) return t("fe.short", { n: el.minLength });
+    if (el.maxLength > 0 && value.length > el.maxLength) return t("fe.long", { n: el.maxLength });
+    if (el instanceof HTMLInputElement && el.type === "number") {
+      if (!Number.isInteger(Number(value))) return t("fe.number");
+      if (el.name === "birthYear" && v.rangeOverflow) return t(`fe.young_${kind}`, { age: MIN_AGE[kind], year: maxYear });
+      if (v.rangeUnderflow || v.rangeOverflow) {
+        return el.max ? t("fe.range", { min: Number(el.min), max: Number(el.max) }) : t("fe.min", { min: Number(el.min) });
+      }
+      if (el.name === "expectAgeMax") {
+        const low = Number((el.form?.elements.namedItem("expectAgeMin") as HTMLInputElement | null)?.value || NaN);
+        if (low > Number(value)) return t("fe.age_order");
+      }
     }
-    return true;
+    if (v.typeMismatch) return t("fe.url");
+    if (el.name === "guardianPhone" && !normalizePhone(value)) return t("fe.phone");
+    return null;
   };
-  const next = () => { if (stepValid()) go(step + 1); };
-  /** the step line: back to any step already seen at once; forward only past a valid current step */
+  const boxes = (i: number) => [...(steps.current[i]?.querySelectorAll<Box>("input, textarea") ?? [])].filter(isBox);
+  /** the problems on steps `from` to `to`, in the order the fields appear */
+  const examine = (from: number, to: number) => {
+    const found: Marked = {};
+    for (let i = from; i <= to; i++) {
+      for (const el of boxes(i)) {
+        const message = problem(el);
+        if (message && !found[el.name]) found[el.name] = { message, step: i };
+      }
+    }
+    return found;
+  };
+  /**
+   * Mark `found` (it replaces whatever was marked on the steps in `checked`), then take the user to the first one:
+   * its step, scrolled into view, the cursor in it.
+   */
+  const report = (found: Marked, checked: number[]) => {
+    setMarked((old) => ({ ...Object.fromEntries(Object.entries(old).filter(([, m]) => !checked.includes(m.step))), ...found }));
+    const first = Object.entries(found).sort((a, b) => a[1].step - b[1].step)[0];
+    if (!first) return true;
+    const [name, { step: at }] = first;
+    if (at !== step) go(at, false);
+    setTried(true);
+    setTimeout(() => {
+      const el = steps.current[at]?.querySelector<HTMLElement>(`[name="${name}"]`);
+      el?.scrollIntoView({ behavior: "smooth", block: "center" });
+      el?.focus({ preventScroll: true });
+    }, at !== step ? 80 : 0);
+    return false;
+  };
+  /** true when nothing on this step is refused; otherwise marks every problem on it and goes to the first */
+  const stepOk = () => report(examine(step, step), [step]);
+  const next = () => { if (stepOk()) go(step + 1); };
+  /** the step line: back to any step already seen at once; forward only past a step with nothing refused */
   const jump = (to: number) => {
     if (to === step) return;
-    if (to < step || seenSteps.includes(to) || stepValid()) go(to);
+    if (to < step || seenSteps.includes(to) || stepOk()) go(to);
   };
+  /** while typing in a marked box, its message follows the answer and goes away once the answer is fine */
+  const recheck = (e: FormEvent) => {
+    recount();
+    const el = e.target;
+    if (!isBox(el)) return;
+    const others = el.name === "expectAgeMin" ? [el.form?.elements.namedItem("expectAgeMax")].filter((x): x is HTMLInputElement => x instanceof HTMLInputElement) : [];
+    setMarked((old) => {
+      const affected = [el, ...others].filter((x) => old[x.name]);
+      if (!affected.length) return old;
+      const now = { ...old };
+      for (const x of affected) {
+        const message = problem(x);
+        if (message) now[x.name] = { ...old[x.name], message };
+        else delete now[x.name];
+      }
+      return now;
+    });
+  };
+  /** leaving a box with an answer in it checks that answer at once (an empty box is only flagged on moving on) */
+  const checkOnLeave = (e: FormEvent) => {
+    const el = e.target;
+    if (!isBox(el) || el.type === "checkbox" || !el.value.trim()) return;
+    const message = problem(el);
+    const at = steps.current.findIndex((s) => s?.contains(el));
+    if (message && at >= 0) setMarked((old) => ({ ...old, [el.name]: { message, step: at } }));
+  };
+  /** fields the server refused (rules the browser cannot check, or a form posted without JavaScript checks) */
+  const markFromServer = (fieldErrors?: Record<string, string>) => {
+    if (!fieldErrors) return;
+    const found: Marked = {};
+    for (const [name, message] of Object.entries(fieldErrors)) {
+      const at = steps.current.findIndex((s) => s?.querySelector(`[name="${name}"]`));
+      if (at >= 0) found[name] = { message, step: at };
+    }
+    report(found, []);
+  };
+  const toFix = Object.values(marked).filter((m) => m.step === step).length;
 
   const seen = (by: "all" | "ghotok") => by === "all"
     ? <span key="seen" className="inline-flex items-center gap-1 rounded-full bg-mint px-2 py-0.5 text-[11px] font-bold text-mint-ink"><Icon name="eye" size={12} />{t("form.seenAll")}</span>
@@ -140,7 +241,7 @@ export function ProfileForm({ kind, profile, minYear, maxYear, viewer = "admin",
   return (
     <div ref={top} className="flex scroll-mt-24 flex-col gap-4">
       {importable && !edit && step === 0 ? (
-        <BiodataImport ai={ai} onResult={(fields) => { setImported(fields); setVersion((v) => v + 1); }} />
+        <BiodataImport ai={ai} onResult={(fields) => { setImported(fields); setMarked({}); setVersion((v) => v + 1); }} />
       ) : null}
       {fileKind && fileKind !== kind ? (
         <p className="flex items-start gap-2 rounded-2xl border border-warn-line bg-warn px-4 py-3 text-sm font-semibold text-warn-ink">
@@ -154,15 +255,16 @@ export function ProfileForm({ kind, profile, minYear, maxYear, viewer = "admin",
         {STEP_NAMES.map((name, i) => {
           const current = i === step;
           const seenIt = seenSteps.includes(i) && !current;
+          const fix = !current && Object.values(marked).some((m) => m.step === i);
           return (
             <li key={name} className="flex min-w-0 flex-1 items-start">
               <button type="button" onClick={() => jump(i)} aria-current={current ? "step" : undefined}
                 className="flex min-w-0 flex-1 flex-col items-center gap-1.5 rounded-2xl px-1 py-1 text-center hover:bg-sunk">
-                <span className={`grid size-9 shrink-0 place-items-center rounded-full border-2 font-display text-sm font-bold ${current ? "border-primary bg-primary text-on-primary" : seenIt ? "border-primary bg-primary-soft text-primary" : "border-line bg-surface text-muted"}`}>
-                  {seenIt ? <Icon name="check" size={16} strokeWidth={2.6} /> : n(i + 1)}
+                <span className={`grid size-9 shrink-0 place-items-center rounded-full border-2 font-display text-sm font-bold ${current ? "border-primary bg-primary text-on-primary" : fix ? "border-neg bg-neg-soft text-neg" : seenIt ? "border-primary bg-primary-soft text-primary" : "border-line bg-surface text-muted"}`}>
+                  {seenIt && !fix ? <Icon name="check" size={16} strokeWidth={2.6} /> : n(i + 1)}
                 </span>
                 <span className={`hidden w-full truncate text-xs sm:block ${current ? "font-bold text-ink" : "text-muted"}`}>{t(name)}</span>
-                <span className="sr-only">{current ? t("form.stepCurrent") : seenIt ? t("form.stepDone") : ""}</span>
+                <span className="sr-only">{current ? t("form.stepCurrent") : fix ? t("form.stepFix") : seenIt ? t("form.stepDone") : ""}</span>
               </button>
               {i < STEPS - 1 ? <span aria-hidden className={`mt-5 h-0.5 w-3 shrink-0 sm:w-6 ${seenSteps.includes(i) && (seenSteps.includes(i + 1) || i + 1 === step) ? "bg-primary" : "bg-line"}`} /> : null}
             </li>
@@ -187,16 +289,19 @@ export function ProfileForm({ kind, profile, minYear, maxYear, viewer = "admin",
         </div>
       </div>
 
+      <FieldErrors.Provider value={messages}>
       <ActionForm
         key={version}
+        check={() => report(examine(0, STEPS - 1), [...Array(STEPS).keys()])}
+        onResult={(state) => markFromServer(state.fieldErrors)}
         action={edit ? ACTIONS[viewer].update : ACTIONS[viewer].create}
         submitLabel={submit}
         pendingLabel={family ? t("form.submitting") : undefined}
         footer={(button) => (
           <div className="flex flex-col gap-3 border-t border-line pt-4">
-            {blocked ? (
+            {tried && toFix ? (
               <p role="alert" className="flex items-start gap-2 rounded-2xl bg-neg-soft px-4 py-3 text-sm font-semibold text-neg">
-                <Icon name="shield" size={16} className="mt-0.5 shrink-0" />{t("form.fillRequired")}
+                <Icon name="shield" size={16} className="mt-0.5 shrink-0" />{t("form.fixCount", { n: toFix })}
               </p>
             ) : null}
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -219,26 +324,21 @@ export function ProfileForm({ kind, profile, minYear, maxYear, viewer = "admin",
           return (
             <div
               className="flex flex-col gap-4"
-              onChange={recount}
-              onInput={recount}
+              onChange={recheck}
+              onInput={recheck}
+              onBlur={checkOnLeave}
               // Enter in a text box moves to the next step instead of posting a half-seen form
               onKeyDown={(e) => { if (e.key === "Enter" && !last && (e.target as HTMLElement).tagName === "INPUT") { e.preventDefault(); next(); } }}
-              // a required field left empty on another step: show that step, then the browser's message
-              onInvalidCapture={(e) => {
-                const el = e.target as HTMLInputElement;
-                const i = steps.current.findIndex((s) => s?.contains(el));
-                if (i >= 0 && i !== step) { e.preventDefault(); go(i); setTimeout(() => el.reportValidity(), 60); }
-              }}
             >
               <Hidden name="kind" value={kind} />
               {profile ? <Hidden name="id" value={profile.id} /> : null}
 
               <Section ref={at(0)} active={step === 0} title={titles[0][0]}>
                 <Wide>
-                  <Field name="name" label={t(`form.nameOf.${kind}`)} required defaultValue={v.name} autoComplete="off" placeholder={t("form.fullName")} tag={tags("name", "ghotok")} />
+                  <Field name="name" maxLength={80} minLength={2} label={t(`form.nameOf.${kind}`)} required defaultValue={v.name} autoComplete="off" placeholder={t("form.fullName")} tag={tags("name", "ghotok")} />
                 </Wide>
-                <Field name="fatherName" label={t("form.father")} placeholder={t("form.fatherPlaceholder")} defaultValue={v.fatherName} tag={tags("fatherName", "ghotok")} />
-                <Field name="motherName" label={t("form.mother")} placeholder={t("form.motherPlaceholder")} defaultValue={v.motherName} tag={tags("motherName", "ghotok")} />
+                <Field name="fatherName" maxLength={80} label={t("form.father")} placeholder={t("form.fatherPlaceholder")} defaultValue={v.fatherName} tag={tags("fatherName", "ghotok")} />
+                <Field name="motherName" maxLength={80} label={t("form.mother")} placeholder={t("form.motherPlaceholder")} defaultValue={v.motherName} tag={tags("motherName", "ghotok")} />
                 <Field name="birthYear" label={t("form.birthYear")} required type="number" inputMode="numeric" min={String(minYear)} max={String(maxYear)} placeholder={t("form.birthYearPlaceholder")} defaultValue={v.birthYear}
                   hint={t("form.birthYearHint", { n: kind === "patro" ? 21 : 18 })} tag={tags("birthYear", "all")} />
                 <Field name="heightCm" label={t("form.height")} type="number" inputMode="numeric" min="100" max="250" placeholder={t("form.heightPlaceholder")} defaultValue={v.heightCm} hint={t("form.heightHint")} tag={tags("heightCm", "all")} />
@@ -250,9 +350,9 @@ export function ProfileForm({ kind, profile, minYear, maxYear, viewer = "admin",
               </Section>
 
               <Section ref={at(1)} active={step === 1} title={titles[1][0]}>
-                <Field name="education" label={t("form.education")} placeholder={t("form.educationPlaceholder")} defaultValue={v.education} tag={tags("education", "all")} />
-                <Field name="profession" label={t("form.profession")} placeholder={t("form.professionPlaceholder")} defaultValue={v.profession} tag={tags("profession", "all")} />
-                <Field name="workplace" label={t("form.workplace")} placeholder={t("form.workplacePlaceholder")} defaultValue={v.workplace} tag={tags("workplace", "all")} />
+                <Field name="education" maxLength={120} label={t("form.education")} placeholder={t("form.educationPlaceholder")} defaultValue={v.education} tag={tags("education", "all")} />
+                <Field name="profession" maxLength={120} label={t("form.profession")} placeholder={t("form.professionPlaceholder")} defaultValue={v.profession} tag={tags("profession", "all")} />
+                <Field name="workplace" maxLength={160} label={t("form.workplace")} placeholder={t("form.workplacePlaceholder")} defaultValue={v.workplace} tag={tags("workplace", "all")} />
                 <Field name="monthlyIncome" label={t("form.income")} type="number" inputMode="numeric" min="0" placeholder={t("form.incomePlaceholder")} defaultValue={v.monthlyIncome} tag={tags("monthlyIncome", "ghotok")} />
                 <Wide>
                   <Choice name="educationMedium" label={t("form.medium")} options={options("medium", EDUCATION_MEDIUMS)} skip={notSay} defaultValue={v.educationMedium} tag={tags("educationMedium", "all")} />
@@ -260,14 +360,14 @@ export function ProfileForm({ kind, profile, minYear, maxYear, viewer = "admin",
               </Section>
 
               <Section ref={at(2)} active={step === 2} title={titles[2][0]}>
-                <Field name="village" label={t("form.village")} placeholder={t("form.villagePlaceholder")} defaultValue={v.village} tag={tags("village", "ghotok")} />
-                <Field name="upazila" label={t("form.upazila")} placeholder={t("form.upazilaPlaceholder")} defaultValue={v.upazila} tag={tags("upazila", "all")} />
-                <Field name="district" label={t("form.district")} placeholder={t("form.districtPlaceholder")} required defaultValue={v.district} tag={tags("district", "all")} />
-                <Field name="presentAddress" label={t("form.presentAddress")} placeholder={t("form.presentAddressPlaceholder")} defaultValue={v.presentAddress} hint={t("form.presentAddressHint")} tag={tags("presentAddress", "all")} />
+                <Field name="village" maxLength={80} label={t("form.village")} placeholder={t("form.villagePlaceholder")} defaultValue={v.village} tag={tags("village", "ghotok")} />
+                <Field name="upazila" maxLength={80} label={t("form.upazila")} placeholder={t("form.upazilaPlaceholder")} defaultValue={v.upazila} tag={tags("upazila", "all")} />
+                <Field name="district" maxLength={80} minLength={2} label={t("form.district")} placeholder={t("form.districtPlaceholder")} required defaultValue={v.district} tag={tags("district", "all")} />
+                <Field name="presentAddress" maxLength={160} label={t("form.presentAddress")} placeholder={t("form.presentAddressPlaceholder")} defaultValue={v.presentAddress} hint={t("form.presentAddressHint")} tag={tags("presentAddress", "all")} />
               </Section>
 
               <Section ref={at(3)} active={step === 3} title={titles[3][0]}>
-                <Field name="guardianName" label={t("form.guardianName")} placeholder={t("form.guardianPlaceholder")} defaultValue={v.guardianName} tag={tags("guardianName", "ghotok")} />
+                <Field name="guardianName" maxLength={80} label={t("form.guardianName")} placeholder={t("form.guardianPlaceholder")} defaultValue={v.guardianName} tag={tags("guardianName", "ghotok")} />
                 <Field name="guardianPhone" label={t("form.guardianPhone")} type="tel" inputMode="tel" placeholder={t("form.guardianPhonePlaceholder")} defaultValue={v.guardianPhone} tag={tags("guardianPhone", "ghotok")} />
                 <Field name="brothers" label={t("form.brothers")} type="number" inputMode="numeric" min="0" max="30" placeholder={t("form.countPlaceholder")} defaultValue={v.brothers} tag={tags("brothers", "all")} />
                 <Field name="sisters" label={t("form.sisters")} type="number" inputMode="numeric" min="0" max="30" placeholder={t("form.countPlaceholder")} defaultValue={v.sisters} tag={tags("sisters", "all")} />
@@ -275,10 +375,10 @@ export function ProfileForm({ kind, profile, minYear, maxYear, viewer = "admin",
                   <Choice name="familyStatus" label={t("form.familyStatus")} hint={t("form.familyStatusHint")} options={options("famStatus", FAMILY_STATUSES)} skip={notSay} defaultValue={v.familyStatus} tag={tags("familyStatus", "all")} />
                 </Wide>
                 <Wide>
-                  <Field name="religiousPractice" label={t("form.religiousPractice")} placeholder={t("form.religiousPracticePlaceholder")} defaultValue={v.religiousPractice} tag={tags("religiousPractice", "all")} />
+                  <Field name="religiousPractice" maxLength={300} label={t("form.religiousPractice")} placeholder={t("form.religiousPracticePlaceholder")} defaultValue={v.religiousPractice} tag={tags("religiousPractice", "all")} />
                 </Wide>
                 <Wide>
-                  <TextArea name="familyDetails" label={t("form.family")} placeholder={t("form.familyPlaceholder")} defaultValue={v.familyDetails} rows={v.familyDetails && v.familyDetails.length > 120 ? 6 : 3} tag={tags("familyDetails", "all")} />
+                  <TextArea name="familyDetails" maxLength={2000} label={t("form.family")} placeholder={t("form.familyPlaceholder")} defaultValue={v.familyDetails} rows={v.familyDetails && v.familyDetails.length > 120 ? 6 : 3} tag={tags("familyDetails", "all")} />
                 </Wide>
               </Section>
 
@@ -307,17 +407,17 @@ export function ProfileForm({ kind, profile, minYear, maxYear, viewer = "admin",
                 <Choice name="expectEducation" label={t("form.expectEducation")} options={options("expectEdu", EXPECT_EDUCATIONS)} skip={any} defaultValue={v.expectEducation} tag={tags("expectEducation", "all")} />
                 <Choice name="expectMarital" label={t("form.marital")} options={options("expectMarital", EXPECT_MARITALS)} skip={any} defaultValue={v.expectMarital} tag={tags("expectMarital", "all")} />
                 <Wide>
-                  <Field name="expectDistricts" label={t("form.expectDistricts")} placeholder={t("form.expectDistrictsPlaceholder")} defaultValue={v.expectDistricts} hint={t("form.expectDistrictsHint")} tag={tags("expectDistricts", "all")} />
+                  <Field name="expectDistricts" maxLength={200} label={t("form.expectDistricts")} placeholder={t("form.expectDistrictsPlaceholder")} defaultValue={v.expectDistricts} hint={t("form.expectDistrictsHint")} tag={tags("expectDistricts", "all")} />
                 </Wide>
                 <Wide>
-                  <TextArea name="expectations" label={t("form.expectations")} placeholder={t("form.expectationsPlaceholder")} defaultValue={v.expectations} tag={tags("expectations", "all")} />
+                  <TextArea name="expectations" maxLength={2000} label={t("form.expectations")} placeholder={t("form.expectationsPlaceholder")} defaultValue={v.expectations} tag={tags("expectations", "all")} />
                 </Wide>
                 <Wide>
-                  <Field name="photoUrl" label={t("form.photo")} type="url" inputMode="url" placeholder="https://…" defaultValue={v.photoUrl} hint={t("form.photoHint")} tag={tags("photoUrl", "ghotok")} />
+                  <Field name="photoUrl" maxLength={500} label={t("form.photo")} type="url" inputMode="url" placeholder="https://…" defaultValue={v.photoUrl} hint={t("form.photoHint")} tag={tags("photoUrl", "ghotok")} />
                 </Wide>
                 {family ? null : (
                   <Wide>
-                    <TextArea name="notes" label={t("form.notes")} placeholder={t("form.notesPlaceholder")} defaultValue={v.notes} />
+                    <TextArea name="notes" maxLength={2000} label={t("form.notes")} placeholder={t("form.notesPlaceholder")} defaultValue={v.notes} />
                   </Wide>
                 )}
                 {family ? (
@@ -336,6 +436,7 @@ export function ProfileForm({ kind, profile, minYear, maxYear, viewer = "admin",
           );
         }}
       </ActionForm>
+      </FieldErrors.Provider>
     </div>
   );
 }

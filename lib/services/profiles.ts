@@ -5,7 +5,7 @@ import {
   profile, user, type AfterHome, type Approval, type BloodGroup, type Choice, type Complexion, type Dowry, type EducationMedium,
   type ExpectEducation, type ExpectMarital, type FamilyStatus, type MaritalStatus, type Profile, type ProfileKind, type ProfileStatus, type Religion,
 } from "../db/schema";
-import { AppError } from "../errors";
+import { AppError, type FieldIssue, type FieldIssues } from "../errors";
 import { normalizePhone } from "../auth/phone";
 import type { Place } from "../search";
 import { currentYear } from "../time";
@@ -19,7 +19,8 @@ const optionalInt = (min: number, max: number) =>
   z.string().trim().transform((s, ctx) => {
     if (!s) return null;
     const n = Number(s.replace(/[০-৯]/g, (d) => String("০১২৩৪৫৬৭৮৯".indexOf(d))));
-    if (!Number.isInteger(n) || n < min || n > max) { ctx.addIssue({ code: "custom", message: "range" }); return null; }
+    if (!Number.isInteger(n)) { ctx.addIssue({ code: "custom", message: "number" }); return null; }
+    if (n < min || n > max) { ctx.addIssue({ code: "custom", message: "range", params: { min, max } }); return null; }
     return n;
   });
 
@@ -90,14 +91,44 @@ const profileInput = z.object({
 /** Every field the form may send; a missing one is read as empty. */
 const FIELDS = Object.keys(profileInput.shape);
 
-/** Raw form fields -> a validated row body. Throws AppError with a Bangla-ready code. */
+/** One zod issue as the reason the form shows under that field. */
+function fieldIssue(issue: z.core.$ZodIssue, value: string): FieldIssue {
+  if (issue.code === "too_small") return value.trim() ? { code: "short", vars: { n: Number(issue.minimum) } } : { code: "required" };
+  if (issue.code === "too_big") return { code: "long", vars: { n: Number(issue.maximum) } };
+  if (issue.code === "custom") {
+    if (issue.message === "range") {
+      const { min, max } = issue.params as { min: number; max: number };
+      return max >= 100_000_000 ? { code: "min", vars: { min } } : { code: "range", vars: { min, max } };
+    }
+    if (issue.message === "number" || issue.message === "phone") return { code: issue.message };
+    if (issue.message === "age_range") return { code: "age_order" };
+    return { code: "required" }; // the birth year's "must have one" check
+  }
+  if (issue.path[0] === "photoUrl") return { code: "url" };
+  return { code: "choice" };
+}
+
+/**
+ * Raw form fields -> a validated row body. Throws AppError with a code for the form's top line and, per refused
+ * field, the reason to show under it (the first problem found for each field).
+ */
 export function parseProfile(raw: Record<string, string>) {
   const filled = Object.fromEntries(FIELDS.map((k) => [k, raw[k] ?? ""]));
   const parsed = profileInput.safeParse(filled);
-  if (!parsed.success) throw new AppError("invalid_input", parsed.error.message);
+  if (!parsed.success) {
+    const fields: FieldIssues = {};
+    for (const issue of parsed.error.issues) {
+      const name = String(issue.path[0] ?? "");
+      if (name && !fields[name]) fields[name] = fieldIssue(issue, filled[name] ?? "");
+    }
+    throw new AppError("invalid_input", parsed.error.message, fields);
+  }
   const data = parsed.data;
   const age = currentYear() - data.birthYear;
-  if (age < MIN_AGE[data.kind]) throw new AppError(data.kind === "patro" ? "patro_too_young" : "patri_too_young");
+  if (age < MIN_AGE[data.kind]) {
+    const young = { code: data.kind === "patro" ? "young_patro" : "young_patri", vars: { age: MIN_AGE[data.kind], year: currentYear() - MIN_AGE[data.kind] } } as const;
+    throw new AppError(data.kind === "patro" ? "patro_too_young" : "patri_too_young", undefined, { birthYear: young });
+  }
   // the "after marriage" questions differ by kind; whatever the other kind's fields carry is dropped
   if (data.kind === "patro") data.jointFamily = null;
   else { data.afterHome = null; data.dowry = null; }

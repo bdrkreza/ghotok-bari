@@ -22,8 +22,16 @@ export type AppErrorCode =
   | "file_too_big"
   | "pledge_required";
 
+/** Why one field was refused; the form shows "fe.<code>" from the dictionary under that field, with `vars` filled in. */
+export type FieldErrorCode =
+  | "required" | "short" | "long" | "number" | "range" | "min" | "phone" | "url" | "choice" | "age_order"
+  | "young_patro" | "young_patri" | "pledge";
+export interface FieldIssue { code: FieldErrorCode; vars?: Record<string, number> }
+export type FieldIssues = Record<string, FieldIssue>;
+
 export class AppError extends Error {
-  constructor(public readonly code: AppErrorCode, detail?: string) {
+  /** @param fields which form fields were refused and why, so the form can mark each one */
+  constructor(public readonly code: AppErrorCode, detail?: string, public readonly fields?: FieldIssues) {
     super(detail ?? code);
     this.name = "AppError";
   }
@@ -31,4 +39,10 @@ export class AppError extends Error {
 
 export function messageFor(code: AppErrorCode, lang: Lang = "bn"): string {
   return makeT(lang).t(`err.${code}`);
+}
+
+/** Each refused field's message in the user's language. */
+export function fieldMessages(fields: FieldIssues, lang: Lang = "bn"): Record<string, string> {
+  const { t } = makeT(lang);
+  return Object.fromEntries(Object.entries(fields).map(([name, f]) => [name, t(`fe.${f.code}`, f.vars)]));
 }

@@ -1,4 +1,4 @@
-import { AppError, messageFor } from "./errors";
+import { AppError, fieldMessages, messageFor } from "./errors";
 import { getLang } from "./i18n/server";
 
 /** What a server action returns to a form. */
@@ -8,6 +8,8 @@ export interface FormState {
   values?: Record<string, string>;
   /** success message to show in place */
   notice?: string;
+  /** a message per refused field, shown under that field */
+  fieldErrors?: Record<string, string>;
 }
 
 export const field = (form: FormData, key: string) => String(form.get(key) ?? "").trim();
@@ -29,7 +31,10 @@ export async function attempt(fn: () => Promise<FormState | void>, values?: Reco
   try {
     return (await fn()) ?? {};
   } catch (e) {
-    if (e instanceof AppError) return { error: messageFor(e.code, await getLang()), values };
+    if (e instanceof AppError) {
+      const lang = await getLang();
+      return { error: messageFor(e.code, lang), values, ...(e.fields ? { fieldErrors: fieldMessages(e.fields, lang) } : {}) };
+    }
     throw e;
   }
 }
