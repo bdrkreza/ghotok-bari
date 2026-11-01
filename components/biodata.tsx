@@ -4,12 +4,20 @@ import { Avatar } from "./avatar";
 import { Icon, type IconName } from "./icons";
 import { ContactButtons } from "./site";
 import { Card, ProfileBadge } from "./ui";
+import type { Profile } from "@/lib/db/schema";
 import type { T } from "@/lib/i18n";
 import type { FamilyView } from "@/lib/services/share";
 import type { PublicSite } from "@/lib/services/site";
 import { ageFromYear } from "@/lib/time";
 
 export type { FamilyView };
+
+/**
+ * What only the ghotok and the family who wrote it see. Given to FamilyBiodata, these join the same layout with a
+ * lock beside each; `notes` is the ghotok's own, passed on their page only.
+ */
+export type PrivateFields = Pick<Profile, "name" | "fatherName" | "motherName" | "guardianName" | "guardianPhone" | "village" | "monthlyIncome" | "photoUrl">
+  & { notes?: string | null };
 
 /** The family in numbers, as chips: "২ ভাই", "১ বোন", "মধ্যবিত্ত". */
 export function familyTags(b: Pick<FamilyView, "brothers" | "sisters" | "familyStatus">, t: T): string[] {
@@ -87,15 +95,29 @@ export function BiodataFormAside({ site, t }: { site: PublicSite | null; t: T })
   );
 }
 
+interface Props {
+  b: FamilyView;
+  t: T;
+  /** at the foot of the profile card: the buttons that reach the ghotok, or the page's own state and actions */
+  aside?: ReactNode;
+  /** the full biodata (the family's own, or the ghotok's page): name, parents, guardian, village, income, photo, notes */
+  full?: PrivateFields;
+  /** in place of the status and trust line under the number, e.g. where a family's own entry stands with the ghotok */
+  badges?: ReactNode;
+  /** after the topics in the right-hand column: the page's own cards (proposals, sharing, deleting) */
+  more?: ReactNode;
+}
+
 /**
- * A biodata as a family sees it. Left: a profile card with a coloured head, the picture over it, the number, the
- * status, the ghotok's check, the facts asked first, and whatever the page passes as `aside` (the buttons that reach
- * the ghotok). Right: one section per topic, each with an icon and a label / value table: address, education and
- * work, family, after marriage, the match hoped for, and who sees what. Used by the public link and the signed-in view.
+ * A biodata laid out like a paper one. Left: a profile card with a coloured head, the picture over it, the number, the
+ * status, the ghotok's check, the facts asked first, and whatever the page passes as `aside`. Right: one section per
+ * topic, each with an icon and a label / value table: address, education and work, family, after marriage, the match
+ * hoped for, and who sees what. A family looking at someone else's (the public link, /biodata) sees FAMILY_VIEW only;
+ * with `full` the same layout shows everything, the private rows marked with a lock.
  */
-export function FamilyBiodata({ b, t, aside }: { b: FamilyView; t: T; aside?: ReactNode }) {
-  const facts: { icon: IconName; label: string; value: string }[] = [
-    { icon: "calendar", label: t.t("facts.age"), value: t.years(ageFromYear(b.birthYear)) },
+export function FamilyBiodata({ b, t, aside, full, badges, more }: Props) {
+  const facts: { icon: IconName; label: string; value: string; locked?: boolean }[] = [
+    { icon: "calendar", label: t.t("facts.age"), value: full ? t.t("facts.ageWithYear", { n: ageFromYear(b.birthYear), year: b.birthYear }) : t.years(ageFromYear(b.birthYear)) },
     { icon: "rings", label: t.t("facts.marital"), value: t.t(`marital.${b.maritalStatus}`) },
     { icon: "ruler", label: t.t("facts.height"), value: b.heightCm ? t.height(b.heightCm) : "" },
     { icon: "sun", label: t.t("facts.complexion"), value: b.complexion ? t.t(`complexion.${b.complexion}`) : "" },
@@ -103,6 +125,7 @@ export function FamilyBiodata({ b, t, aside }: { b: FamilyView; t: T; aside?: Re
     { icon: "heart", label: t.t("facts.blood"), value: b.bloodGroup ?? "" },
     { icon: "people", label: t.t("facts.religion"), value: t.t(`religion.${b.religion}`) },
     { icon: "briefcase", label: t.t("facts.profession"), value: b.profession ?? "" },
+    { icon: "wallet", label: t.t("facts.income"), value: full?.monthlyIncome ? t.money(full.monthlyIncome) : "", locked: true },
   ];
   const chips = (items: string[]) => (
     <span className="flex flex-wrap gap-1.5">{items.map((x) => <span key={x} className="rounded-full bg-primary-soft px-2.5 py-0.5 text-sm font-bold text-primary">{x}</span>)}</span>
@@ -116,7 +139,9 @@ export function FamilyBiodata({ b, t, aside }: { b: FamilyView; t: T; aside?: Re
   const no = t.biodataNo(b.kind, b.code);
 
   const address: Row[] = [
-    { label: t.t("bv.permanentAddress"), value: <>{[b.upazila, b.district].filter(Boolean).join(", ")}<small className="block text-sm font-normal text-muted">{t.t("bv.villageHidden")}</small></> },
+    full
+      ? { label: t.t("bv.permanentAddress"), value: [full.village, b.upazila, b.district].filter(Boolean).join(", "), locked: !!full.village }
+      : { label: t.t("bv.permanentAddress"), value: <>{[b.upazila, b.district].filter(Boolean).join(", ")}<small className="block text-sm font-normal text-muted">{t.t("bv.villageHidden")}</small></> },
     { label: t.t("facts.presentAddress"), value: b.presentAddress },
   ];
   const work: Row[] = [
@@ -125,7 +150,18 @@ export function FamilyBiodata({ b, t, aside }: { b: FamilyView; t: T; aside?: Re
     { label: t.t("facts.profession"), value: b.profession },
     { label: t.t("facts.workplace"), value: b.workplace },
   ];
+  const guardian = full?.guardianPhone ? (
+    <span className="flex flex-col">
+      {full.guardianName ? <span>{full.guardianName}</span> : null}
+      <a href={`tel:${full.guardianPhone}`} className="inline-flex items-center gap-1.5 font-bold text-primary"><Icon name="phone" size={15} />{t.n(full.guardianPhone)}</a>
+    </span>
+  ) : full?.guardianName;
   const family: Row[] = [
+    ...(full ? [
+      { label: t.t("facts.father"), value: full.fatherName, locked: true },
+      { label: t.t("facts.mother"), value: full.motherName, locked: true },
+      { label: t.t("facts.guardian"), value: guardian, locked: true },
+    ] : []),
     { label: t.t("bv.siblings"), value: siblings.length ? chips(siblings) : null },
     { label: t.t("facts.familyStatus"), value: b.familyStatus ? t.t(`famStatus.${b.familyStatus}`) : null },
     { label: t.t("form.family"), value: b.familyDetails ? prose(b.familyDetails) : null },
@@ -145,24 +181,29 @@ export function FamilyBiodata({ b, t, aside }: { b: FamilyView; t: T; aside?: Re
         <div aria-hidden className="biodata-head h-21" />
         {/* the picture hangs over the head's left end, the number beside it; `relative` keeps it above the head's pattern */}
         <div className="flex items-end gap-3.5 px-5">
-          <span className="relative -mt-11 shrink-0 rounded-full border-4 border-surface bg-surface ring-2 ring-gold"><Avatar kind={b.kind} className="size-22" /></span>
+          <span className="relative -mt-11 shrink-0 rounded-full border-4 border-surface bg-surface ring-2 ring-gold"><Avatar kind={b.kind} photoUrl={full?.photoUrl} className="size-22" /></span>
           <div className="min-w-0 pt-2">
             <p className="text-xs text-muted">{t.t("bv.number")}</p>
             {/* a long number ("Groom-50000") gets a smaller size and may break after the hyphen instead of being cut */}
             <p className={`font-display font-extrabold leading-none wrap-break-word ${no.length > 9 ? "text-2xl" : "text-3xl"}`}>{no}</p>
           </div>
         </div>
+        {full ? <p className="flex items-center gap-1.5 px-5 pt-3 font-display text-lg font-bold">{full.name}<Locked t={t} /></p> : null}
         <div className="flex flex-col gap-1.5 px-5 pt-3">
-          <div className="flex flex-wrap items-center gap-1.5">
-            <ProfileBadge status={b.status} />
-            <span className="inline-flex items-center gap-1 rounded-full bg-pos-soft px-2.5 py-0.5 text-xs font-bold text-pos"><Icon name="check" size={13} />{trust.label}</span>
-          </div>
-          <p className="text-xs text-muted">{trust.date}</p>
+          {badges ?? (
+            <>
+              <div className="flex flex-wrap items-center gap-1.5">
+                <ProfileBadge status={b.status} />
+                <span className="inline-flex items-center gap-1 rounded-full bg-pos-soft px-2.5 py-0.5 text-xs font-bold text-pos"><Icon name="check" size={13} />{trust.label}</span>
+              </div>
+              <p className="text-xs text-muted">{trust.date}</p>
+            </>
+          )}
         </div>
         <dl className="flex flex-col divide-y divide-line px-5 pt-3 text-sm">
-          {facts.filter((f) => f.value).map(({ icon, label, value }) => (
+          {facts.filter((f) => f.value).map(({ icon, label, value, locked }) => (
             <div key={label} className="flex items-center gap-3 py-2.5">
-              <dt className="flex flex-1 items-center gap-2 text-muted"><Icon name={icon} size={15} className="text-primary" />{label}</dt>
+              <dt className="flex flex-1 items-center gap-2 text-muted"><Icon name={icon} size={15} className="text-primary" />{label}{locked ? <Locked t={t} /> : null}</dt>
               <dd className="text-right font-bold">{value}</dd>
             </div>
           ))}
@@ -171,24 +212,37 @@ export function FamilyBiodata({ b, t, aside }: { b: FamilyView; t: T; aside?: Re
       </aside>
 
       <div className="flex flex-col gap-5">
-        <Section icon="location" title={t.t("facts.address")} rows={address} />
-        <Section icon="school" title={t.t("form.s2")} rows={work} />
-        <Section icon="people" title={t.t("facts.family")} rows={family} />
-        <Section icon="home" title={t.t("facts.after")} rows={after.map(([label, value]) => ({ label, value }))} />
-        <Section icon="heart" title={t.t("facts.expectations")} rows={wants} />
-        <section className="flex flex-col gap-3 rounded-3xl border border-dashed border-line bg-surface p-5 lg:p-6">
-          <SectionHead icon="shield" title={t.t("aside.whoTitle")} />
-          <p className="text-sm text-muted">{t.t("bv.whoSees")}</p>
-        </section>
+        <Section t={t} icon="location" title={t.t("facts.address")} rows={address} />
+        <Section t={t} icon="school" title={t.t("form.s2")} rows={work} />
+        <Section t={t} icon="people" title={t.t("facts.family")} rows={family} />
+        <Section t={t} icon="home" title={t.t("facts.after")} rows={after.map(([label, value]) => ({ label, value }))} />
+        <Section t={t} icon="heart" title={t.t("facts.expectations")} rows={wants} />
+        {full?.notes ? <Section t={t} icon="note" title={t.t("facts.notes")} rows={[{ label: t.t("form.notes"), value: prose(full.notes), locked: true }]} /> : null}
+        {full ? null : (
+          <section className="flex flex-col gap-3 rounded-3xl border border-dashed border-line bg-surface p-5 lg:p-6">
+            <SectionHead icon="shield" title={t.t("aside.whoTitle")} />
+            <p className="text-sm text-muted">{t.t("bv.whoSees")}</p>
+          </section>
+        )}
+        {more}
       </div>
     </div>
   );
 }
 
-interface Row { label: string; value: ReactNode | null | undefined }
+interface Row { label: string; value: ReactNode | null | undefined; /** only the ghotok (and the family who wrote it) see this */ locked?: boolean }
+
+/** The small lock beside a private field, with its meaning for screen readers and on hover. */
+function Locked({ t }: { t: T }) {
+  return (
+    <span title={t.t("form.seenGhotok")} className="inline-flex shrink-0 text-muted">
+      <Icon name="lock" size={13} /><span className="sr-only">{t.t("form.seenGhotok")}</span>
+    </span>
+  );
+}
 
 /** One topic: an icon, a title and a label / value table. Rows without a value are left out; an empty topic is not shown. */
-function Section({ icon, title, rows }: { icon: IconName; title: string; rows: Row[] }) {
+function Section({ icon, title, rows, t }: { icon: IconName; title: string; rows: Row[]; t?: T }) {
   const shown = rows.filter((r) => r.value !== null && r.value !== undefined && r.value !== "");
   if (!shown.length) return null;
   return (
@@ -197,7 +251,7 @@ function Section({ icon, title, rows }: { icon: IconName; title: string; rows: R
       <dl className="overflow-hidden rounded-2xl border border-line">
         {shown.map((r, i) => (
           <div key={r.label} className="grid border-t border-line first:border-t-0 sm:grid-cols-[13rem_minmax(0,1fr)]">
-            <dt className="bg-sunk px-4 pt-2.5 pb-1 text-sm font-semibold text-muted sm:py-3.5">{r.label}</dt>
+            <dt className="flex items-center gap-1.5 bg-sunk px-4 pt-2.5 pb-1 text-sm font-semibold text-muted sm:items-start sm:py-3.5">{r.label}{r.locked && t ? <Locked t={t} /> : null}</dt>
             <dd className={`bg-sunk px-4 pt-1 pb-3 font-semibold sm:py-3.5 ${i % 2 ? "sm:bg-sunk/45" : "sm:bg-transparent"}`}>{r.value}</dd>
           </div>
         ))}
