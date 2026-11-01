@@ -8,7 +8,7 @@ import type { ProfileStatus } from "../db/schema";
 import { attempt, field, fieldValues, type FormState } from "../form";
 import { getT } from "../i18n/server";
 import { checkPhotos, photoChangeFrom, savePhotos, savePhotosForNew } from "../services/photos";
-import { createProfile, deleteProfile, setApproval, setProfileStatus, setShowParents, setShowPhotos, updateProfile } from "../services/profiles";
+import { GHOTOK_REQUIRED, createProfile, deleteProfile, setApproval, setProfileStatus, setShowParents, setShowPhotos, updateProfile } from "../services/profiles";
 
 export async function createProfileAction(_prev: FormState, form: FormData): Promise<FormState> {
   const user = await requireAdmin();
@@ -17,7 +17,7 @@ export async function createProfileAction(_prev: FormState, form: FormData): Pro
   return attempt(async () => {
     if (photos) await checkPhotos(photos);
     // "আলাদা মানুষ, তবুও যোগ করুন" posts anyway=on after the same-person warning
-    const id = await createProfile(getDb(), user.ghotokId, values, undefined, { warnSame: field(form, "anyway") !== "on" });
+    const id = await createProfile(getDb(), user.ghotokId, values, undefined, { warnSame: field(form, "anyway") !== "on", require: GHOTOK_REQUIRED });
     if (photos) await savePhotosForNew(getDb(), user.ghotokId, id, photos);
     revalidatePath("/dashboard");
     redirect(`/profiles/${id}`);
@@ -31,7 +31,7 @@ export async function updateProfileAction(_prev: FormState, form: FormData): Pro
   const photos = photoChangeFrom(form);
   return attempt(async () => {
     if (photos) await checkPhotos(photos);
-    await updateProfile(getDb(), user.ghotokId, id, values);
+    await updateProfile(getDb(), user.ghotokId, id, values, { require: GHOTOK_REQUIRED });
     if (photos) await savePhotos(getDb(), user.ghotokId, id, photos);
     revalidatePath("/dashboard");
     redirect(`/profiles/${id}`);

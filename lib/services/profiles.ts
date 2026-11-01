@@ -6,12 +6,12 @@ import { AppError, type Existing, type FieldIssue, type FieldIssues } from "../e
 import { deletePhotosOf } from "./photos";
 import {
   AFTER_HOMES, BLOOD_GROUPS, CHOICES, COMPLEXIONS, DOWRIES, EDUCATION_MEDIUMS, EXPECT_EDUCATIONS, EXPECT_MARITALS, FAMILY_STATUSES,
-  MARITAL_STATUSES, MIN_AGE, RELIGIONS, missing,
+  MARITAL_STATUSES, MIN_AGE, RELIGIONS, missing, FAMILY_REQUIRED, GHOTOK_REQUIRED,
 } from "../profile-fields";
 
 export {
   AFTER_HOMES, BLOOD_GROUPS, CHOICES, COMPLEXIONS, DOWRIES, EDUCATION_MEDIUMS, EXPECT_EDUCATIONS, EXPECT_MARITALS, FAMILY_STATUSES,
-  MARITAL_STATUSES, MIN_AGE, RELIGIONS, missing,
+  MARITAL_STATUSES, MIN_AGE, RELIGIONS, missing, FAMILY_REQUIRED, GHOTOK_REQUIRED,
 };
 import { normalizePhone } from "../auth/phone";
 import type { Place } from "../search";
@@ -114,16 +114,21 @@ function fieldIssue(issue: z.core.$ZodIssue, value: string, kind: ProfileKind): 
  * Raw form fields -> a validated row body. Throws AppError with a code for the form's top line and, per refused
  * field, the reason to show under it (the first problem found for each field).
  */
-export function parseProfile(raw: Record<string, string>) {
+export function parseProfile(raw: Record<string, string>, require: readonly string[] = []) {
   const filled = Object.fromEntries(FIELDS.map((k) => [k, raw[k] ?? ""]));
+  const kind = filled.kind === "patri" ? "patri" : "patro";
+  // fields this writer must fill (lib/profile-fields.ts), on top of the ones every biodata needs
+  const fields: FieldIssues = {};
+  for (const name of require) if (!(filled[name] ?? "").trim()) fields[name] = missing(name, kind);
   const parsed = profileInput.safeParse(filled);
   if (!parsed.success) {
-    const fields: FieldIssues = {};
     for (const issue of parsed.error.issues) {
       const name = String(issue.path[0] ?? "");
-      if (name && !fields[name]) fields[name] = fieldIssue(issue, filled[name] ?? "", filled.kind === "patri" ? "patri" : "patro");
+      if (name && !fields[name]) fields[name] = fieldIssue(issue, filled[name] ?? "", kind);
     }
-    throw new AppError("invalid_input", parsed.error.message, fields);
+  }
+  if (!parsed.success || Object.keys(fields).length) {
+    throw new AppError("invalid_input", parsed.success ? "required fields empty" : parsed.error.message, fields);
   }
   const data = parsed.data;
   const age = currentYear() - data.birthYear;
@@ -165,11 +170,13 @@ export async function findSame(db: Db, ghotokId: string, who: {
  * Add a person.
  * @param warnSame the ghotok's form: if someone with the same name, birth year and district is already in the book,
  *   refuse with AppError("maybe_same") pointing at them; the form then offers "add anyway", which posts without it.
+ * @param require fields this writer must fill (GHOTOK_REQUIRED or FAMILY_REQUIRED)
  */
 export async function createProfile(
-  db: Db, ghotokId: string, raw: Record<string, string>, owner?: { ownerUserId: string; pledgedAt: Date }, { warnSame = false } = {},
+  db: Db, ghotokId: string, raw: Record<string, string>, owner?: { ownerUserId: string; pledgedAt: Date },
+  { warnSame = false, require = [] as readonly string[] } = {},
 ): Promise<string> {
-  const data = parseProfile(raw);
+  const data = parseProfile(raw, require);
   if (warnSame) {
     const same = await findSame(db, ghotokId, { kind: data.kind, name: data.name, birthYear: data.birthYear, district: data.district });
     if (same) throw new AppError("maybe_same", undefined, undefined, same);
@@ -183,9 +190,10 @@ export async function createProfile(
   return id;
 }
 
-export async function updateProfile(db: Db, ghotokId: string, id: string, raw: Record<string, string>): Promise<void> {
+/** @param require the ghotok's required fields; not asked of a family's own biodata (their account has the phone) */
+export async function updateProfile(db: Db, ghotokId: string, id: string, raw: Record<string, string>, { require = [] as readonly string[] } = {}): Promise<void> {
   const existing = await getProfile(db, ghotokId, id);
-  const data = parseProfile({ ...raw, kind: existing.kind });
+  const data = parseProfile({ ...raw, kind: existing.kind }, existing.ownerUserId ? [] : require);
   await db.update(profile).set(data).where(and(eq(profile.id, id), eq(profile.ghotokId, ghotokId)));
 }
 

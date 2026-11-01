@@ -51,8 +51,10 @@ resubmit. Any change a family makes afterwards puts it back to pending. A family
 is unlisted; a listed one is removed by the ghotok. What families see of each other is decided in one place,
 `FAMILY_VIEW` in `lib/services/share.ts`, and is the same set of fields the public link shows. Handing in, a family
 ticks that their guardian knows and the details are true (`pledgedAt`); once the ghotok approves, every family sees
-"checked and listed by the ghotok" with the date (`approvedAt`) under the biodata number. Beyond the basics the form
-asks, all optional: complexion, weight and blood group; the medium of education and the workplace; where they live now;
+"checked and listed by the ghotok" with the date (`approvedAt`) under the biodata number. Name, birth year and
+district are required of everyone; a family must also give height, education and profession (what every card and search
+shows), and the ghotok the guardian's number, except on a family's own biodata (`lib/profile-fields.ts`, checked in the
+form and again on the server). Beyond that the form asks, all optional: complexion, weight and blood group; the medium of education and the workplace; where they live now;
 brothers and sisters, the family's means and religious practice; the "after marriage" questions (a groom: may his wife
 study or work, where they will live, any dowry; a bride: will she study or work, is a joint family fine); and the match
 hoped for as an age range, least education, marital status and districts, which the ghotok's match suggestions use.

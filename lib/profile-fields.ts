@@ -22,11 +22,24 @@ export const EXPECT_MARITALS: readonly [ExpectMarital, ...ExpectMarital[]] = ["o
 export const RELIGIONS: Religion[] = ["islam", "hindu", "christian", "buddhist", "other"];
 export const MARITAL_STATUSES: MaritalStatus[] = ["obibahito", "talakprapto", "bidhoba"];
 
+/**
+ * Fields required beyond name, birth year and district (which everyone fills), by who writes the biodata. The ghotok
+ * often opens one during a phone call, so only the guardian's number, without which nobody can be called back (not
+ * asked on a family's own biodata, whose account has a phone). A family writes for other families to read, so the
+ * three things every card and search shows.
+ */
+export const GHOTOK_REQUIRED = ["guardianPhone"] as const;
+export const FAMILY_REQUIRED = ["heightCm", "education", "profession"] as const;
+
 /** What to say when a required field was left empty: it names what to write, not just "fill this". */
 export function missing(name: string, kind: ProfileKind): FieldIssue {
   if (name === "name") return { code: kind === "patri" ? "need_name_patri" : "need_name_patro" };
   if (name === "birthYear") return { code: "need_birth_year" };
   if (name === "district") return { code: "need_district" };
+  if (name === "guardianPhone") return { code: "need_guardian_phone" };
+  if (name === "heightCm") return { code: "need_height" };
+  if (name === "education") return { code: "need_education" };
+  if (name === "profession") return { code: "need_profession" };
   return { code: "required" };
 }
 

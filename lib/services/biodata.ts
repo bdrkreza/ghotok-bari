@@ -2,7 +2,7 @@ import { and, desc, eq } from "drizzle-orm";
 import type { Db } from "../db";
 import { profile, type Profile } from "../db/schema";
 import { AppError } from "../errors";
-import { createProfile, findSame, parseProfile, profileWhere, type ProfileFilter } from "./profiles";
+import { FAMILY_REQUIRED, createProfile, findSame, parseProfile, profileWhere, type ProfileFilter } from "./profiles";
 import { deletePhotosOf } from "./photos";
 import { FAMILY_VIEW } from "./share";
 
@@ -42,15 +42,15 @@ async function handedInBefore(db: Db, ghotokId: string, ownerUserId: string, dat
 /** Hand in a biodata: it waits for the ghotok as "pending". The ghotok's notes field is not the family's to write. */
 export async function submitBiodata(db: Db, ghotokId: string, ownerUserId: string, raw: Record<string, string>): Promise<string> {
   const pledgedAt = pledged(raw);
-  await handedInBefore(db, ghotokId, ownerUserId, parseProfile({ ...raw, notes: "" }));
-  return createProfile(db, ghotokId, { ...raw, notes: "" }, { ownerUserId, pledgedAt });
+  await handedInBefore(db, ghotokId, ownerUserId, parseProfile({ ...raw, notes: "" }, FAMILY_REQUIRED));
+  return createProfile(db, ghotokId, { ...raw, notes: "" }, { ownerUserId, pledgedAt }, { require: FAMILY_REQUIRED });
 }
 
 /** Change one's own biodata. Whatever the ghotok had decided, the new text waits for approval again. */
 export async function updateMyBiodata(db: Db, ghotokId: string, ownerUserId: string, id: string, raw: Record<string, string>): Promise<void> {
   const existing = await getMyBiodata(db, ghotokId, ownerUserId, id);
   const pledgedAt = pledged(raw);
-  const data = parseProfile({ ...raw, kind: existing.kind, notes: existing.notes ?? "" });
+  const data = parseProfile({ ...raw, kind: existing.kind, notes: existing.notes ?? "" }, FAMILY_REQUIRED);
   await handedInBefore(db, ghotokId, ownerUserId, data, id);
   await db.update(profile).set({ ...data, pledgedAt, approval: "pending", returnNote: null, approvedAt: null })
     .where(and(eq(profile.id, id), mine(ghotokId, ownerUserId)));

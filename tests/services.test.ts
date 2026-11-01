@@ -12,7 +12,7 @@ import { dashboard } from "@/lib/services/dashboard";
 import { addEntry, listEntries, totals } from "@/lib/services/ledger";
 import { suggestFor } from "@/lib/services/match";
 import { listHref, parseAge } from "@/lib/search";
-import { activeCounts, createProfile, deleteProfile, parseProfile, setShowParents, setShowPhotos, getProfile, listProfiles, pendingCount, places, setApproval, submittedProfiles, updateProfile } from "@/lib/services/profiles";
+import { GHOTOK_REQUIRED, activeCounts, createProfile, deleteProfile, parseProfile, setShowParents, setShowPhotos, getProfile, listProfiles, pendingCount, places, setApproval, submittedProfiles, updateProfile } from "@/lib/services/profiles";
 import { browseBiodata, browseOne, deleteMyBiodata, getMyBiodata, myBiodata, submitBiodata, updateMyBiodata } from "@/lib/services/biodata";
 import { addNote, changeStatus, createProposal, getProposal, listProposals, proposalsFor } from "@/lib/services/proposals";
 import { getShare, publicBiodata, shareBiodata, unshareBiodata } from "@/lib/services/share";
@@ -112,6 +112,18 @@ describe("people", () => {
     // another ghotok's book is not looked at
     const elsewhere = await createProfile(app.db, other.id, form, undefined, { warnSame: true });
     await deleteProfile(app.db, other.id, elsewhere);
+  });
+
+  it("asks the ghotok for the guardian's number, but not on a family's own biodata", async () => {
+    const need = { require: GHOTOK_REQUIRED };
+    const err = await createProfile(app.db, ghotok.id, personForm({ name: "নম্বরহীন", guardianPhone: "" }), undefined, need).catch((e: AppError) => e);
+    expect(err).toMatchObject({ code: "invalid_input", fields: { guardianPhone: { code: "need_guardian_phone" } } });
+    const id = await createProfile(app.db, ghotok.id, personForm({ name: "নম্বরসহ", guardianPhone: "01712345678" }), undefined, need);
+    expect(await code(updateProfile(app.db, ghotok.id, id, personForm({ name: "নম্বরসহ", guardianPhone: "" }), need))).toBe("invalid_input");
+    // a family's own biodata (any account will do as its owner)
+    const theirs = await submitBiodata(app.db, ghotok.id, other.id, personForm({ kind: "patri", name: "পরিবারের মেয়ে", birthYear: "2001", guardianPhone: "" }));
+    expect(await code(updateProfile(app.db, ghotok.id, theirs, personForm({ kind: "patri", name: "পরিবারের মেয়ে", birthYear: "2001", guardianPhone: "" }), need))).toBeNull();
+    await deleteMyBiodata(app.db, ghotok.id, other.id, theirs);
   });
 
   it("is scoped to the ghotok who wrote it", async () => {
@@ -394,6 +406,13 @@ describe("biodata handed in by families", () => {
     expect(waiting.find((w) => w.profile.id === id)?.owner).toEqual({ name: "রহিমা বেগম", phone: family.phone });
     expect(await pendingCount(app.db, ghotok.id)).toBeGreaterThanOrEqual(1);
     expect(before.patri).toBe((await activeCounts(app.db, ghotok.id)).patri);
+  });
+
+  it("asks a family for height, education and profession, saying what to write in each", async () => {
+    const err = await submitBiodata(app.db, ghotok.id, family.id, personForm({ kind: "patri", name: "অসম্পূর্ণ", birthYear: "2002", heightCm: "", education: "", profession: "" }))
+      .catch((e: AppError) => e);
+    expect(err).toMatchObject({ code: "invalid_input", fields: { heightCm: { code: "need_height" }, education: { code: "need_education" }, profession: { code: "need_profession" } } });
+    expect(await code(updateMyBiodata(app.db, ghotok.id, family.id, id, personForm({ kind: "patri", name: "সুমাইয়া", birthYear: "2003", profession: "" })))).toBe("invalid_input");
   });
 
   it("takes each person once per family: the same one again is refused, a brother or sister is not", async () => {

@@ -16,7 +16,7 @@ import { normalizePhone } from "@/lib/auth/phone";
 import { createProfileAction, updateProfileAction } from "@/lib/actions/profiles";
 import {
   AFTER_HOMES, BLOOD_GROUPS, CHOICES, COMPLEXIONS, DOWRIES, EDUCATION_MEDIUMS, EXPECT_EDUCATIONS, EXPECT_MARITALS, FAMILY_STATUSES,
-  MARITAL_STATUSES, MIN_AGE, RELIGIONS, missing,
+  MARITAL_STATUSES, MIN_AGE, RELIGIONS, missing, FAMILY_REQUIRED, GHOTOK_REQUIRED,
 } from "@/lib/profile-fields";
 
 /** Who is filling the form: the ghotok (full form, their private notes) or a family (their own biodata, no notes). */
@@ -57,13 +57,17 @@ type Marked = Record<string, { message: string; step: number }>;
  * The same form for a new person and for editing one; `profile` fills it in for editing. Six steps shown one at a
  * time, with a progress line and previous / next buttons; every step stays in the form, so one submit at the end
  * posts everything. Pick-one questions are cards of chips; for a family a chip on every field says who sees it.
- * Everything beyond name, birth year and district is optional. With `importable`, a photo, PDF or Word file of an
+ * Name, birth year and district are required for everyone; beyond that, what the writer must fill comes from
+ * lib/profile-fields.ts (the ghotok: the guardian's number, except on a family's own biodata; a family: height,
+ * education and profession), the same lists the server checks. With `importable`, a photo, PDF or Word file of an
  * existing biodata can fill the fields first.
  */
 export function ProfileForm({ kind, profile, minYear, maxYear, viewer = "admin", importable = false, ai = false, photosOn = false, photos = [] }: Props) {
   const { t, n, options } = useT();
   const edit = !!profile;
   const family = viewer === "customer";
+  const need: readonly string[] = family ? FAMILY_REQUIRED : profile?.ownerUserId ? [] : GHOTOK_REQUIRED;
+  const req = (name: string) => need.includes(name);
   // what an uploaded file filled in; bumping `version` remounts the form so the new defaults show
   const [imported, setImported] = useState<Imported>({});
   const [version, setVersion] = useState(0);
@@ -373,7 +377,7 @@ export function ProfileForm({ kind, profile, minYear, maxYear, viewer = "admin",
                 </Wide>
                 <Field name="birthYear" label={t("form.birthYear")} required type="number" inputMode="numeric" min={String(minYear)} max={String(maxYear)} placeholder={t("form.birthYearPlaceholder")} defaultValue={v.birthYear}
                   hint={t("form.birthYearHint", { n: kind === "patro" ? 21 : 18 })} tag={tags("birthYear", "all")} />
-                <Field name="heightCm" label={t("form.height")} type="number" inputMode="numeric" min="100" max="250" placeholder={t("form.heightPlaceholder")} defaultValue={v.heightCm} hint={t("form.heightHint")} tag={tags("heightCm", "all")} />
+                <Field name="heightCm" required={req("heightCm")} label={t("form.height")} type="number" inputMode="numeric" min="100" max="250" placeholder={t("form.heightPlaceholder")} defaultValue={v.heightCm} hint={t("form.heightHint")} tag={tags("heightCm", "all")} />
                 <Field name="weightKg" label={t("form.weight")} type="number" inputMode="numeric" min="20" max="300" placeholder={t("form.weightPlaceholder")} defaultValue={v.weightKg} tag={tags("weightKg", "all")} />
                 <Choice name="complexion" label={t("form.complexion")} options={options("complexion", COMPLEXIONS)} skip={notSay} defaultValue={v.complexion} tag={tags("complexion", "all")} />
                 <Choice name="bloodGroup" label={t("form.blood")} options={BLOOD_GROUPS.map((b) => [b, b] as const)} skip={t("form.unknown")} defaultValue={v.bloodGroup} tag={tags("bloodGroup", "all")} grid />
@@ -382,8 +386,8 @@ export function ProfileForm({ kind, profile, minYear, maxYear, viewer = "admin",
               </Section>
 
               <Section ref={at(1)} active={step === 1} title={titles[1][0]}>
-                <Field name="education" maxLength={120} label={t("form.education")} placeholder={t("form.educationPlaceholder")} defaultValue={v.education} tag={tags("education", "all")} />
-                <Field name="profession" maxLength={120} label={t("form.profession")} placeholder={t("form.professionPlaceholder")} defaultValue={v.profession} tag={tags("profession", "all")} />
+                <Field name="education" required={req("education")} maxLength={120} label={t("form.education")} placeholder={t("form.educationPlaceholder")} defaultValue={v.education} tag={tags("education", "all")} />
+                <Field name="profession" required={req("profession")} maxLength={120} label={t("form.profession")} placeholder={t("form.professionPlaceholder")} defaultValue={v.profession} tag={tags("profession", "all")} />
                 <Field name="workplace" maxLength={160} label={t("form.workplace")} placeholder={t("form.workplacePlaceholder")} defaultValue={v.workplace} tag={tags("workplace", "all")} />
                 <Field name="monthlyIncome" label={t("form.income")} type="number" inputMode="numeric" min="0" placeholder={t("form.incomePlaceholder")} defaultValue={v.monthlyIncome} tag={tags("monthlyIncome", "ghotok")} />
                 <Wide>
@@ -400,7 +404,7 @@ export function ProfileForm({ kind, profile, minYear, maxYear, viewer = "admin",
 
               <Section ref={at(3)} active={step === 3} title={titles[3][0]}>
                 <Field name="guardianName" maxLength={80} label={t("form.guardianName")} placeholder={t("form.guardianPlaceholder")} defaultValue={v.guardianName} tag={tags("guardianName", "ghotok")} />
-                <Field name="guardianPhone" label={t("form.guardianPhone")} type="tel" inputMode="tel" placeholder={t("form.guardianPhonePlaceholder")} defaultValue={v.guardianPhone} tag={tags("guardianPhone", "ghotok")} />
+                <Field name="guardianPhone" required={req("guardianPhone")} label={t("form.guardianPhone")} type="tel" inputMode="tel" placeholder={t("form.guardianPhonePlaceholder")} defaultValue={v.guardianPhone} tag={tags("guardianPhone", "ghotok")} />
                 <Field name="brothers" label={t("form.brothers")} type="number" inputMode="numeric" min="0" max="30" placeholder={t("form.countPlaceholder")} defaultValue={v.brothers} tag={tags("brothers", "all")} />
                 <Field name="sisters" label={t("form.sisters")} type="number" inputMode="numeric" min="0" max="30" placeholder={t("form.countPlaceholder")} defaultValue={v.sisters} tag={tags("sisters", "all")} />
                 <Wide>
