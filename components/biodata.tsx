@@ -232,7 +232,7 @@ export function FamilyBiodata({ b, t, aside, full, badges, more, photos: shownPh
               {gallery.map((p, i) => (
                 <li key={p.id}>
                   {/* the full picture in a new tab; the app checks who is asking before it sends the file */}
-                  <a href={`/api/photos/${p.id}`} target="_blank" rel="noopener" className="block aspect-[3/4] overflow-hidden rounded-xl border border-line bg-sunk">
+                  <a href={`/api/photos/${p.id}`} target="_blank" rel="noopener" className="block aspect-3/4 overflow-hidden rounded-xl border border-line bg-sunk">
                     {/* eslint-disable-next-line @next/next/no-img-element -- the app's own photo route */}
                     <img src={`/api/photos/${p.id}`} alt={t.t("photo.alt", { n: i + 1 })} loading="lazy" className="size-full object-cover" />
                   </a>

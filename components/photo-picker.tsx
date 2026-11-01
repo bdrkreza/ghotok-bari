@@ -85,7 +85,7 @@ export function PhotoPicker({ saved, share = false }: { saved: { id: string }[];
         <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3">
           {items.map((item, i) => (
             <li key={item.kind === "kept" ? item.id : item.key} className="flex flex-col gap-1.5">
-              <div className={`relative aspect-[3/4] overflow-hidden rounded-xl border bg-sunk ${i === 0 ? "border-primary ring-2 ring-primary/30" : "border-line"}`}>
+              <div className={`relative aspect-3/4 overflow-hidden rounded-xl border bg-sunk ${i === 0 ? "border-primary ring-2 ring-primary/30" : "border-line"}`}>
                 {/* eslint-disable-next-line @next/next/no-img-element -- a local preview or the app's own photo route */}
                 <img src={item.src} alt={t("photo.alt", { n: i + 1 })} className="size-full object-cover" />
                 {i === 0 ? <span className="absolute top-1.5 left-1.5 rounded-full bg-primary px-2 py-0.5 text-[11px] font-bold text-on-primary">{t("photo.cover")}</span> : null}

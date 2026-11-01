@@ -14,7 +14,7 @@ export function FilterPanel({ active, children }: { active: number; children: Re
   const { t, n } = useT();
   const badge = active ? <span className="rounded-full bg-primary px-2 py-0.5 text-xs text-on-primary">{n(active)}</span> : null;
   return (
-    <aside className="rounded-2xl border border-line bg-surface lg:sticky lg:top-24 lg:max-h-[calc(100dvh-7rem)] lg:overflow-y-auto lg:[scrollbar-width:thin]">
+    <aside className="rounded-2xl border border-line bg-surface lg:sticky lg:top-24 lg:max-h-[calc(100dvh-7rem)] lg:overflow-y-auto lg:scrollbar-thin">
       <button type="button" onClick={() => setOpen((o) => !o)} aria-expanded={open} aria-controls="filters"
         className="flex min-h-12 w-full items-center justify-center gap-2 px-4 font-display text-base font-bold lg:hidden">
         <Icon name="filter" size={20} className="text-primary" />
