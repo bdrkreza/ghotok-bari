@@ -446,9 +446,9 @@ export function ProfileForm({ kind, profile, minYear, maxYear, viewer = "admin",
                 </Wide>
                 {photosOn ? (
                   <Wide>
-                    <PhotoPicker saved={photos} />
+                    <PhotoPicker saved={photos} share={v.showPhotos === "true" || v.showPhotos === "on"} />
                   </Wide>
-                ) : null}
+                ) : (v.showPhotos === "true" || v.showPhotos === "on") ? <Hidden name="showPhotos" value="on" /> : null}
                 {family ? null : (
                   <Wide>
                     <TextArea name="notes" maxLength={2000} label={t("form.notes")} placeholder={t("form.notesPlaceholder")} defaultValue={v.notes} />

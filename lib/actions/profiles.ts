@@ -8,7 +8,7 @@ import type { ProfileStatus } from "../db/schema";
 import { attempt, field, fieldValues, type FormState } from "../form";
 import { getT } from "../i18n/server";
 import { checkPhotos, photoChangeFrom, savePhotos, savePhotosForNew } from "../services/photos";
-import { createProfile, deleteProfile, setApproval, setProfileStatus, setShowParents, updateProfile } from "../services/profiles";
+import { createProfile, deleteProfile, setApproval, setProfileStatus, setShowParents, setShowPhotos, updateProfile } from "../services/profiles";
 
 export async function createProfileAction(_prev: FormState, form: FormData): Promise<FormState> {
   const user = await requireAdmin();
@@ -48,14 +48,16 @@ export async function setProfileStatusAction(_prev: FormState, form: FormData): 
   });
 }
 
-/** Show or hide the parents' names to other families. */
-export async function setShowParentsAction(_prev: FormState, form: FormData): Promise<FormState> {
+/** Show or hide the parents' names (what=parents) or the photos (what=photos) to other families. */
+export async function setVisibilityAction(_prev: FormState, form: FormData): Promise<FormState> {
   const [user, { t }] = await Promise.all([requireAdmin(), getT()]);
   const id = field(form, "id");
   const show = field(form, "show") === "on";
+  const photos = field(form, "what") === "photos";
   return attempt(async () => {
-    await setShowParents(getDb(), user.ghotokId, id, show);
+    await (photos ? setShowPhotos : setShowParents)(getDb(), user.ghotokId, id, show);
     revalidatePath(`/profiles/${id}`);
+    if (photos) return { notice: show ? t("notice.photosShown") : t("notice.photosHidden") };
     return { notice: show ? t("notice.parentsShown") : t("notice.parentsHidden") };
   });
 }

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { FamilyBiodata } from "@/components/biodata";
-import { ApprovalForm, ShowParentsForm } from "@/components/biodata-forms";
+import { ApprovalForm, VisibilityForm } from "@/components/biodata-forms";
 import { Icon } from "@/components/icons";
 import { DeleteProfileForm, ProfileStatusForm } from "@/components/proposal-forms";
 import { ShareCard } from "./_components/share";
@@ -107,9 +107,17 @@ export default async function ProfilePage(props: PageProps<"/profiles/[id]">) {
                 )}
               </Card>
             ) : null}
-            <Card title={t("pp.parentsTitle")}>
-              <p className="text-sm text-muted">{p.showParents ? t("pp.parentsOn") : t("pp.parentsOff")}</p>
-              <ShowParentsForm id={p.id} shown={p.showParents} />
+            <Card title={t("pp.showTitle")}>
+              <div className="flex flex-col gap-2">
+                <p className="font-bold">{t("pp.parentsTitle")}</p>
+                <p className="text-sm text-muted">{p.showParents ? t("pp.parentsOn") : t("pp.parentsOff")}</p>
+                <VisibilityForm id={p.id} what="parents" shown={p.showParents} />
+              </div>
+              <div className="flex flex-col gap-2 border-t border-line pt-4">
+                <p className="font-bold">{t("photo.title")}</p>
+                <p className="text-sm text-muted">{p.showPhotos ? t("pp.photosOn") : t("pp.photosOff")}</p>
+                <VisibilityForm id={p.id} what="photos" shown={p.showPhotos} />
+              </div>
             </Card>
 
             <Card title={t("pp.status")}>

@@ -4,7 +4,8 @@ import { profile } from "@/lib/db/schema";
 import { AppError } from "@/lib/errors";
 import { submitBiodata } from "@/lib/services/biodata";
 import { MAX_PHOTO_BYTES, checkPhotos, deletePhotosOf, listPhotos, photoFor, savePhotos, type PhotoChange } from "@/lib/services/photos";
-import { createProfile, getProfile } from "@/lib/services/profiles";
+import { createProfile, getProfile, setApproval, setShowPhotos } from "@/lib/services/profiles";
+import { publicBiodata, shareBiodata } from "@/lib/services/share";
 import type { PhotoStore } from "@/lib/storage";
 import { createTestApp, personForm } from "./testdb";
 
@@ -98,6 +99,17 @@ describe("photos", () => {
     expect(await as(family.id, "customer")).toMatchObject({ contentType: "image/jpeg" });
     expect(await as(stranger.id, "customer")).toBeNull();
     expect(await as(stranger.id, "admin", stranger.id)).toBeNull(); // another site's admin
+
+    // the family agreed: other signed-in families see it, but only once the biodata is listed
+    await setShowPhotos(app.db, ghotok.id, id, true);
+    expect(await as(stranger.id, "customer")).toBeNull();
+    await setApproval(app.db, ghotok.id, id, "approved");
+    expect(await as(stranger.id, "customer")).toMatchObject({ contentType: "image/jpeg" });
+    // a shared link never carries the picture, whatever was agreed
+    const token = await shareBiodata(app.db, ghotok.id, id);
+    expect(await publicBiodata(app.db, token)).toMatchObject({ showPhotos: true, photoUrl: null });
+    await setShowPhotos(app.db, ghotok.id, id, false);
+    expect(await as(stranger.id, "customer")).toBeNull();
     expect(await photoFor(app.db, { userId: ghotok.id, role: "admin", ghotokId: ghotok.id }, "not-an-id", store)).toBeNull();
 
     await deletePhotosOf(app.db, ghotok.id, id, store);

@@ -133,6 +133,8 @@ export const profile = pgTable("profile", {
   photoUrl: text("photo_url"),
   /** the family agrees to other families seeing the father's and mother's names; off by default, the ghotok can switch it */
   showParents: boolean("show_parents").notNull().default(false),
+  /** the family agrees to other signed-in families seeing the photos (never on the public link); off by default */
+  showPhotos: boolean("show_photos").notNull().default(false),
   /** the ghotok's private notes; a family never sees or edits these */
   notes: text("notes"),
   status: text("status").$type<ProfileStatus>().notNull().default("active"),

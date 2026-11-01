@@ -2,18 +2,20 @@
 
 import { ActionForm, ConfirmCheck, Hidden, TextArea } from "./form";
 import { deleteBiodataAction } from "@/lib/actions/biodata";
-import { setApprovalAction, setShowParentsAction } from "@/lib/actions/profiles";
+import { setApprovalAction, setVisibilityAction } from "@/lib/actions/profiles";
 import type { Approval } from "@/lib/db/schema";
 import { useT } from "@/lib/i18n/client";
 
-/** One button that flips whether other families see the parents' names. */
-export function ShowParentsForm({ id, shown }: { id: string; shown: boolean }) {
+/** One button that flips whether other families see the parents' names or the photos. */
+export function VisibilityForm({ id, what, shown }: { id: string; what: "parents" | "photos"; shown: boolean }) {
   const { t } = useT();
+  const label = what === "photos" ? (shown ? t("pp.photosHide") : t("pp.photosShow")) : (shown ? t("pp.parentsHide") : t("pp.parentsShow"));
   return (
-    <ActionForm action={setShowParentsAction} submitLabel={shown ? t("pp.parentsHide") : t("pp.parentsShow")} tone="quiet">
+    <ActionForm action={setVisibilityAction} submitLabel={label} tone="quiet">
       {() => (
         <>
           <Hidden name="id" value={id} />
+          <Hidden name="what" value={what} />
           <Hidden name="show" value={shown ? "" : "on"} />
         </>
       )}

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { FamilyBiodata } from "@/components/biodata";
+import { listPhotos } from "@/lib/services/photos";
 import { ContactButtons } from "@/components/site";
 import { requireCustomer } from "@/lib/auth/session";
 import { getDb } from "@/lib/db";
@@ -21,13 +22,14 @@ export default async function BiodataPage(props: PageProps<"/biodata/[id]">) {
   const db = getDb();
   const [b, site] = await Promise.all([browseOne(db, me.ghotokId, id), publicSite(db)]);
   if (!b) notFound();
+  const photos = b.showPhotos ? await listPhotos(db, me.ghotokId, id) : [];
   const no = T.biodataNo(b.kind, b.code);
 
   return (
     <>
       {/* the number is the card's headline; this one is for screen readers and the tab's outline */}
       <h1 className="sr-only">{no}</h1>
-      <FamilyBiodata b={b} t={T} aside={site ? (
+      <FamilyBiodata b={b} t={T} photos={photos} aside={site ? (
         <>
           <p className="border-t border-line pt-4 font-display text-lg font-bold">{t("bv.likeTitle")}</p>
           <ContactButtons phone={site.phone} whatsapp={site.whatsapp} t={T} stack />

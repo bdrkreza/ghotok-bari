@@ -32,7 +32,8 @@ Read README.md for the screens, roles, data model and setup.
   returning the same `Imported` fields.
 - Photos (up to five, optional) go through `lib/services/photos.ts` and the store in `lib/storage.ts` (Supabase
   Storage, or `./.data/photos` in development); they are served only by `/api/photos/[id]`, which lets the ghotok's
-  side and the owning family through and nobody else. `profile.photo_url` is kept pointing at the first photo. Client
+  side and the owning family through, and other signed-in families only where `show_photos` is on and the biodata is
+  approved; `FAMILY_VIEW` returns `photoUrl` only then, and `publicBiodata` never. `profile.photo_url` is kept pointing at the first photo. Client
   components never import `lib/services/*` (they reach the database and the store); plain data the form needs lives in
   `lib/profile-fields.ts`.
 - Expected failures throw `AppError(code)` (`lib/errors.ts`); `attempt()` in `lib/form.ts` turns them into a Bangla

@@ -29,7 +29,7 @@ layout on a computer) and a **phone app** (installed from the browser onto the h
 | `/dashboard/customers` | admin | Every account: name, number, joined and last seen, role; make a helper an admin or take it back |
 | `/profiles/new?kind=patro` | admin | Add a person (name, age, looks, education, work, address, guardian, family, the "after marriage" answers, expectations); listed at once |
 | `/profiles/[id]` | admin | One person: details, their proposals, suggested matches, status, public share link, delete. For a family's biodata: who handed it in, and the buttons to list it or return it with a note |
-| `/b/[token]` | anyone with the link | Public biodata a ghotok chose to share: biodata number, the ghotok's check, age, height, complexion, weight, blood group, religion, marital status, education and medium, profession and workplace, village, upazila and district, where they live now, siblings and the family's means, religious practice, the "after marriage" answers, family, expectations, the parents' names only where the family agreed (the ghotok can switch it on the person's page), and the ghotok's number; no name, photo, guardian phone, income or notes |
+| `/b/[token]` | anyone with the link | Public biodata a ghotok chose to share: biodata number, the ghotok's check, age, height, complexion, weight, blood group, religion, marital status, education and medium, profession and workplace, village, upazila and district, where they live now, siblings and the family's means, religious practice, the "after marriage" answers, family, expectations, the parents' names only where the family agreed (the ghotok can switch it on the person's page), and the ghotok's number; never the name, photos, guardian phone, income or notes |
 | `/proposals` | admin | Every proposal, filtered by stage |
 | `/proposals/new` | admin | Pair one patro with one patri (listed people only) |
 | `/proposals/[id]` | admin | Stage changes with a timeline, notes, and the money for this match |
@@ -63,9 +63,11 @@ Up to five photos per person, all optional, on the form's last step. Whatever th
 a JPEG of at most 100 KB before sending (`lib/shrink-image.ts`: 1280 pixels and good quality first, then lower
 quality, then smaller, down to 480 pixels), so a slow connection copes and the free 1 GB holds about 2,000 people's five
 photos. The first is the card picture
-(`profile.photo_url` points at it, so every list shows it); any other can be moved first. Photos are private like the
-name: `/api/photos/<id>` sends one only to the ghotok's side or to the family who wrote that biodata, and a 404 to
-everyone else; other families and the shared link never see them. The files live in a private Supabase Storage bucket
+(`profile.photo_url` points at it, so every list shows it); any other can be moved first. Photos are private unless
+the family ticks "অন্য পরিবারকে ছবি দেখাতে আপত্তি নেই" (or the ghotok switches it on the person's page, under "অন্য
+পরিবার কী দেখবে"): `/api/photos/<id>` sends one to the ghotok's side, to the family who wrote that biodata, and to
+other signed-in families only for a listed biodata whose photos are switched on; a 404 to everyone else. The shared
+link never shows photos. The files live in a private Supabase Storage bucket
 (`lib/storage.ts`, made on first use) when `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` are set; in development
 without them, in `./.data/photos`; in production without them the picker is not shown. Deleting a biodata deletes its
 files.

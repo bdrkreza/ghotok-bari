@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { Checkbox } from "./form";
 import { Icon } from "./icons";
 import { useT } from "@/lib/i18n/client";
 import { shrinkImage } from "@/lib/shrink-image";
@@ -17,7 +18,7 @@ type Item = { kind: "kept"; id: string; src: string } | { kind: "new"; key: stri
  * "n:<index>". The first picture is the one on the cards; any other can be moved there. Without JavaScript nothing is
  * shown and the saved photos stay as they are.
  */
-export function PhotoPicker({ saved }: { saved: { id: string }[] }) {
+export function PhotoPicker({ saved, share = false }: { saved: { id: string }[]; /** the "show to other families" tick, as saved */ share?: boolean }) {
   const { t } = useT();
   const [items, setItems] = useState<Item[]>(() => saved.map((p) => ({ kind: "kept", id: p.id, src: `/api/photos/${p.id}` })));
   const [busy, setBusy] = useState(false);
@@ -111,7 +112,10 @@ export function PhotoPicker({ saved }: { saved: { id: string }[] }) {
         </label>
       ) : null}
       {note ? <p role="status" className="text-sm font-semibold text-warn-ink">{note}</p> : null}
-      <p className="flex items-start gap-1.5 text-xs text-muted"><Icon name="lock" size={13} className="mt-0.5 shrink-0" />{t("photo.private")}</p>
+      <div className="flex flex-col gap-1 rounded-xl bg-sunk/50 px-3 py-2.5">
+        <Checkbox name="showPhotos" label={t("photo.share")} defaultChecked={share} />
+        <p className="flex items-start gap-1.5 pl-8 text-xs text-muted"><Icon name="lock" size={13} className="mt-0.5 shrink-0" />{t("photo.private")}</p>
+      </div>
     </div>
   );
 }

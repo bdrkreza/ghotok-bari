@@ -36,7 +36,8 @@ export async function unshareBiodata(db: Db, ghotokId: string, profileId: string
  * The columns a family may see of someone else's biodata, decided here once and used by the public link and by the
  * signed-in lists (lib/services/biodata.ts). The village is shown (the ghotok wants families to see where someone is
  * from); the parents' names only where the family agreed (show_parents), computed in SQL so they never leave the
- * database otherwise. Left out on purpose: name, photo, guardian, income, the ghotok's notes, and who handed it in.
+ * database otherwise; the photo likewise only where agreed (show_photos), and never on the public link. Left out on
+ * purpose: name, guardian, income, the ghotok's notes, and who handed it in.
  */
 export const FAMILY_VIEW = {
   code: profile.code, kind: profile.kind, birthYear: profile.birthYear, heightCm: profile.heightCm, religion: profile.religion,
@@ -49,6 +50,9 @@ export const FAMILY_VIEW = {
   expectAgeMax: profile.expectAgeMax, expectEducation: profile.expectEducation, expectMarital: profile.expectMarital,
   expectDistricts: profile.expectDistricts,
   showParents: profile.showParents,
+  showPhotos: profile.showPhotos,
+  /** the card picture, where the family agreed; /api/photos lets signed-in families through for these */
+  photoUrl: sql<string | null>`case when ${profile.showPhotos} then ${profile.photoUrl} end`,
   fatherName: sql<string | null>`case when ${profile.showParents} then ${profile.fatherName} end`,
   motherName: sql<string | null>`case when ${profile.showParents} then ${profile.motherName} end`,
   // when the ghotok checked it (a family's entry) or wrote it (their own): the trust line under the number
@@ -80,5 +84,6 @@ export async function publicBiodata(db: Db, token: string): Promise<PublicBiodat
   const r = rows[0];
   if (!r) return null;
   const { ghotokName, ghotokPhone, ...rest } = r;
-  return { ...rest, ghotok: { name: ghotokName, phone: ghotokPhone ?? "" } };
+  // a shared link travels anywhere (WhatsApp, Facebook): it never carries a photo, whatever the family agreed to
+  return { ...rest, photoUrl: null, ghotok: { name: ghotokName, phone: ghotokPhone ?? "" } };
 }

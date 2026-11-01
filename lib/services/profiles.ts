@@ -83,6 +83,8 @@ const profileInput = z.object({
   expectDistricts: optional(200),
   /** the form's "বাবা-মায়ের নাম দেখাতে আপত্তি নেই" tick: "on" when ticked, absent otherwise */
   showParents: z.string().transform((s) => s === "on"),
+  /** the photo picker's "ছবি দেখাতে আপত্তি নেই" tick */
+  showPhotos: z.string().transform((s) => s === "on"),
   notes: optional(2000),
 }).superRefine((d, ctx) => {
   if (d.expectAgeMin !== null && d.expectAgeMax !== null && d.expectAgeMin > d.expectAgeMax) ctx.addIssue({ code: "custom", message: "age_range", path: ["expectAgeMax"] });
@@ -196,6 +198,12 @@ export async function setProfileStatus(db: Db, ghotokId: string, id: string, sta
 export async function setShowParents(db: Db, ghotokId: string, id: string, show: boolean): Promise<void> {
   await getProfile(db, ghotokId, id);
   await db.update(profile).set({ showParents: show }).where(and(eq(profile.id, id), eq(profile.ghotokId, ghotokId)));
+}
+
+/** Whether other signed-in families see this person's photos (the public link never does); switched like the parents. */
+export async function setShowPhotos(db: Db, ghotokId: string, id: string, show: boolean): Promise<void> {
+  await getProfile(db, ghotokId, id);
+  await db.update(profile).set({ showPhotos: show }).where(and(eq(profile.id, id), eq(profile.ghotokId, ghotokId)));
 }
 
 export async function deleteProfile(db: Db, ghotokId: string, id: string): Promise<void> {

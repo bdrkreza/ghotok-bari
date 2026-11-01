@@ -144,15 +144,19 @@ export interface PhotoViewer { userId: string; role: "admin" | "customer"; ghoto
 
 /**
  * One photo's file for someone allowed to see it, or null: the ghotok's side sees every photo on the site; a family
- * sees only the photos of biodata they wrote. Other families never see photos.
+ * sees the photos of biodata they wrote, and of listed biodata whose family agreed to show them (show_photos).
  */
 export async function photoFor(db: Db, viewer: PhotoViewer, photoId: string, store: PhotoStore | null = getStore()) {
   if (!/^[0-9a-f-]{36}$/.test(photoId) || !store) return null;
-  const [row] = await db.select({ path: profilePhoto.path, contentType: profilePhoto.contentType, owner: profile.ownerUserId })
+  const [row] = await db.select({
+    path: profilePhoto.path, contentType: profilePhoto.contentType, owner: profile.ownerUserId,
+    shown: profile.showPhotos, approval: profile.approval,
+  })
     .from(profilePhoto).innerJoin(profile, eq(profile.id, profilePhoto.profileId))
     .where(and(eq(profilePhoto.id, photoId), eq(profilePhoto.ghotokId, viewer.ghotokId))).limit(1);
   if (!row) return null;
-  if (viewer.role !== "admin" && row.owner !== viewer.userId) return null;
+  const allowed = viewer.role === "admin" || row.owner === viewer.userId || (row.shown && row.approval === "approved");
+  if (!allowed) return null;
   const bytes = await store.get(row.path);
   return bytes ? { bytes, contentType: row.contentType } : null;
 }

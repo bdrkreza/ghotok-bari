@@ -109,6 +109,8 @@ interface Props {
   badges?: ReactNode;
   /** after the topics in the right-hand column: the page's own cards (proposals, sharing, deleting) */
   more?: ReactNode;
+  /** someone else's photos, where their family agreed to show them (the full biodata passes them in `full`) */
+  photos?: { id: string }[];
 }
 
 /**
@@ -118,7 +120,7 @@ interface Props {
  * hoped for, and who sees what. A family looking at someone else's (the public link, /biodata) sees FAMILY_VIEW only;
  * with `full` the same layout shows everything, the private rows marked with a lock.
  */
-export function FamilyBiodata({ b, t, aside, full, badges, more }: Props) {
+export function FamilyBiodata({ b, t, aside, full, badges, more, photos: shownPhotos }: Props) {
   const facts: { icon: IconName; label: string; value: string; locked?: boolean }[] = [
     { icon: "calendar", label: t.t("facts.age"), value: full ? t.t("facts.ageWithYear", { n: ageFromYear(b.birthYear), year: b.birthYear }) : t.years(ageFromYear(b.birthYear)) },
     { icon: "rings", label: t.t("facts.marital"), value: t.t(`marital.${b.maritalStatus}`) },
@@ -140,6 +142,7 @@ export function FamilyBiodata({ b, t, aside, full, badges, more }: Props) {
   const age = expectedAge(b, t);
   const trust = trustMark(b, t);
   const no = t.biodataNo(b.kind, b.code);
+  const gallery = full?.photos ?? shownPhotos ?? [];
 
   const address: Row[] = [
     { label: t.t("bv.permanentAddress"), value: [b.village, b.upazila, b.district].filter(Boolean).join(", ") },
@@ -183,7 +186,7 @@ export function FamilyBiodata({ b, t, aside, full, badges, more }: Props) {
         <div aria-hidden className="biodata-head h-21" />
         {/* the picture hangs over the head's left end, the number beside it; `relative` keeps it above the head's pattern */}
         <div className="flex items-end gap-3.5 px-5">
-          <span className="relative -mt-11 shrink-0 rounded-full border-4 border-surface bg-surface ring-2 ring-gold"><Avatar kind={b.kind} photoUrl={full?.photoUrl} className="size-22" /></span>
+          <span className="relative -mt-11 shrink-0 rounded-full border-4 border-surface bg-surface ring-2 ring-gold"><Avatar kind={b.kind} photoUrl={full ? full.photoUrl : b.photoUrl} className="size-22" /></span>
           <div className="min-w-0 pt-2">
             <p className="text-xs text-muted">{t.t("bv.number")}</p>
             {/* a long number ("Groom-50000") gets a smaller size and may break after the hyphen instead of being cut */}
@@ -219,14 +222,14 @@ export function FamilyBiodata({ b, t, aside, full, badges, more }: Props) {
         <Section t={t} icon="people" title={t.t("facts.family")} rows={family} />
         <Section t={t} icon="home" title={t.t("facts.after")} rows={after.map(([label, value]) => ({ label, value }))} />
         <Section t={t} icon="heart" title={t.t("facts.expectations")} rows={wants} />
-        {full?.photos?.length ? (
+        {gallery.length ? (
           <section className="flex flex-col gap-4 rounded-3xl border border-line bg-surface p-5 lg:p-6">
             <header className="flex items-center gap-3">
               <span aria-hidden className="grid size-11 shrink-0 place-items-center rounded-full bg-primary-soft text-primary"><Icon name="people" size={20} /></span>
-              <h2 className="flex items-center gap-1.5 font-display text-xl font-bold">{t.t("photo.title")}<Locked t={t} /></h2>
+              <h2 className="flex items-center gap-1.5 font-display text-xl font-bold">{t.t("photo.title")}{full && !b.showPhotos ? <Locked t={t} /> : null}</h2>
             </header>
             <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-              {full.photos.map((p, i) => (
+              {gallery.map((p, i) => (
                 <li key={p.id}>
                   {/* the full picture in a new tab; the app checks who is asking before it sends the file */}
                   <a href={`/api/photos/${p.id}`} target="_blank" rel="noopener" className="block aspect-[3/4] overflow-hidden rounded-xl border border-line bg-sunk">
@@ -241,14 +244,30 @@ export function FamilyBiodata({ b, t, aside, full, badges, more }: Props) {
         {full?.notes ? <Section t={t} icon="note" title={t.t("facts.notes")} rows={[{ label: t.t("form.notes"), value: prose(full.notes), locked: true }]} /> : null}
         {full ? null : (
           <section className="flex flex-col gap-3 rounded-3xl border border-dashed border-line bg-surface p-5 lg:p-6">
-            <SectionHead icon="shield" title={t.t("bv.whyHiddenTitle")} />
-            <p className="text-sm text-muted">{t.t(b.showParents ? "bv.whoSeesParents" : "bv.whoSees")}</p>
+            <SectionHead icon="shield" title={t.t(b.showPhotos ? "bv.whyNoName" : "bv.whyHiddenTitle")} />
+            <p className="text-sm text-muted">{whoSees(b, t)}</p>
           </section>
         )}
         {more}
       </div>
     </div>
   );
+}
+
+/** "ক, খ আর গ" / "a, b and c" */
+function listOf(items: string[], t: T): string {
+  return items.length < 2 ? (items[0] ?? "") : `${items.slice(0, -1).join(", ")}${t.t("w.and")}${items[items.length - 1]}`;
+}
+
+/** Why some details are missing, naming exactly what this biodata keeps back and what its family chose to show. */
+function whoSees(b: Pick<FamilyView, "showParents" | "showPhotos">, t: T): string {
+  const hidden = [t.t("w.name"), ...(b.showPhotos ? [] : [t.t("w.photo")]), ...(b.showParents ? [] : [t.t("w.parents")]), t.t("w.phone"), t.t("w.income")];
+  const agreed = [...(b.showParents ? [t.t("w.parentsNames")] : []), ...(b.showPhotos ? [t.t("w.photo")] : [])];
+  return [
+    t.t("bv.hiddenList", { list: listOf(hidden, t) }),
+    agreed.length ? t.t("bv.agreed", { what: listOf(agreed, t) }) : "",
+    t.t("bv.afterAgree"),
+  ].filter(Boolean).join(" ");
 }
 
 interface Row { label: string; value: ReactNode | null | undefined; /** only the ghotok (and the family who wrote it) see this */ locked?: boolean }
@@ -301,7 +320,7 @@ export function FamilyBiodataCard({ b, t }: { b: FamilyView & { id: string }; t:
   ].filter(Boolean);
   return (
     <Link href={`/biodata/${b.id}`} aria-label={t.t("list.viewAria", { title: no })} className="flex items-center gap-3 rounded-2xl border border-line bg-surface p-3 hover:border-primary/40">
-      <Avatar kind={b.kind} className="size-14" />
+      <Avatar kind={b.kind} photoUrl={b.photoUrl} className="size-14" />
       <span className="min-w-0 flex-1">
         <span className="block font-display font-bold">{no}</span>
         <span className="block truncate text-sm text-muted">{facts.join(" · ")}</span>

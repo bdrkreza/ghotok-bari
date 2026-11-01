@@ -213,7 +213,7 @@ function BiodataCard({ p, viewer, t }: { p: CardRow; viewer: Viewer; t: T }) {
   return (
     <li className="grid grid-cols-[6.5rem_1fr] overflow-hidden rounded-2xl border border-line bg-surface sm:grid-cols-[7.5rem_1fr]">
       <div className="flex flex-col items-center justify-center gap-3 bg-sunk p-3">
-        <Avatar kind={p.kind} photoUrl={viewer === "admin" ? p.photoUrl : null} className="size-18 sm:size-20" />
+        <Avatar kind={p.kind} photoUrl={p.photoUrl} className="size-18 sm:size-20" />
         <span className="rounded-full bg-surface px-2.5 py-0.5 text-xs font-bold text-muted">{viewer === "admin" ? no : t.t(`religion.${p.religion}`)}</span>
       </div>
       <div className="flex min-w-0 flex-col gap-2.5 p-4">

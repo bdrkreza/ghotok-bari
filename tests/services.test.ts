@@ -1,4 +1,6 @@
+import { eq } from "drizzle-orm";
 import { beforeAll, describe, expect, it } from "vitest";
+import { profile } from "@/lib/db/schema";
 import { login } from "@/lib/auth/service";
 import { roleOf } from "@/lib/auth/roles";
 import { AppError, fieldMessages, type FieldIssues } from "@/lib/errors";
@@ -10,7 +12,7 @@ import { dashboard } from "@/lib/services/dashboard";
 import { addEntry, listEntries, totals } from "@/lib/services/ledger";
 import { suggestFor } from "@/lib/services/match";
 import { listHref, parseAge } from "@/lib/search";
-import { activeCounts, createProfile, deleteProfile, parseProfile, setShowParents, getProfile, listProfiles, pendingCount, places, setApproval, submittedProfiles, updateProfile } from "@/lib/services/profiles";
+import { activeCounts, createProfile, deleteProfile, parseProfile, setShowParents, setShowPhotos, getProfile, listProfiles, pendingCount, places, setApproval, submittedProfiles, updateProfile } from "@/lib/services/profiles";
 import { browseBiodata, browseOne, deleteMyBiodata, getMyBiodata, myBiodata, submitBiodata, updateMyBiodata } from "@/lib/services/biodata";
 import { addNote, changeStatus, createProposal, getProposal, listProposals, proposalsFor } from "@/lib/services/proposals";
 import { getShare, publicBiodata, shareBiodata, unshareBiodata } from "@/lib/services/share";
@@ -427,6 +429,13 @@ describe("biodata handed in by families", () => {
     await setShowParents(app.db, ghotok.id, id, false);
     expect(await browseOne(app.db, ghotok.id, id)).toMatchObject({ showParents: false, fatherName: null, motherName: null });
     expect(await code(setShowParents(app.db, other.id, id, true))).toBe("not_found");
+    // the card picture likewise, only once agreed
+    await app.db.update(profile).set({ photoUrl: "/api/photos/00000000-0000-0000-0000-000000000000" }).where(eq(profile.id, id));
+    expect(await browseOne(app.db, ghotok.id, id)).toMatchObject({ showPhotos: false, photoUrl: null });
+    await setShowPhotos(app.db, ghotok.id, id, true);
+    expect(await browseOne(app.db, ghotok.id, id)).toMatchObject({ showPhotos: true, photoUrl: "/api/photos/00000000-0000-0000-0000-000000000000" });
+    await setShowPhotos(app.db, ghotok.id, id, false);
+    await app.db.update(profile).set({ photoUrl: null }).where(eq(profile.id, id));
     expect(await code(deleteMyBiodata(app.db, ghotok.id, family.id, id))).toBe("ask_ghotok");
 
     await updateMyBiodata(app.db, ghotok.id, family.id, id, personForm({ kind: "patri", name: "সুমাইয়া আক্তার", birthYear: "2003", district: "ঢাকা", upazila: "সাভার", notes: "মুছে দেওয়ার চেষ্টা" }));
