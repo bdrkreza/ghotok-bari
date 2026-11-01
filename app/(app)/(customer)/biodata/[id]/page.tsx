@@ -29,6 +29,7 @@ export default async function BiodataPage(props: PageProps<"/biodata/[id]">) {
       <h1 className="sr-only">{no}</h1>
       <FamilyBiodata b={b} t={T} aside={site ? (
         <>
+          <p className="border-t border-line pt-4 font-display text-lg font-bold">{t("bv.likeTitle")}</p>
           <ContactButtons phone={site.phone} whatsapp={site.whatsapp} t={T} stack />
           <p className="text-center text-xs text-muted">{t("bv.likeText", { no, name: site.ghotokName })}</p>
         </>

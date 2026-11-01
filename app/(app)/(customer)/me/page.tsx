@@ -140,7 +140,7 @@ export default async function MePage() {
             <section className="flex flex-col gap-4">
               <SectionHead eyebrow={t("me.listEyebrow")} title={t("me.recent")} links={[{ href: "/patro", label: t("me.allPatro") }, { href: "/patri", label: t("me.allPatri") }]} />
               <ul className="grid gap-3 sm:grid-cols-2">
-                {recent.map((b) => <li key={b.id}><FamilyBiodataCard b={b} t={T} /></li>)}
+                {recent.map((b) => <li key={b.id} className="min-w-0"><FamilyBiodataCard b={b} t={T} /></li>)}
               </ul>
             </section>
           ) : null}

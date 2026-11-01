@@ -9,9 +9,12 @@ import type { T } from "@/lib/i18n";
 export function ContactButtons({ phone, whatsapp, t, className = "", stack = false }: { phone: string; whatsapp: string; t: T; className?: string; stack?: boolean }) {
   return (
     <div className={`grid gap-3 ${stack ? "" : "grid-cols-2"} ${className}`}>
-      <a href={`tel:${phone}`} className={primaryButton}><Icon name="phone" size={18} />{t.n(phone)}</a>
+      <a href={`tel:${phone}`} className={primaryButton}>
+        <Icon name="phone" size={18} />
+        <span className="flex flex-col items-start leading-tight">{t.t(stack ? "contact.call" : "contact.callShort")}<span className="text-xs font-semibold opacity-85">{t.n(phone)}</span></span>
+      </a>
       <a href={`https://wa.me/88${whatsapp}`} target="_blank" rel="noopener noreferrer" className={outlineButton}>
-        <Icon name="share" size={18} />{t.t("common.whatsapp")}
+        <Icon name="share" size={18} />{t.t(stack ? "contact.whatsapp" : "common.whatsapp")}
       </a>
     </div>
   );

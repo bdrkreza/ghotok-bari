@@ -42,8 +42,12 @@ export default async function PublicBiodataPage(props: PageProps<"/b/[token]">) 
       <main className="mx-auto flex w-full max-w-4xl flex-1 flex-col gap-5 px-4 py-6 lg:py-10">
         <FamilyBiodata b={b} t={T} aside={
           <>
-            <a href={`tel:${b.ghotok.phone}`} className={primaryButton}><Icon name="phone" size={18} />{T.n(b.ghotok.phone)}</a>
-            <p className="text-center text-sm font-bold">{b.ghotok.name}</p>
+            <p className="border-t border-line pt-4 font-display text-lg font-bold">{t("bv.likeTitle")}</p>
+            <a href={`tel:${b.ghotok.phone}`} className={primaryButton}>
+              <Icon name="phone" size={18} />
+              <span className="flex flex-col items-start leading-tight">{t("contact.callName", { name: b.ghotok.name })}<span className="text-xs font-semibold opacity-85">{T.n(b.ghotok.phone)}</span></span>
+            </a>
+            <p className="text-center text-xs text-muted">{t("bv.likeText", { no: T.biodataNo(b.kind, b.code), name: b.ghotok.name })}</p>
             <p className="text-center text-xs text-muted">{t("pub.callText")}</p>
           </>
         } />

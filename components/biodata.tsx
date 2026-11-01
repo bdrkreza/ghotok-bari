@@ -47,15 +47,18 @@ export function expectedAge(b: Pick<FamilyView, "expectAgeMin" | "expectAgeMax">
   return "";
 }
 
-/** The "after marriage" answers as question / answer pairs, only those given; the questions differ by kind. */
+/**
+ * The "after marriage" answers as label / answer pairs, only those given. The labels are short statements for reading
+ * ("স্ত্রীর চাকরি করা: হ্যাঁ"), not the form's questions; they differ by kind.
+ */
 export function afterMarriageRows(b: Pick<FamilyView, "kind" | "afterStudy" | "afterJob" | "afterHome" | "dowry" | "jointFamily">, t: T): [string, string][] {
   const rows: [string, string][] = [];
-  if (b.afterStudy) rows.push([t.t(`form.afterStudy.${b.kind}`), t.t(`choice.${b.afterStudy}`)]);
-  if (b.afterJob) rows.push([t.t(`form.afterJob.${b.kind}`), t.t(`choice.${b.afterJob}`)]);
+  if (b.afterStudy) rows.push([t.t(`bv.afterStudy.${b.kind}`), t.t(`choice.${b.afterStudy}`)]);
+  if (b.afterJob) rows.push([t.t(`bv.afterJob.${b.kind}`), t.t(`choice.${b.afterJob}`)]);
   if (b.kind === "patro") {
-    if (b.afterHome) rows.push([t.t("form.afterHome"), t.t(`afterHome.${b.afterHome}`)]);
-    if (b.dowry) rows.push([t.t("form.dowry"), t.t(`dowry.${b.dowry}`)]);
-  } else if (b.jointFamily) rows.push([t.t("form.jointFamily"), t.t(`choice.${b.jointFamily}`)]);
+    if (b.afterHome) rows.push([t.t("bv.afterHome"), t.t(`afterHome.${b.afterHome}`)]);
+    if (b.dowry) rows.push([t.t("bv.dowry"), t.t(`dowry.${b.dowry}`)]);
+  } else if (b.jointFamily) rows.push([t.t("bv.jointFamily"), t.t(`choice.${b.jointFamily}`)]);
   return rows;
 }
 
@@ -220,7 +223,7 @@ export function FamilyBiodata({ b, t, aside, full, badges, more }: Props) {
         {full?.notes ? <Section t={t} icon="note" title={t.t("facts.notes")} rows={[{ label: t.t("form.notes"), value: prose(full.notes), locked: true }]} /> : null}
         {full ? null : (
           <section className="flex flex-col gap-3 rounded-3xl border border-dashed border-line bg-surface p-5 lg:p-6">
-            <SectionHead icon="shield" title={t.t("aside.whoTitle")} />
+            <SectionHead icon="shield" title={t.t("bv.whyHiddenTitle")} />
             <p className="text-sm text-muted">{t.t("bv.whoSees")}</p>
           </section>
         )}
