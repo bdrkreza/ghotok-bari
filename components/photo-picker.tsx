@@ -3,34 +3,19 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Icon } from "./icons";
 import { useT } from "@/lib/i18n/client";
+import { shrinkImage } from "@/lib/shrink-image";
 
 /** Up to this many pictures; the server says the same (lib/services/photos.ts). */
 const MAX = 5;
-/** the longest side after shrinking, and the JPEG quality: about 200 KB a picture, fine on a slow connection */
-const SIDE = 1280;
-const QUALITY = 0.8;
 
 type Item = { kind: "kept"; id: string; src: string } | { kind: "new"; key: string; file: File; src: string };
 
-/** A picture made smaller in the browser before it is sent: at most SIDE pixels on its longest side, as a JPEG. */
-async function shrink(file: File): Promise<File> {
-  const bitmap = await createImageBitmap(file, { imageOrientation: "from-image" });
-  const scale = Math.min(1, SIDE / Math.max(bitmap.width, bitmap.height));
-  const canvas = document.createElement("canvas");
-  canvas.width = Math.round(bitmap.width * scale);
-  canvas.height = Math.round(bitmap.height * scale);
-  canvas.getContext("2d")!.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
-  bitmap.close();
-  const blob = await new Promise<Blob | null>((ok) => canvas.toBlob(ok, "image/jpeg", QUALITY));
-  if (!blob) throw new Error("could not encode");
-  return new File([blob], file.name.replace(/\.[^.]+$/, "") + ".jpg", { type: "image/jpeg" });
-}
-
 /**
  * The person's photos in the biodata form: up to five, all optional. Pictures already saved show first; new ones are
- * shrunk in the browser and go with the form's submit (a hidden file input named \`photos\`), and \`photoOrder\` says
- * the order, saved ones as "k:<id>" and new ones as "n:<index>". The first picture is the one on the cards; any
- * other can be moved there. Without JavaScript nothing is shown and the saved photos stay as they are.
+ * shrunk in the browser to at most 100 KB whatever their size (lib/shrink-image.ts) and go with the form's submit
+ * (a hidden file input named `photos`), and `photoOrder` says the order, saved ones as "k:<id>" and new ones as
+ * "n:<index>". The first picture is the one on the cards; any other can be moved there. Without JavaScript nothing is
+ * shown and the saved photos stay as they are.
  */
 export function PhotoPicker({ saved }: { saved: { id: string }[] }) {
   const { t } = useT();
@@ -62,7 +47,7 @@ export function PhotoPicker({ saved }: { saved: { id: string }[] }) {
     const made: Item[] = [];
     for (const file of chosen) {
       try {
-        const small = await shrink(file);
+        const small = await shrinkImage(file);
         made.push({ kind: "new", key: crypto.randomUUID(), file: small, src: URL.createObjectURL(small) });
       } catch {
         setNote(t("photo.cannotOpen"));

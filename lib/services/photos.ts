@@ -8,8 +8,8 @@ import { getStore, type PhotoStore } from "../storage";
 // the rows say which belong to whom and in what order. Every function is scoped to the ghotok.
 
 export const MAX_PHOTOS = 5;
-/** the browser shrinks each picture to about 200 KB first; this only stops something odd */
-export const MAX_PHOTO_BYTES = 3 * 1024 * 1024;
+/** the browser shrinks each picture to at most 100 KB first (lib/shrink-image.ts); this only stops something odd */
+export const MAX_PHOTO_BYTES = 1024 * 1024;
 
 /** The picture the cards show: the first photo, served by the app. */
 export const photoSrc = (id: string) => `/api/photos/${id}`;
@@ -37,7 +37,7 @@ export interface PhotoChange {
 
 export const noPhotoChange = (): PhotoChange => ({ order: [], files: [] });
 
-/** Read the form's photo fields: the files, and the order (\`photoOrder\`); absent when the form has no picker. */
+/** Read the form's photo fields: the files, and the order (`photoOrder`); absent when the form has no picker. */
 export function photoChangeFrom(form: FormData): PhotoChange | null {
   if (!form.has("photoOrder") && !form.has("photos")) return null;
   const files = form.getAll("photos").filter((f): f is File => typeof f === "object" && f.size > 0);

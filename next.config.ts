@@ -6,8 +6,8 @@ const nextConfig: NextConfig = {
   // PGlite ships a WebAssembly build of Postgres that must load from node_modules, not from a bundle.
   serverExternalPackages: ["@electric-sql/pglite"],
   experimental: {
-    // the biodata form carries up to five photos, each shrunk to about 200 KB in the browser; the default is 1 MB
-    serverActions: { bodySizeLimit: "4mb" },
+    // the biodata form carries up to five photos, each shrunk to at most 100 KB in the browser; 2 MB leaves room
+    serverActions: { bodySizeLimit: "2mb" },
   },
   turbopack: {
     rules: {

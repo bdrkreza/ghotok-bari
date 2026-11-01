@@ -59,8 +59,10 @@ hoped for as an age range, least education, marital status and districts, which 
 
 ### Photos
 
-Up to five photos per person, all optional, on the form's last step. The browser shrinks each to a JPEG of at most
-1280 pixels (about 100-200 KB) before sending, so a slow connection copes. The first is the card picture
+Up to five photos per person, all optional, on the form's last step. Whatever their size, the browser turns each into
+a JPEG of at most 100 KB before sending (`lib/shrink-image.ts`: 1280 pixels and good quality first, then lower
+quality, then smaller, down to 480 pixels), so a slow connection copes and the free 1 GB holds about 2,000 people's five
+photos. The first is the card picture
 (`profile.photo_url` points at it, so every list shows it); any other can be moved first. Photos are private like the
 name: `/api/photos/<id>` sends one only to the ghotok's side or to the family who wrote that biodata, and a 404 to
 everyone else; other families and the shared link never see them. The files live in a private Supabase Storage bucket
@@ -184,7 +186,7 @@ worker is not registered by the dev server. Installing needs HTTPS, except on `l
    connection string from Project → Connect.
 2. Copy `.env.example` to `.env.local` and fill in `DATABASE_URL` (pooler), `DIRECT_URL` (direct) and
    `BETTER_AUTH_SECRET` (`openssl rand -base64 32`). For photos, also `SUPABASE_URL` and
-   `SUPABASE_SERVICE_ROLE_KEY` (Project Settings → API); the free plan's 1 GB holds about a thousand people's five
+   `SUPABASE_SERVICE_ROLE_KEY` (Project Settings → API); the free plan's 1 GB holds about 2,000 people's five
    photos, at no cost.
 3. Migrate and run:
 
