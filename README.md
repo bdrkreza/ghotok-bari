@@ -57,6 +57,17 @@ brothers and sisters, the family's means and religious practice; the "after marr
 study or work, where they will live, any dowry; a bride: will she study or work, is a joint family fine); and the match
 hoped for as an age range, least education, marital status and districts, which the ghotok's match suggestions use.
 
+### Photos
+
+Up to five photos per person, all optional, on the form's last step. The browser shrinks each to a JPEG of at most
+1280 pixels (about 100-200 KB) before sending, so a slow connection copes. The first is the card picture
+(`profile.photo_url` points at it, so every list shows it); any other can be moved first. Photos are private like the
+name: `/api/photos/<id>` sends one only to the ghotok's side or to the family who wrote that biodata, and a 404 to
+everyone else; other families and the shared link never see them. The files live in a private Supabase Storage bucket
+(`lib/storage.ts`, made on first use) when `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` are set; in development
+without them, in `./.data/photos`; in production without them the picker is not shown. Deleting a biodata deletes its
+files.
+
 ### Filling the form from a file
 
 Families usually already have a biodata: a Word file, a PDF, or a photo of a printed sheet. "ফাইল থেকে ভরুন" on the
@@ -172,7 +183,9 @@ worker is not registered by the dev server. Installing needs HTTPS, except on `l
 1. Create a Supabase project. Copy the **Shared Pooler** (transaction mode) connection string and the **Direct**
    connection string from Project → Connect.
 2. Copy `.env.example` to `.env.local` and fill in `DATABASE_URL` (pooler), `DIRECT_URL` (direct) and
-   `BETTER_AUTH_SECRET` (`openssl rand -base64 32`).
+   `BETTER_AUTH_SECRET` (`openssl rand -base64 32`). For photos, also `SUPABASE_URL` and
+   `SUPABASE_SERVICE_ROLE_KEY` (Project Settings → API); the free plan's 1 GB holds about a thousand people's five
+   photos, at no cost.
 3. Migrate and run:
 
 ```bash
@@ -220,7 +233,6 @@ docs/screens/   screenshots of every screen
 
 ## Next steps
 
-- Photo upload to Supabase Storage (today a photo is a pasted link).
 - SMS OTP at sign-in, once an SMS provider is chosen.
 - Share a printable biodata (PDF) of one person with a family.
 - Reminders: "call the patri's family on Friday".

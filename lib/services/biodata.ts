@@ -3,6 +3,7 @@ import type { Db } from "../db";
 import { profile, type Profile } from "../db/schema";
 import { AppError } from "../errors";
 import { createProfile, findSame, parseProfile, profileWhere, type ProfileFilter } from "./profiles";
+import { deletePhotosOf } from "./photos";
 import { FAMILY_VIEW } from "./share";
 
 // A family's side of biodata. Their own entries are scoped twice: to the site's ghotok and to their account
@@ -59,6 +60,7 @@ export async function updateMyBiodata(db: Db, ghotokId: string, ownerUserId: str
 export async function deleteMyBiodata(db: Db, ghotokId: string, ownerUserId: string, id: string): Promise<void> {
   const existing = await getMyBiodata(db, ghotokId, ownerUserId, id);
   if (existing.approval === "approved") throw new AppError("ask_ghotok");
+  await deletePhotosOf(db, ghotokId, id);
   await db.delete(profile).where(and(eq(profile.id, id), mine(ghotokId, ownerUserId)));
 }
 

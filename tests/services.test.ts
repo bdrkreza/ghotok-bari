@@ -78,7 +78,6 @@ describe("people", () => {
     const y = currentYear();
     expect(fieldsOf(() => parseProfile(personForm({
       name: "ক", district: "", guardianPhone: "12345", heightCm: "৯০", brothers: "1.5", monthlyIncome: "-5",
-      photoUrl: "photo",
     })))).toEqual({
       name: { code: "short", vars: { n: 2 } },
       district: { code: "need_district" },
@@ -86,7 +85,6 @@ describe("people", () => {
       heightCm: { code: "range", vars: { min: 100, max: 250 } },
       brothers: { code: "number" },
       monthlyIncome: { code: "min", vars: { min: 0 } },
-      photoUrl: { code: "url" },
     });
     // the age order is checked once every field on its own is fine
     expect(fieldsOf(() => parseProfile(personForm({ expectAgeMin: "30", expectAgeMax: "25" })))).toEqual({ expectAgeMax: { code: "age_order" } });

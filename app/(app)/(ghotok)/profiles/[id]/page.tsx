@@ -14,6 +14,7 @@ import { suggestFor } from "@/lib/services/match";
 import { getProfile, profileOwner } from "@/lib/services/profiles";
 import { proposalsFor } from "@/lib/services/proposals";
 import { getShare } from "@/lib/services/share";
+import { listPhotos } from "@/lib/services/photos";
 import { ageFromYear } from "@/lib/time";
 
 export default async function ProfilePage(props: PageProps<"/profiles/[id]">) {
@@ -23,12 +24,13 @@ export default async function ProfilePage(props: PageProps<"/profiles/[id]">) {
   const db = getDb();
   const p = await orNotFound(getProfile(db, user.ghotokId, id));
   const listed = p.approval === "approved";
-  const [proposals, suggestions, share, owner, origin] = await Promise.all([
+  const [proposals, suggestions, share, owner, origin, photos] = await Promise.all([
     proposalsFor(db, user.ghotokId, p.id),
     listed && p.status === "active" ? suggestFor(db, user.ghotokId, p) : Promise.resolve([]),
     getShare(db, user.ghotokId, p.id),
     profileOwner(db, user.ghotokId, p),
     siteOrigin(),
+    listPhotos(db, user.ghotokId, p.id),
   ]);
   const other = p.kind === "patro" ? "patri" : "patro";
   const pairHref = (otherId: string) => `/proposals/new?${p.kind}=${p.id}&${other}=${otherId}`;
@@ -59,7 +61,7 @@ export default async function ProfilePage(props: PageProps<"/profiles/[id]">) {
         profile card stays on the left and the rest runs down the right.
       */}
       <FamilyBiodata
-        b={p} t={T} full={p}
+        b={p} t={T} full={{ ...p, photos }}
         badges={
           <>
             <div className="flex flex-wrap items-center gap-1.5">

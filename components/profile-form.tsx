@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent, type
 import { BiodataImport } from "@/components/biodata-import";
 import { ActionForm, Checkbox, Choice, ConfirmCheck, Field, FieldErrors, Hidden, TextArea } from "@/components/form";
 import { Icon } from "@/components/icons";
+import { PhotoPicker } from "@/components/photo-picker";
 import { primaryButton, quietButton } from "@/components/ui";
 import type { Imported } from "@/lib/biodata-import/parse";
 import type { Profile, ProfileKind } from "@/lib/db/schema";
@@ -16,7 +17,7 @@ import { createProfileAction, updateProfileAction } from "@/lib/actions/profiles
 import {
   AFTER_HOMES, BLOOD_GROUPS, CHOICES, COMPLEXIONS, DOWRIES, EDUCATION_MEDIUMS, EXPECT_EDUCATIONS, EXPECT_MARITALS, FAMILY_STATUSES,
   MARITAL_STATUSES, MIN_AGE, RELIGIONS, missing,
-} from "@/lib/services/profiles";
+} from "@/lib/profile-fields";
 
 /** Who is filling the form: the ghotok (full form, their private notes) or a family (their own biodata, no notes). */
 export type Viewer = "admin" | "customer";
@@ -36,6 +37,9 @@ interface Props {
   importable?: boolean;
   /** the import reads with AI on the server (an API key is set) instead of in the browser */
   ai?: boolean;
+  /** photo upload is on (lib/storage.ts); `photos` are the ones already saved, in order */
+  photosOn?: boolean;
+  photos?: { id: string }[];
 }
 
 const STEPS = 6;
@@ -56,7 +60,7 @@ type Marked = Record<string, { message: string; step: number }>;
  * Everything beyond name, birth year and district is optional. With `importable`, a photo, PDF or Word file of an
  * existing biodata can fill the fields first.
  */
-export function ProfileForm({ kind, profile, minYear, maxYear, viewer = "admin", importable = false, ai = false }: Props) {
+export function ProfileForm({ kind, profile, minYear, maxYear, viewer = "admin", importable = false, ai = false, photosOn = false, photos = [] }: Props) {
   const { t, n, options } = useT();
   const edit = !!profile;
   const family = viewer === "customer";
@@ -92,7 +96,7 @@ export function ProfileForm({ kind, profile, minYear, maxYear, viewer = "admin",
     if (!root) return;
     const byName = new Map<string, boolean>();
     for (const el of root.querySelectorAll<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>("input, select, textarea")) {
-      if (el.type === "hidden") continue;
+      if (el.type === "hidden" || el.type === "file" || !el.name) continue;
       const filled = el.type === "radio" || el.type === "checkbox" ? (el as HTMLInputElement).checked && el.value !== "" : el.value.trim() !== "";
       byName.set(el.name, (byName.get(el.name) ?? false) || filled);
     }
@@ -303,7 +307,11 @@ export function ProfileForm({ kind, profile, minYear, maxYear, viewer = "admin",
         pendingLabel={family ? t("form.submitting") : undefined}
         footer={(button, state) => (
           <div className="flex flex-col gap-3 border-t border-line pt-4">
-            {state.existing && !edit ? (
+            {state.existing?.saved ? (
+              <Link href={family ? `/me/biodata/${state.existing.id}/edit` : `/profiles/${state.existing.id}/edit`} className={primaryButton}>
+                <Icon name="edit" size={18} />{t("dup.openSaved", { no: state.existing.label })}
+              </Link>
+            ) : state.existing && !edit ? (
               // the same person is already there: open that one, or (the ghotok only) add this one anyway, which takes
               // the place of the usual button, since pressing that again would only warn again
               <div className="flex flex-col gap-2 sm:flex-row">
@@ -328,7 +336,7 @@ export function ProfileForm({ kind, profile, minYear, maxYear, viewer = "admin",
                 {step > 0 ? (
                   <button type="button" onClick={() => go(step - 1)} className={quietButton}><Icon name="back" size={18} />{t(STEP_NAMES[step - 1])}</button>
                 ) : null}
-                {last ? (state.existing && !edit && !family ? null : <div className="sm:min-w-56">{button}</div>) : (
+                {last ? (state.existing?.saved || (state.existing && !edit && !family) ? null : <div className="sm:min-w-56">{button}</div>) : (
                   <button type="button" onClick={next} className={primaryButton}>{t("form.nextNamed", { name: t(STEP_NAMES[step + 1]) })}<Icon name="chevronRight" size={18} /></button>
                 )}
               </div>
@@ -436,9 +444,11 @@ export function ProfileForm({ kind, profile, minYear, maxYear, viewer = "admin",
                 <Wide>
                   <TextArea name="expectations" maxLength={2000} label={t("form.expectations")} placeholder={t("form.expectationsPlaceholder")} defaultValue={v.expectations} tag={tags("expectations", "all")} />
                 </Wide>
-                <Wide>
-                  <Field name="photoUrl" maxLength={500} label={t("form.photo")} type="url" inputMode="url" placeholder="https://…" defaultValue={v.photoUrl} hint={t("form.photoHint")} tag={tags("photoUrl", "ghotok")} />
-                </Wide>
+                {photosOn ? (
+                  <Wide>
+                    <PhotoPicker saved={photos} />
+                  </Wide>
+                ) : null}
                 {family ? null : (
                   <Wide>
                     <TextArea name="notes" maxLength={2000} label={t("form.notes")} placeholder={t("form.notesPlaceholder")} defaultValue={v.notes} />

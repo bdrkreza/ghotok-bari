@@ -11,8 +11,11 @@ export interface FormState {
   notice?: string;
   /** a message per refused field, shown under that field */
   fieldErrors?: Record<string, string>;
-  /** the biodata the refusal points at: its id and its number as the user reads it ("পাত্রী-৭") */
-  existing?: { id: string; label: string };
+  /**
+   * the biodata the refusal points at: its id and its number as the user reads it ("পাত্রী-৭"); `saved` when it is
+   * the one just handed in (its photos failed), not an earlier one
+   */
+  existing?: { id: string; label: string; saved?: boolean };
 }
 
 export const field = (form: FormData, key: string) => String(form.get(key) ?? "").trim();
@@ -39,7 +42,7 @@ export async function attempt(fn: () => Promise<FormState | void>, values?: Reco
       return {
         error: messageFor(e.code, lang), values,
         ...(e.fields ? { fieldErrors: fieldMessages(e.fields, lang) } : {}),
-        ...(e.existing ? { existing: { id: e.existing.id, label: makeT(lang).biodataNo(e.existing.kind, e.existing.code) } } : {}),
+        ...(e.existing ? { existing: { id: e.existing.id, label: makeT(lang).biodataNo(e.existing.kind, e.existing.code), saved: e.code === "photo_upload_failed" } } : {}),
       };
     }
     throw e;

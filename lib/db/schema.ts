@@ -160,6 +160,23 @@ export const biodataShare = pgTable("biodata_share", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 }).enableRLS();
 
+/**
+ * A photo of a person: up to five each, the file in storage (Supabase Storage, or ./.data/photos in development) at
+ * `path`. Private like the name: only the ghotok and the family who wrote the biodata see them, through
+ * /api/photos/<id>. The first by `position` is the picture on the card.
+ */
+export const profilePhoto = pgTable("profile_photo", {
+  id: uuid("id").primaryKey(),
+  ghotokId: text("ghotok_id").notNull().references(() => user.id, { onDelete: "cascade" }),
+  profileId: uuid("profile_id").notNull().references(() => profile.id, { onDelete: "cascade" }),
+  /** where the file is in storage: <ghotokId>/<profileId>/<id>.jpg */
+  path: text("path").notNull(),
+  contentType: text("content_type").notNull(),
+  /** 0 is the cover picture */
+  position: integer("position").notNull().default(0),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => [index("profile_photo_profile").on(t.profileId, t.position)]).enableRLS();
+
 /* ---------- proposals ---------- */
 
 export type ProposalStatus = "prostab" | "dekha_shona" | "kotha_cholche" | "thik_hoyeche" | "biye_hoyeche" | "bad";
@@ -237,3 +254,4 @@ export type Proposal = typeof proposal.$inferSelect;
 export type ProposalEvent = typeof proposalEvent.$inferSelect;
 export type LedgerEntry = typeof ledgerEntry.$inferSelect;
 export type BiodataShare = typeof biodataShare.$inferSelect;
+export type ProfilePhoto = typeof profilePhoto.$inferSelect;

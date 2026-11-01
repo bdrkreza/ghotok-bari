@@ -1,17 +1,22 @@
 import { and, count, desc, eq, gte, ilike, lte, or, sql, type SQL } from "drizzle-orm";
 import { z } from "zod";
 import type { Db } from "../db";
-import {
-  profile, user, type AfterHome, type Approval, type BloodGroup, type Choice, type Complexion, type Dowry, type EducationMedium,
-  type ExpectEducation, type ExpectMarital, type FamilyStatus, type MaritalStatus, type Profile, type ProfileKind, type ProfileStatus, type Religion,
-} from "../db/schema";
+import { profile, user, type Approval, type MaritalStatus, type Profile, type ProfileKind, type ProfileStatus, type Religion } from "../db/schema";
 import { AppError, type Existing, type FieldIssue, type FieldIssues } from "../errors";
+import { deletePhotosOf } from "./photos";
+import {
+  AFTER_HOMES, BLOOD_GROUPS, CHOICES, COMPLEXIONS, DOWRIES, EDUCATION_MEDIUMS, EXPECT_EDUCATIONS, EXPECT_MARITALS, FAMILY_STATUSES,
+  MARITAL_STATUSES, MIN_AGE, RELIGIONS, missing,
+} from "../profile-fields";
+
+export {
+  AFTER_HOMES, BLOOD_GROUPS, CHOICES, COMPLEXIONS, DOWRIES, EDUCATION_MEDIUMS, EXPECT_EDUCATIONS, EXPECT_MARITALS, FAMILY_STATUSES,
+  MARITAL_STATUSES, MIN_AGE, RELIGIONS, missing,
+};
 import { normalizePhone } from "../auth/phone";
 import type { Place } from "../search";
 import { currentYear } from "../time";
 
-// Legal minimum ages in Bangladesh (Child Marriage Restraint Act 2017): groom 21, bride 18.
-export const MIN_AGE: Record<ProfileKind, number> = { patro: 21, patri: 18 };
 
 /** runs of spaces become one, so "রহিম  উদ্দিন" and "রহিম উদ্দিন" are the same name */
 function oneSpace(s: string) { return s.split(/\s+/).join(" "); }
@@ -31,15 +36,6 @@ const optionalInt = (min: number, max: number) =>
 const pick = <V extends string>(values: readonly [V, ...V[]]) =>
   z.union([z.enum(values), z.literal("")]).transform((s) => (s || null) as V | null);
 
-export const COMPLEXIONS: readonly [Complexion, ...Complexion[]] = ["forsha", "ujjol_shyamla", "shyamla", "kalo"];
-export const BLOOD_GROUPS: readonly [BloodGroup, ...BloodGroup[]] = ["A+", "A-", "B+", "B-", "O+", "O-", "AB+", "AB-"];
-export const EDUCATION_MEDIUMS: readonly [EducationMedium, ...EducationMedium[]] = ["general", "madrasa", "english"];
-export const FAMILY_STATUSES: readonly [FamilyStatus, ...FamilyStatus[]] = ["nimno", "moddho", "uccho_moddho", "uccho"];
-export const CHOICES: readonly [Choice, ...Choice[]] = ["yes", "no", "discuss"];
-export const AFTER_HOMES: readonly [AfterHome, ...AfterHome[]] = ["family", "city", "abroad", "undecided"];
-export const DOWRIES: readonly [Dowry, ...Dowry[]] = ["none", "gift", "discuss"];
-export const EXPECT_EDUCATIONS: readonly [ExpectEducation, ...ExpectEducation[]] = ["ssc", "hsc", "bachelor", "master"];
-export const EXPECT_MARITALS: readonly [ExpectMarital, ...ExpectMarital[]] = ["obibahito", "talak_ok", "bidhoba_ok"];
 
 const profileInput = z.object({
   kind: z.enum(["patro", "patri"]),
@@ -85,7 +81,6 @@ const profileInput = z.object({
   expectEducation: pick(EXPECT_EDUCATIONS),
   expectMarital: pick(EXPECT_MARITALS),
   expectDistricts: optional(200),
-  photoUrl: z.union([z.url().max(500), z.literal("")]).transform((s) => s || null),
   /** the form's "বাবা-মায়ের নাম দেখাতে আপত্তি নেই" tick: "on" when ticked, absent otherwise */
   showParents: z.string().transform((s) => s === "on"),
   notes: optional(2000),
@@ -95,14 +90,6 @@ const profileInput = z.object({
 
 /** Every field the form may send; a missing one is read as empty. */
 const FIELDS = Object.keys(profileInput.shape);
-
-/** What to say when a required field was left empty: it names what to write, not just "fill this". */
-export function missing(name: string, kind: ProfileKind): FieldIssue {
-  if (name === "name") return { code: kind === "patri" ? "need_name_patri" : "need_name_patro" };
-  if (name === "birthYear") return { code: "need_birth_year" };
-  if (name === "district") return { code: "need_district" };
-  return { code: "required" };
-}
 
 /** One zod issue as the reason the form shows under that field. */
 function fieldIssue(issue: z.core.$ZodIssue, value: string, kind: ProfileKind): FieldIssue {
@@ -118,7 +105,6 @@ function fieldIssue(issue: z.core.$ZodIssue, value: string, kind: ProfileKind): 
     if (issue.message === "age_range") return { code: "age_order" };
     return missing(name, kind); // the birth year's "must have one" check
   }
-  if (issue.path[0] === "photoUrl") return { code: "url" };
   return { code: "choice" };
 }
 
@@ -214,6 +200,7 @@ export async function setShowParents(db: Db, ghotokId: string, id: string, show:
 
 export async function deleteProfile(db: Db, ghotokId: string, id: string): Promise<void> {
   await getProfile(db, ghotokId, id);
+  await deletePhotosOf(db, ghotokId, id);
   await db.delete(profile).where(and(eq(profile.id, id), eq(profile.ghotokId, ghotokId)));
 }
 
@@ -351,5 +338,3 @@ export async function recentProfiles(db: Db, ghotokId: string, limit = 6) {
 
 export type RecentProfile = Awaited<ReturnType<typeof recentProfiles>>[number];
 
-export const RELIGIONS: Religion[] = ["islam", "hindu", "christian", "buddhist", "other"];
-export const MARITAL_STATUSES: MaritalStatus[] = ["obibahito", "talakprapto", "bidhoba"];

@@ -56,7 +56,6 @@ export function personForm(over: Record<string, string> = {}): Record<string, st
     guardianPhone: "",
     familyDetails: "",
     expectations: "",
-    photoUrl: "",
     notes: "",
     ...over,
   };

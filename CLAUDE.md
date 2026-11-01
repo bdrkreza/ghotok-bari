@@ -30,6 +30,11 @@ Read README.md for the screens, roles, data model and setup.
   `ANTHROPIC_API_KEY` (paid, wins when both are set), `lib/actions/import.ts` sends the file to the model
   (`lib/biodata-import/ai.ts`), and the browser falls back to its own path when that fails. Keep every path
   returning the same `Imported` fields.
+- Photos (up to five, optional) go through `lib/services/photos.ts` and the store in `lib/storage.ts` (Supabase
+  Storage, or `./.data/photos` in development); they are served only by `/api/photos/[id]`, which lets the ghotok's
+  side and the owning family through and nobody else. `profile.photo_url` is kept pointing at the first photo. Client
+  components never import `lib/services/*` (they reach the database and the store); plain data the form needs lives in
+  `lib/profile-fields.ts`.
 - Expected failures throw `AppError(code)` (`lib/errors.ts`); `attempt()` in `lib/form.ts` turns them into a Bangla
   message for the form. Raw error text never reaches the user.
 - Server actions take `(prev: FormState, form: FormData)` and are used through `ActionForm` in `components/form.tsx`.

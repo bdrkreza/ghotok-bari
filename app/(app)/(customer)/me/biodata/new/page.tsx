@@ -11,6 +11,7 @@ import { getT } from "@/lib/i18n/server";
 import { MIN_AGE } from "@/lib/services/profiles";
 import { publicSite } from "@/lib/services/site";
 import { currentYear } from "@/lib/time";
+import { photosEnabled } from "@/lib/storage";
 
 export async function generateMetadata(): Promise<Metadata> {
   const { t } = await getT();
@@ -43,7 +44,7 @@ export default async function NewBiodataPage(props: PageProps<"/me/biodata/new">
               ))}
             </div>
           </div>
-          <ProfileForm kind={kind} minYear={year - 100} maxYear={year - MIN_AGE[kind]} viewer="customer" importable ai={aiAvailable()} />
+          <ProfileForm kind={kind} minYear={year - 100} maxYear={year - MIN_AGE[kind]} viewer="customer" importable ai={aiAvailable()} photosOn={photosEnabled()} />
         </div>
         <BiodataFormAside site={site} t={T} />
       </div>

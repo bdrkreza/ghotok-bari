@@ -17,7 +17,7 @@ export type { FamilyView };
  * lock beside each; `notes` is the ghotok's own, passed on their page only.
  */
 export type PrivateFields = Pick<Profile, "name" | "fatherName" | "motherName" | "guardianName" | "guardianPhone" | "monthlyIncome" | "photoUrl">
-  & { notes?: string | null };
+  & { notes?: string | null; /** uploaded photos in order, the first being the cover */ photos?: { id: string }[] };
 
 /** The family in numbers, as chips: "২ ভাই", "১ বোন", "মধ্যবিত্ত". */
 export function familyTags(b: Pick<FamilyView, "brothers" | "sisters" | "familyStatus">, t: T): string[] {
@@ -219,6 +219,25 @@ export function FamilyBiodata({ b, t, aside, full, badges, more }: Props) {
         <Section t={t} icon="people" title={t.t("facts.family")} rows={family} />
         <Section t={t} icon="home" title={t.t("facts.after")} rows={after.map(([label, value]) => ({ label, value }))} />
         <Section t={t} icon="heart" title={t.t("facts.expectations")} rows={wants} />
+        {full?.photos?.length ? (
+          <section className="flex flex-col gap-4 rounded-3xl border border-line bg-surface p-5 lg:p-6">
+            <header className="flex items-center gap-3">
+              <span aria-hidden className="grid size-11 shrink-0 place-items-center rounded-full bg-primary-soft text-primary"><Icon name="people" size={20} /></span>
+              <h2 className="flex items-center gap-1.5 font-display text-xl font-bold">{t.t("photo.title")}<Locked t={t} /></h2>
+            </header>
+            <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+              {full.photos.map((p, i) => (
+                <li key={p.id}>
+                  {/* the full picture in a new tab; the app checks who is asking before it sends the file */}
+                  <a href={`/api/photos/${p.id}`} target="_blank" rel="noopener" className="block aspect-[3/4] overflow-hidden rounded-xl border border-line bg-sunk">
+                    {/* eslint-disable-next-line @next/next/no-img-element -- the app's own photo route */}
+                    <img src={`/api/photos/${p.id}`} alt={t.t("photo.alt", { n: i + 1 })} loading="lazy" className="size-full object-cover" />
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </section>
+        ) : null}
         {full?.notes ? <Section t={t} icon="note" title={t.t("facts.notes")} rows={[{ label: t.t("form.notes"), value: prose(full.notes), locked: true }]} /> : null}
         {full ? null : (
           <section className="flex flex-col gap-3 rounded-3xl border border-dashed border-line bg-surface p-5 lg:p-6">

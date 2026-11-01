@@ -9,6 +9,7 @@ import { getDb } from "@/lib/db";
 import { getT } from "@/lib/i18n/server";
 import { orNotFound } from "@/lib/not-found";
 import { getMyBiodata } from "@/lib/services/biodata";
+import { listPhotos } from "@/lib/services/photos";
 import { ageFromYear } from "@/lib/time";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -25,6 +26,7 @@ export default async function MyBiodataPage(props: PageProps<"/me/biodata/[id]">
   const { t } = T;
   const { id } = await props.params;
   const p = await orNotFound(getMyBiodata(getDb(), me.ghotokId, me.id, id));
+  const photos = await listPhotos(getDb(), me.ghotokId, p.id);
 
   return (
     <>
@@ -34,7 +36,7 @@ export default async function MyBiodataPage(props: PageProps<"/me/biodata/[id]">
       <FamilyBiodata
         b={p} t={T}
         // the ghotok's notes are never the family's to read
-        full={{ ...p, notes: null }}
+        full={{ ...p, notes: null, photos }}
         badges={
           <>
             <div className="flex flex-wrap items-center gap-1.5"><ApprovalBadge approval={p.approval} /></div>

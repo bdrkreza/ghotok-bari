@@ -22,7 +22,12 @@ export type AppErrorCode =
   | "file_too_big"
   | "pledge_required"
   | "biodata_exists"
-  | "maybe_same";
+  | "maybe_same"
+  | "too_many_photos"
+  | "bad_photo"
+  | "photo_too_big"
+  | "photos_off"
+  | "photo_upload_failed";
 
 /** Why one field was refused; the form shows "fe.<code>" from the dictionary under that field, with `vars` filled in. */
 export type FieldErrorCode =

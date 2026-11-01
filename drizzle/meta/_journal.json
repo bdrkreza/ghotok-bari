@@ -50,6 +50,13 @@
       "when": 1793548988594,
       "tag": "0006_perpetual_the_captain",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1793550083088,
+      "tag": "0007_orange_susan_delgado",
+      "breakpoints": true
     }
   ]
 }
