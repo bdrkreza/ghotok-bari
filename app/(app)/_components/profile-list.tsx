@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import { Avatar } from "@/components/avatar";
 import { FilterPanel } from "./filters";
 import { Icon, type IconName } from "@/components/icons";
-import { Empty, PageHeader, ProfileBadge, primaryButton, quietButton } from "@/components/ui";
+import { Empty, ProfileBadge, primaryButton, quietButton } from "@/components/ui";
 import { requireAdmin, requireCustomer } from "@/lib/auth/session";
 import { getDb } from "@/lib/db";
 import type { MaritalStatus, ProfileKind, ProfileStatus, Religion } from "@/lib/db/schema";
@@ -11,7 +11,7 @@ import type { T } from "@/lib/i18n";
 import { getT } from "@/lib/i18n/server";
 import { bandLabel, bandOptions, listHref, parseAmount, parseBand, parseNo, type ListParams } from "@/lib/search";
 import { browseBiodata } from "@/lib/services/biodata";
-import { MARITAL_STATUSES, RELIGIONS, listProfiles, places } from "@/lib/services/profiles";
+import { MARITAL_STATUSES, RELIGIONS, listProfiles, places, statusCounts } from "@/lib/services/profiles";
 import { ageFromYear } from "@/lib/time";
 
 /** Who is looking: the ghotok sees everyone in full; a family sees approved people without names, photos or contacts. */
@@ -66,11 +66,12 @@ export async function ProfileList({ kind, query, viewer }: { kind: ProfileKind; 
     kind, q: p.q, code: no, ageMin: age?.min, ageMax: age?.max, district: p.district, upazila: p.upazila,
     religion, maritalStatus: marital, education: p.education, profession: p.profession, heightMin: height?.min, heightMax: height?.max,
   };
-  const [rows, seen] = await Promise.all([
+  const [rows, seen, counts] = await Promise.all([
     viewer === "admin"
       ? listProfiles(db, who.ghotokId, { ...filter, status, incomeMin: income })
       : browseBiodata(db, who.ghotokId, filter),
     places(db, who.ghotokId),
+    viewer === "admin" ? statusCounts(db, who.ghotokId, { ...filter, incomeMin: income }) : null,
   ]);
   const districts = [...new Set(seen.map((s) => s.district))];
   const upazilas = seen.filter((s): s is { district: string; upazila: string } => Boolean(s.upazila) && (!p.district || s.district === p.district));
@@ -96,11 +97,7 @@ export async function ProfileList({ kind, query, viewer }: { kind: ProfileKind; 
 
   return (
     <>
-      <PageHeader title={kindLabel} sub={viewer === "admin" ? t("list.subAdmin") : t("list.subFamily")}
-        action={viewer === "admin"
-          ? <Link href={addHref} className={`${primaryButton} min-h-11 px-3`}><Icon name="plus" size={18} />{t("common.new")}</Link>
-          : <Link href={addHref} className={`${quietButton} min-h-11 px-3 text-sm`}><Icon name="plus" size={18} />{t("list.give")}</Link>} />
-
+      <h1 className="sr-only">{kindLabel}</h1>
       <div className="flex flex-col gap-4 lg:grid lg:grid-cols-[17rem_1fr] lg:items-start lg:gap-6">
         <FilterPanel active={chips.length}>
           <form method="get" action={`/${kind}`} className="flex flex-col" role="search">
@@ -153,13 +150,15 @@ export async function ProfileList({ kind, query, viewer }: { kind: ProfileKind; 
         <section className="flex min-w-0 flex-col gap-4">
           <div className="rounded-2xl border border-line bg-surface">
             {viewer === "admin" ? (
-              <nav aria-label={t("list.status")} className="flex gap-1 overflow-x-auto px-2">
+              // the tabs slide sideways on a narrow screen; no scrollbar, the cut-off tab says there is more
+              <nav aria-label={t("list.status")} className="flex gap-1 overflow-x-auto overflow-y-hidden px-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                 {STATUSES.map((s) => {
                   const on = s === status;
                   return (
                     <Link key={s} href={href({ status: s })} aria-current={on ? "page" : undefined}
-                      className={`-mb-px shrink-0 border-b-2 px-3 py-3 text-sm font-bold ${on ? "border-primary text-primary" : "border-transparent text-muted hover:text-ink"}`}>
+                      className={`flex shrink-0 items-center gap-1.5 border-b-2 px-3 py-3 text-sm font-bold ${on ? "border-primary text-primary" : "border-transparent text-muted hover:text-ink"}`}>
                       {s === "all" ? t("list.all") : t(`profileStatus.${s}`)}
+                      {counts ? <span className={`rounded-full px-2 py-0.5 text-xs ${on ? "bg-primary text-on-primary" : "bg-sunk text-muted"}`}>{T.n(counts[s])}</span> : null}
                     </Link>
                   );
                 })}
@@ -174,12 +173,16 @@ export async function ProfileList({ kind, query, viewer }: { kind: ProfileKind; 
                 </Link>
               ))}
               {chips.length ? <Link href={clearHref} className="font-bold text-primary">{t("list.clearAll")}</Link> : null}
+              {/* the page has no header row; adding someone sits at the end of the count line */}
+              {viewer === "admin"
+                ? <Link href={addHref} className={`${primaryButton} ml-auto min-h-10 px-3 text-sm`}><Icon name="plus" size={16} />{t("common.new")}</Link>
+                : <Link href={addHref} className={`${quietButton} ml-auto min-h-10 px-3 text-sm`}><Icon name="plus" size={16} />{t("list.give")}</Link>}
             </div>
           </div>
 
           {rows.length ? (
             <ul className="grid gap-4 sm:grid-cols-2">
-              {rows.map((r) => <BiodataCard key={r.id} p={r} viewer={viewer} t={T} />)}
+              {rows.map((r) => <BiodataCard key={r.id} p={r} viewer={viewer} badge={viewer === "admin" && status === "all"} t={T} />)}
             </ul>
           ) : (
             <Empty action={chips.length
@@ -199,7 +202,7 @@ export async function ProfileList({ kind, query, viewer }: { kind: ProfileKind; 
  * For the ghotok the title is the name and the photo shows; for a family the number is the title and the picture is
  * always the silhouette.
  */
-function BiodataCard({ p, viewer, t }: { p: CardRow; viewer: Viewer; t: T }) {
+function BiodataCard({ p, viewer, badge, t }: { p: CardRow; viewer: Viewer; badge: boolean; t: T }) {
   const no = t.biodataNo(p.kind, p.code);
   const title = viewer === "admin" && p.name ? p.name : no;
   const facts: [IconName, string][] = [
@@ -211,28 +214,29 @@ function BiodataCard({ p, viewer, t }: { p: CardRow; viewer: Viewer; t: T }) {
   if (p.profession) facts.push(["briefcase", p.profession]);
   else if (p.education) facts.push(["school", p.education]);
   return (
-    <li className="grid grid-cols-[6.5rem_1fr] overflow-hidden rounded-2xl border border-line bg-surface sm:grid-cols-[7.5rem_1fr]">
+    // the whole card opens the biodata: the link below stretches over it
+    <li className="relative grid grid-cols-[6.5rem_1fr] overflow-hidden rounded-2xl border border-line bg-surface transition hover:border-primary hover:shadow-md focus-within:border-primary sm:grid-cols-[7.5rem_1fr]">
       <div className="flex flex-col items-center justify-center gap-3 bg-sunk p-3">
         <Avatar kind={p.kind} photoUrl={p.photoUrl} className="size-18 sm:size-20" />
         <span className="rounded-full bg-surface px-2.5 py-0.5 text-xs font-bold text-muted">{viewer === "admin" ? no : t.t(`religion.${p.religion}`)}</span>
       </div>
       <div className="flex min-w-0 flex-col gap-2.5 p-4">
         <div className="flex items-start justify-between gap-2">
-          <h2 className="min-w-0 truncate font-display text-base font-bold">{title}</h2>
-          {viewer === "admin" ? <ProfileBadge status={p.status} /> : null}
+          <h2 title={title} className="min-w-0 font-display text-base leading-snug font-bold break-words line-clamp-2">{title}</h2>
+          {badge ? <ProfileBadge status={p.status} /> : null}
         </div>
         <ul className="flex flex-col gap-1.5 text-sm">
           {facts.map(([icon, value]) => (
             <li key={icon} className="flex items-center gap-2.5">
               <span aria-hidden className="grid size-6 shrink-0 place-items-center rounded-full bg-primary-soft text-primary"><Icon name={icon} size={13} /></span>
-              <span className="min-w-0 truncate">{value}</span>
+              <span title={value} className="min-w-0 truncate">{value}</span>
             </li>
           ))}
         </ul>
         <div className="mt-auto flex justify-end pt-1">
           {/* the title goes into the link's spoken label, so twelve "বায়োডাটা" links are still told apart */}
           <Link href={viewer === "admin" ? `/profiles/${p.id}` : `/biodata/${p.id}`} aria-label={t.t("list.viewAria", { title })}
-            className="inline-flex min-h-9 items-center gap-1 rounded-full bg-primary-soft px-3.5 text-sm font-bold text-primary">
+            className="inline-flex min-h-9 items-center gap-1 rounded-full bg-primary-soft px-3.5 text-sm font-bold text-primary outline-none after:absolute after:inset-0 after:rounded-2xl">
             {t.t("common.biodata")}<Icon name="chevronRight" size={16} />
           </Link>
         </div>

@@ -526,8 +526,6 @@ export const bn = {
   "mb.askGhotok": "তালিকায় থাকা বায়োডাটা সরাতে ঘটককে ফোন করুন।",
 
   // the lists
-  "list.subAdmin": "বায়োডাটা",
-  "list.subFamily": "নাম-ছবি গোপন; পছন্দ হলে ঘটককে ফোন করুন",
   "list.give": "বায়োডাটা দিন",
   "list.searchAdmin": "নাম, গ্রাম বা জেলা…",
   "list.searchFamily": "উপজেলা বা জেলা…",
@@ -1372,8 +1370,6 @@ export const en: Record<Key, string> = {
   "mb.deleteConfirm": "Yes, delete this biodata.",
   "mb.askGhotok": "To remove a listed biodata, call the ghotok.",
 
-  "list.subAdmin": "Biodata",
-  "list.subFamily": "Names and photos hidden; call the ghotok if you like one",
   "list.give": "Hand in a biodata",
   "list.searchAdmin": "Name, village or district…",
   "list.searchFamily": "Upazila or district…",

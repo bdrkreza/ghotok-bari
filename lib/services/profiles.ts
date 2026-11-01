@@ -289,6 +289,14 @@ export async function listProfiles(db: Db, ghotokId: string, filter: ProfileFilt
   return db.select().from(profile).where(profileWhere(ghotokId, filter)).orderBy(desc(profile.updatedAt));
 }
 
+/** How many of each status the same filter finds, for the counts on the status tabs; `all` is their sum. */
+export async function statusCounts(db: Db, ghotokId: string, filter: ProfileFilter): Promise<Record<ProfileStatus | "all", number>> {
+  const rows = await db.select({ status: profile.status, n: count() }).from(profile)
+    .where(profileWhere(ghotokId, { ...filter, status: "all" })).groupBy(profile.status);
+  const by = (s: ProfileStatus) => rows.find((r) => r.status === s)?.n ?? 0;
+  return { active: by("active"), engaged: by("engaged"), married: by("married"), inactive: by("inactive"), all: rows.reduce((sum, r) => sum + r.n, 0) };
+}
+
 const listed = (ghotokId: string) => and(eq(profile.ghotokId, ghotokId), eq(profile.approval, "approved"));
 
 /** Just enough for a <select> of people to pair up. */
