@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { FamilyBiodata } from "@/components/biodata";
-import { ApprovalForm } from "@/components/biodata-forms";
+import { ApprovalForm, ShowParentsForm } from "@/components/biodata-forms";
 import { Icon } from "@/components/icons";
 import { DeleteProfileForm, ProfileStatusForm } from "@/components/proposal-forms";
 import { ShareCard } from "./_components/share";
@@ -105,6 +105,11 @@ export default async function ProfilePage(props: PageProps<"/profiles/[id]">) {
                 )}
               </Card>
             ) : null}
+            <Card title={t("pp.parentsTitle")}>
+              <p className="text-sm text-muted">{p.showParents ? t("pp.parentsOn") : t("pp.parentsOff")}</p>
+              <ShowParentsForm id={p.id} shown={p.showParents} />
+            </Card>
+
             <Card title={t("pp.status")}>
               <ProfileStatusForm id={p.id} current={p.status} />
               <p className="text-xs text-muted">{t("pp.statusHint")}</p>

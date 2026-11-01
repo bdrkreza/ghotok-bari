@@ -1,4 +1,4 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { randomBytes } from "node:crypto";
 import type { Db } from "../db";
 import { biodataShare, profile, user, type Profile } from "../db/schema";
@@ -35,7 +35,8 @@ export async function unshareBiodata(db: Db, ghotokId: string, profileId: string
 /**
  * The columns a family may see of someone else's biodata, decided here once and used by the public link and by the
  * signed-in lists (lib/services/biodata.ts). The village is shown (the ghotok wants families to see where someone is
- * from); left out on purpose: name, photo, parents, guardian, income, the ghotok's notes, and who handed it in.
+ * from); the parents' names only where the family agreed (show_parents), computed in SQL so they never leave the
+ * database otherwise. Left out on purpose: name, photo, guardian, income, the ghotok's notes, and who handed it in.
  */
 export const FAMILY_VIEW = {
   code: profile.code, kind: profile.kind, birthYear: profile.birthYear, heightCm: profile.heightCm, religion: profile.religion,
@@ -47,6 +48,9 @@ export const FAMILY_VIEW = {
   afterHome: profile.afterHome, dowry: profile.dowry, jointFamily: profile.jointFamily, expectAgeMin: profile.expectAgeMin,
   expectAgeMax: profile.expectAgeMax, expectEducation: profile.expectEducation, expectMarital: profile.expectMarital,
   expectDistricts: profile.expectDistricts,
+  showParents: profile.showParents,
+  fatherName: sql<string | null>`case when ${profile.showParents} then ${profile.fatherName} end`,
+  motherName: sql<string | null>`case when ${profile.showParents} then ${profile.motherName} end`,
   // when the ghotok checked it (a family's entry) or wrote it (their own): the trust line under the number
   approvedAt: profile.approvedAt, createdAt: profile.createdAt,
 };

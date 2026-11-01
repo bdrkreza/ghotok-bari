@@ -158,11 +158,12 @@ export function FamilyBiodata({ b, t, aside, full, badges, more }: Props) {
     </span>
   ) : full?.guardianName;
   const family: Row[] = [
-    ...(full ? [
-      { label: t.t("facts.father"), value: full.fatherName, locked: true },
-      { label: t.t("facts.mother"), value: full.motherName, locked: true },
-      { label: t.t("facts.guardian"), value: guardian, locked: true },
+    // the parents' names: always on the full biodata (locked unless the family agreed), otherwise only where agreed
+    ...(full || b.showParents ? [
+      { label: t.t("facts.father"), value: full ? full.fatherName : b.fatherName, locked: !!full && !b.showParents },
+      { label: t.t("facts.mother"), value: full ? full.motherName : b.motherName, locked: !!full && !b.showParents },
     ] : []),
+    ...(full ? [{ label: t.t("facts.guardian"), value: guardian, locked: true }] : []),
     { label: t.t("bv.siblings"), value: siblings.length ? chips(siblings) : null },
     { label: t.t("facts.familyStatus"), value: b.familyStatus ? t.t(`famStatus.${b.familyStatus}`) : null },
     { label: t.t("form.family"), value: b.familyDetails ? prose(b.familyDetails) : null },
@@ -222,7 +223,7 @@ export function FamilyBiodata({ b, t, aside, full, badges, more }: Props) {
         {full ? null : (
           <section className="flex flex-col gap-3 rounded-3xl border border-dashed border-line bg-surface p-5 lg:p-6">
             <SectionHead icon="shield" title={t.t("bv.whyHiddenTitle")} />
-            <p className="text-sm text-muted">{t.t("bv.whoSees")}</p>
+            <p className="text-sm text-muted">{t.t(b.showParents ? "bv.whoSeesParents" : "bv.whoSees")}</p>
           </section>
         )}
         {more}

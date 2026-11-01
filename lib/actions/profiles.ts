@@ -7,7 +7,7 @@ import { getDb } from "../db";
 import type { ProfileStatus } from "../db/schema";
 import { attempt, field, fieldValues, type FormState } from "../form";
 import { getT } from "../i18n/server";
-import { createProfile, deleteProfile, setApproval, setProfileStatus, updateProfile } from "../services/profiles";
+import { createProfile, deleteProfile, setApproval, setProfileStatus, setShowParents, updateProfile } from "../services/profiles";
 
 export async function createProfileAction(_prev: FormState, form: FormData): Promise<FormState> {
   const user = await requireAdmin();
@@ -38,6 +38,18 @@ export async function setProfileStatusAction(_prev: FormState, form: FormData): 
     await setProfileStatus(getDb(), user.ghotokId, id, field(form, "status") as ProfileStatus);
     revalidatePath(`/profiles/${id}`);
     return { notice: t("notice.statusChanged") };
+  });
+}
+
+/** Show or hide the parents' names to other families. */
+export async function setShowParentsAction(_prev: FormState, form: FormData): Promise<FormState> {
+  const [user, { t }] = await Promise.all([requireAdmin(), getT()]);
+  const id = field(form, "id");
+  const show = field(form, "show") === "on";
+  return attempt(async () => {
+    await setShowParents(getDb(), user.ghotokId, id, show);
+    revalidatePath(`/profiles/${id}`);
+    return { notice: show ? t("notice.parentsShown") : t("notice.parentsHidden") };
   });
 }
 

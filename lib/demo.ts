@@ -145,7 +145,7 @@ export async function seedDemo(db: Db, auth: Auth, headers: Headers): Promise<{ 
     familyDetails: "১ ভাই ১ বোন। মা গৃহিণী, ভাই ব্যবসা করে।", expectations: "চাকরিজীবী, ধার্মিক; পড়া চালিয়ে যেতে দেবে এমন পরিবার।",
   });
   const tanvir = await submitBiodata(db, g, await idOf(DEMO_CUSTOMER_2.phone), {
-    kind: "patro", pledge: "on", religion: "islam", maritalStatus: "obibahito", name: "তানভীর হোসেন", fatherName: "মো. জসিম উদ্দিন",
+    kind: "patro", pledge: "on", showParents: "on", religion: "islam", maritalStatus: "obibahito", name: "তানভীর হোসেন", fatherName: "মো. জসিম উদ্দিন",
     complexion: "shyamla", weightKg: "70", bloodGroup: "O+", educationMedium: "general", workplace: "ঢাকায় সফটওয়্যার কোম্পানিতে", presentAddress: "ঢাকা",
     brothers: "1", sisters: "0", familyStatus: "uccho_moddho", afterStudy: "yes", afterJob: "yes", afterHome: "city", dowry: "none",
     expectAgeMin: "22", expectAgeMax: "27", expectEducation: "hsc", expectDistricts: "ঢাকা, গাজীপুর",

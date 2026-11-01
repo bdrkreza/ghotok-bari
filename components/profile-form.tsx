@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { BiodataImport } from "@/components/biodata-import";
-import { ActionForm, Choice, ConfirmCheck, Field, FieldErrors, Hidden, TextArea } from "@/components/form";
+import { ActionForm, Checkbox, Choice, ConfirmCheck, Field, FieldErrors, Hidden, TextArea } from "@/components/form";
 import { Icon } from "@/components/icons";
 import { primaryButton, quietButton } from "@/components/ui";
 import type { Imported } from "@/lib/biodata-import/parse";
@@ -80,6 +80,8 @@ export function ProfileForm({ kind, profile, minYear, maxYear, viewer = "admin",
   const [done, setDone] = useState({ n: 0, total: 0 });
   const [marked, setMarked] = useState<Marked>({});
   const [tried, setTried] = useState(false);
+  // the parents' names tick, so the "who sees" chips on those two fields follow it
+  const [parentsShown, setParentsShown] = useState(base.showParents === "true" || base.showParents === "on");
   const messages = useMemo(() => Object.fromEntries(Object.entries(marked).map(([k, m]) => [k, m.message])), [marked]);
   const steps = useRef<(HTMLDivElement | null)[]>([]);
   const top = useRef<HTMLDivElement>(null);
@@ -181,6 +183,7 @@ export function ProfileForm({ kind, profile, minYear, maxYear, viewer = "admin",
   const recheck = (e: FormEvent) => {
     recount();
     const el = e.target;
+    if (el instanceof HTMLInputElement && el.name === "showParents") setParentsShown(el.checked);
     if (!isBox(el)) return;
     const others = el.name === "expectAgeMin" ? [el.form?.elements.namedItem("expectAgeMax")].filter((x): x is HTMLInputElement => x instanceof HTMLInputElement) : [];
     setMarked((old) => {
@@ -352,8 +355,14 @@ export function ProfileForm({ kind, profile, minYear, maxYear, viewer = "admin",
                 <Wide>
                   <Field name="name" maxLength={80} minLength={2} label={t(`form.nameOf.${kind}`)} required defaultValue={v.name} autoComplete="off" placeholder={t("form.fullName")} tag={tags("name", "ghotok")} />
                 </Wide>
-                <Field name="fatherName" maxLength={80} label={t("form.father")} placeholder={t("form.fatherPlaceholder")} defaultValue={v.fatherName} tag={tags("fatherName", "ghotok")} />
-                <Field name="motherName" maxLength={80} label={t("form.mother")} placeholder={t("form.motherPlaceholder")} defaultValue={v.motherName} tag={tags("motherName", "ghotok")} />
+                <Field name="fatherName" maxLength={80} label={t("form.father")} placeholder={t("form.fatherPlaceholder")} defaultValue={v.fatherName} tag={tags("fatherName", parentsShown ? "all" : "ghotok")} />
+                <Field name="motherName" maxLength={80} label={t("form.mother")} placeholder={t("form.motherPlaceholder")} defaultValue={v.motherName} tag={tags("motherName", parentsShown ? "all" : "ghotok")} />
+                <Wide>
+                  <div className="flex flex-col gap-1 rounded-2xl border border-line bg-sunk/40 px-4 py-3">
+                    <Checkbox name="showParents" label={t("form.showParents")} defaultChecked={v.showParents === "true" || v.showParents === "on"} />
+                    <p className="pl-8 text-sm text-muted">{t("form.showParentsHint")}</p>
+                  </div>
+                </Wide>
                 <Field name="birthYear" label={t("form.birthYear")} required type="number" inputMode="numeric" min={String(minYear)} max={String(maxYear)} placeholder={t("form.birthYearPlaceholder")} defaultValue={v.birthYear}
                   hint={t("form.birthYearHint", { n: kind === "patro" ? 21 : 18 })} tag={tags("birthYear", "all")} />
                 <Field name="heightCm" label={t("form.height")} type="number" inputMode="numeric" min="100" max="250" placeholder={t("form.heightPlaceholder")} defaultValue={v.heightCm} hint={t("form.heightHint")} tag={tags("heightCm", "all")} />

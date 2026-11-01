@@ -2,9 +2,24 @@
 
 import { ActionForm, ConfirmCheck, Hidden, TextArea } from "./form";
 import { deleteBiodataAction } from "@/lib/actions/biodata";
-import { setApprovalAction } from "@/lib/actions/profiles";
+import { setApprovalAction, setShowParentsAction } from "@/lib/actions/profiles";
 import type { Approval } from "@/lib/db/schema";
 import { useT } from "@/lib/i18n/client";
+
+/** One button that flips whether other families see the parents' names. */
+export function ShowParentsForm({ id, shown }: { id: string; shown: boolean }) {
+  const { t } = useT();
+  return (
+    <ActionForm action={setShowParentsAction} submitLabel={shown ? t("pp.parentsHide") : t("pp.parentsShow")} tone="quiet">
+      {() => (
+        <>
+          <Hidden name="id" value={id} />
+          <Hidden name="show" value={shown ? "" : "on"} />
+        </>
+      )}
+    </ActionForm>
+  );
+}
 
 /** The ghotok's two buttons on a biodata a family handed in: list it, or send it back with a note. */
 export function ApprovalForm({ id, current }: { id: string; current: Approval }) {

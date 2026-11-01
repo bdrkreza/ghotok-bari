@@ -86,6 +86,8 @@ const profileInput = z.object({
   expectMarital: pick(EXPECT_MARITALS),
   expectDistricts: optional(200),
   photoUrl: z.union([z.url().max(500), z.literal("")]).transform((s) => s || null),
+  /** the form's "বাবা-মায়ের নাম দেখাতে আপত্তি নেই" tick: "on" when ticked, absent otherwise */
+  showParents: z.string().transform((s) => s === "on"),
   notes: optional(2000),
 }).superRefine((d, ctx) => {
   if (d.expectAgeMin !== null && d.expectAgeMax !== null && d.expectAgeMin > d.expectAgeMax) ctx.addIssue({ code: "custom", message: "age_range", path: ["expectAgeMax"] });
@@ -202,6 +204,12 @@ export async function updateProfile(db: Db, ghotokId: string, id: string, raw: R
 export async function setProfileStatus(db: Db, ghotokId: string, id: string, status: ProfileStatus): Promise<void> {
   await getProfile(db, ghotokId, id);
   await db.update(profile).set({ status }).where(and(eq(profile.id, id), eq(profile.ghotokId, ghotokId)));
+}
+
+/** Whether other families see this person's father's and mother's names; the ghotok switches it on the person's page. */
+export async function setShowParents(db: Db, ghotokId: string, id: string, show: boolean): Promise<void> {
+  await getProfile(db, ghotokId, id);
+  await db.update(profile).set({ showParents: show }).where(and(eq(profile.id, id), eq(profile.ghotokId, ghotokId)));
 }
 
 export async function deleteProfile(db: Db, ghotokId: string, id: string): Promise<void> {

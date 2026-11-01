@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm";
-import { date, index, integer, pgTable, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
+import { boolean, date, index, integer, pgTable, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
 import { user } from "./auth-schema";
 
 export * from "./auth-schema";
@@ -131,6 +131,8 @@ export const profile = pgTable("profile", {
   /** when the ghotok approved a family's biodata; shown to other families as the ghotok's check */
   approvedAt: timestamp("approved_at", { withTimezone: true }),
   photoUrl: text("photo_url"),
+  /** the family agrees to other families seeing the father's and mother's names; off by default, the ghotok can switch it */
+  showParents: boolean("show_parents").notNull().default(false),
   /** the ghotok's private notes; a family never sees or edits these */
   notes: text("notes"),
   status: text("status").$type<ProfileStatus>().notNull().default("active"),

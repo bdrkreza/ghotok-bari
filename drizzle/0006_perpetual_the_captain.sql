@@ -1,0 +1,1 @@
+ALTER TABLE "profile" ADD COLUMN "show_parents" boolean DEFAULT false NOT NULL;
