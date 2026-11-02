@@ -21,8 +21,8 @@ export default async function SetupPage() {
   const dev = process.env.NODE_ENV !== "production" && usingDevDb();
   return (
     <>
-      <AuthHeading title={t("setup.title")} sub={t("setup.sub")} />
       <AuthCard>
+        <AuthHeading title={t("setup.title")} sub={t("setup.sub")} />
         <p className="flex items-start gap-2 rounded-2xl bg-warn px-4 py-3 text-sm font-semibold text-warn-ink">
           <Icon name="shield" size={18} className="mt-0.5" />
           {t("setup.warning")}

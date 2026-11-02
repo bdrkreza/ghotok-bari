@@ -18,8 +18,8 @@ export default async function RegisterPage() {
   if (user) redirect(homeFor(user.role));
   return (
     <>
-      <AuthHeading title={t("auth.registerTitle")} sub={t("auth.registerSub")} />
       <AuthCard>
+        <AuthHeading title={t("auth.registerTitle")} sub={t("auth.registerSub")} />
         <RegisterForm />
       </AuthCard>
       <p className="text-center text-muted">

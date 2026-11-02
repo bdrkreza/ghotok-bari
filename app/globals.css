@@ -1,19 +1,20 @@
 @import "tailwindcss";
 
-/* Design tokens. The scheme is mehedi: the one accent is the brown-red of dried henna on a skin-cream ground, text
-   and the sign-in panel are the deep henna of the pattern's lines, and the tints for badges are earth tones from the
-   same hand (sandalwood, light henna, cream). Colour otherwise carries meaning: pos is the green of a henna leaf
-   (money in, listed, done) and neg a true red (owes, returned, delete), so neither is mistaken for the accent. */
+/* Design tokens. The scheme is alta and the red-bordered white saree: the one accent is the crimson of alta on an
+   ivory ground, deep panels are the darker red of its border, and the tints for badges are earth tones (sandalwood,
+   light henna, cream). The mehedi ornaments stay, now drawn in the accent. Colour otherwise carries meaning: pos is the
+   green of a leaf (money in, listed, done) and neg a true red (owes, returned, delete). The palki-* tokens dress the
+   sign-in card as a bride's palki: gold with a red eave by day, a red roof with gold work by night. */
 :root {
-  --bg: #f9f3ea;
-  --surface: #fffdf8;
-  --sunk: #f1e7d8;
-  --ink: #2f1a0f;
-  --muted: #7c6553;
-  --line: #e7d9c6;
-  --primary: #8a3b1c;
+  --bg: #f7efe4;
+  --surface: #fffdf9;
+  --sunk: #f7f0e6;
+  --ink: #3a0c12;
+  --muted: #85605a;
+  --line: #ecdccb;
+  --primary: #b8102b;
   --on-primary: #ffffff;
-  --primary-soft: #f5e1d4;
+  --primary-soft: #fbe3e3;
   --warn: #faeed6;
   --warn-line: #ead6a6;
   --warn-ink: #6e4a08;
@@ -32,25 +33,38 @@
   --neg-soft: #fbe4de;
   --pos-soft: #e8f0dc;
   /* The brand panel beside the sign-in forms: deep henna, on which the mark and text are white. */
-  --panel: #4a1c0c;
+  --panel: #8a0a1f;
   --on-panel: #ffffff;
-  --panel-soft: #f5e1d4;
+  --panel-soft: #fbe3e3;
   /* zari gold, for the ornaments on a deep ground; the same in both schemes */
   --gold: #e3b55a;
+  /* the palki around the sign-in card (.palki below) */
+  --palki-roof-a: #f0d58e;
+  --palki-roof-b: #c99a3e;
+  --palki-roof-c: #8d6420;
+  --palki-eave: #c8162f;
+  --palki-gold: #c99a3e;
+  --palki-gold-deep: #8d6420;
+  --palki-band-a: #b8102b;
+  --palki-band-b: #8a0a1f;
+  --palki-lattice: #f0d58e;
+  --wood: #5a2a12;
+  --wood-hi: #8a4a22;
+  --wood-lo: #3a1608;
 }
 
 /* Dark follows the phone, unless a theme was picked in settings: data-theme on <html>, see lib/theme.ts. */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #171009;
-    --surface: #211810;
-    --sunk: #2c2116;
-    --ink: #f3ebe2;
-    --muted: #b4a394;
-    --line: #3b2d20;
-    --primary: #e8955f;
-    --on-primary: #171009;
-    --primary-soft: #4a2c1a;
+    --bg: #1f1012;
+    --surface: #2a1517;
+    --sunk: #2e1719;
+    --ink: #f6e8e1;
+    --muted: #c4a29d;
+    --line: #43262a;
+    --primary: #ff6b7a;
+    --on-primary: #200609;
+    --primary-soft: #3a1015;
     --warn: #3a2c10;
     --warn-line: #6b5220;
     --warn-ink: #ffd27d;
@@ -68,22 +82,34 @@
     --coral-ink: #ffb7a7;
     --pos: #9ccb6a;
     --neg: #ff8d7b;
-    --panel: #3a1a0d;
-    --panel-soft: #4a2c1a;
+    --panel: #5a0614;
+    --panel-soft: #3a1015;
+    --palki-roof-a: #e9667a;
+    --palki-roof-b: #e0243e;
+    --palki-roof-c: #9c1028;
+    --palki-eave: #e3b55a;
+    --palki-gold: #e3b55a;
+    --palki-gold-deep: #9a7428;
+    --palki-band-a: #9c1028;
+    --palki-band-b: #5a0614;
+    --palki-lattice: #f6dc9a;
+    --wood: #7a4420;
+    --wood-hi: #a8662f;
+    --wood-lo: #4a2410;
     color-scheme: dark;
   }
 }
 
 :root[data-theme="dark"] {
-  --bg: #171009;
-  --surface: #211810;
-  --sunk: #2c2116;
-  --ink: #f3ebe2;
-  --muted: #b4a394;
-  --line: #3b2d20;
-  --primary: #e8955f;
-  --on-primary: #171009;
-  --primary-soft: #4a2c1a;
+  --bg: #1f1012;
+  --surface: #2a1517;
+  --sunk: #2e1719;
+  --ink: #f6e8e1;
+  --muted: #c4a29d;
+  --line: #43262a;
+  --primary: #ff6b7a;
+  --on-primary: #200609;
+  --primary-soft: #3a1015;
   --warn: #3a2c10;
   --warn-line: #6b5220;
   --warn-ink: #ffd27d;
@@ -101,8 +127,20 @@
   --coral-ink: #ffb7a7;
   --pos: #9ccb6a;
   --neg: #ff8d7b;
-  --panel: #3a1a0d;
-  --panel-soft: #4a2c1a;
+  --panel: #5a0614;
+  --panel-soft: #3a1015;
+  --palki-roof-a: #e9667a;
+  --palki-roof-b: #e0243e;
+  --palki-roof-c: #9c1028;
+  --palki-eave: #e3b55a;
+  --palki-gold: #e3b55a;
+  --palki-gold-deep: #9a7428;
+  --palki-band-a: #9c1028;
+  --palki-band-b: #5a0614;
+  --palki-lattice: #f6dc9a;
+  --wood: #7a4420;
+  --wood-hi: #a8662f;
+  --wood-lo: #4a2410;
   color-scheme: dark;
 }
 
@@ -143,6 +181,9 @@
   --color-neg: var(--neg);
   --font-sans: "Hind Siliguri", system-ui, sans-serif;
   --font-display: "Baloo Da 2", "Hind Siliguri", system-ui, sans-serif;
+  /* the sign-in screen only: the site's name in a hand-lettered face, the headings in a book face */
+  --font-script: "Galada", "Tiro Bangla", serif;
+  --font-serif: "Tiro Bangla", "Hind Siliguri", serif;
 }
 
 body {
@@ -154,8 +195,7 @@ body {
    light and dark and can be dimmed with one opacity. The page carries two layers: a seamless net over the whole
    document, scrolling with it like a printed cloth, and a vine-and-paisley in two corners pinned to the viewport.
    .henna-corner puts a smaller paisley in a hero card; .henna-edge lays the wrist's lattice band along a bar's bottom
-   edge (-t: top edge; the bar pays for it with padding); .henna-sides runs it down both edges of the sign-in panel in
-   the panel's own text colour. Pseudo-elements, so the markup stays plain. */
+   edge (-t: top edge; the bar pays for it with padding). Pseudo-elements, so the markup stays plain. */
 body {
   position: relative; /* so the net below spans the whole document, not just the first screen */
 }
@@ -261,25 +301,168 @@ body::before {
   mask: url("/henna/band.svg") repeat-x center / 48px 8px;
 }
 
+/* The sign-in card as a palki (app/(auth)/ui.tsx): a low arched roof with a kalash on top, the carrying pole across
+   its eave with a tassel hanging off each end, a double fringe, the card as the cabin between gold pillars with the
+   lattice band across its head, and a base with two feet. The pole reaches 30px past the cabin on each side, so the
+   cabin is narrower than its column by that much and more. */
+.palki {
+  --cabin-px: 1.25rem;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: calc(100% - 44px);
+  margin-inline: auto;
+  padding-top: 16px;
+}
+.palki-finial {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  z-index: 3;
+  transform: translateX(-50%);
+  color: var(--palki-roof-a);
+  filter: drop-shadow(0 2px 2px rgb(0 0 0 / 0.3));
+}
+.palki-roof {
+  position: relative;
+  height: 44px;
+  margin-inline: -10px;
+  overflow: hidden;
+  border-radius: 50% 50% 6px 6px / 100% 100% 6px 6px;
+  background: linear-gradient(180deg, var(--palki-roof-a), var(--palki-roof-b) 55%, var(--palki-roof-c));
+  box-shadow: inset 0 -9px 0 var(--palki-eave), 0 10px 16px -10px rgb(0 0 0 / 0.6);
+}
+.palki-roof::after {
+  content: "";
+  position: absolute;
+  inset: 0 0 9px;
+  background: repeating-linear-gradient(90deg, transparent 0 20px, rgb(0 0 0 / 0.09) 20px 22px);
+}
+.palki-pole {
+  position: absolute;
+  top: 46px;
+  left: -30px;
+  right: -30px;
+  z-index: 2;
+  height: 12px;
+  border-radius: 6px;
+  background: linear-gradient(180deg, var(--wood-hi), var(--wood) 60%, var(--wood-lo));
+  box-shadow: 0 5px 8px -3px rgb(0 0 0 / 0.5);
+}
+.palki-pole::before,
+.palki-pole::after {
+  content: "";
+  position: absolute;
+  top: -3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, rgb(255 255 255 / 0.55), transparent 50%), var(--palki-gold);
+  box-shadow: inset 0 -2px 0 rgb(0 0 0 / 0.2);
+}
+.palki-pole::before {
+  left: -4px;
+}
+.palki-pole::after {
+  right: -4px;
+}
+.palki-tassel {
+  position: absolute;
+  top: 56px;
+  z-index: 2;
+  width: 16px;
+  height: 40px;
+}
+.palki-tassel-l {
+  left: -26px;
+}
+.palki-tassel-r {
+  right: -26px;
+}
+.palki-tassel::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 7px;
+  width: 2px;
+  height: 16px;
+  background: var(--palki-gold-deep);
+}
+.palki-tassel::after {
+  content: "";
+  position: absolute;
+  top: 14px;
+  left: 0;
+  width: 16px;
+  height: 26px;
+  border-radius: 50% 50% 3px 3px / 40% 40% 3px 3px;
+  background: repeating-linear-gradient(90deg, var(--palki-gold) 0 2px, var(--palki-gold-deep) 2px 3px);
+}
+.palki-fringe {
+  position: relative;
+  z-index: 1;
+  height: 22px;
+  margin: 0 -8px -22px;
+  background:
+    radial-gradient(circle at 50% 0, var(--palki-gold) 0 5.5px, var(--palki-gold-deep) 6px 6.5px, transparent 7px) 0 0 / 15px 13px repeat-x,
+    radial-gradient(circle, var(--palki-gold) 0 2.5px, transparent 3px) 7px 13px / 15px 9px repeat-x;
+}
+.palki-cabin {
+  position: relative;
+  overflow: hidden;
+  padding: 0 var(--cabin-px) 1.5rem;
+  border-radius: 3px;
+  border-inline: 6px solid var(--palki-gold);
+  background: var(--surface);
+  box-shadow: inset 2px 0 0 var(--palki-gold-deep), inset -2px 0 0 var(--palki-gold-deep), 0 30px 50px -30px rgb(0 0 0 / 0.7);
+}
+.palki-lattice {
+  position: relative;
+  height: 26px;
+  margin-inline: calc(-1 * var(--cabin-px));
+  background: linear-gradient(180deg, var(--palki-band-a), var(--palki-band-b));
+}
+.palki-lattice::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--palki-lattice);
+  opacity: 0.75;
+  mask: url("/henna/band.svg") repeat-x center / 80px 14px;
+}
+.palki-base {
+  height: 14px;
+  margin-inline: -12px;
+  border-radius: 3px;
+  background: linear-gradient(180deg, var(--palki-gold), var(--palki-gold-deep));
+  box-shadow: 0 12px 18px -8px rgb(0 0 0 / 0.6);
+}
+.palki-feet {
+  display: flex;
+  justify-content: space-between;
+  padding-inline: 22px;
+}
+.palki-feet::before,
+.palki-feet::after {
+  content: "";
+  width: 18px;
+  height: 10px;
+  border-radius: 0 0 5px 5px;
+  background: var(--wood);
+}
 @media (min-width: 1024px) {
-  .henna-sides::before,
-  .henna-sides::after {
-    content: "";
-    position: absolute;
-    top: 0;
-    bottom: 0;
-    width: 14px;
-    pointer-events: none;
-    background: var(--on-panel);
-    opacity: 0.4;
-    mask: url("/henna/band-v.svg") repeat-y center / 14px 80px;
+  .palki {
+    --cabin-px: 2rem;
   }
-  .henna-sides::before {
-    left: 10px;
-  }
-  .henna-sides::after {
-    right: 10px;
-  }
+}
+
+/* Chrome paints its own blue behind autofilled fields; keep them on the page's surface. */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus {
+  -webkit-box-shadow: 0 0 0 1000px var(--surface) inset;
+  -webkit-text-fill-color: var(--ink);
+  caret-color: var(--ink);
 }
 
 /* Native date inputs and selects pick up the page colours. */

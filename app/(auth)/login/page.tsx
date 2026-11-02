@@ -24,8 +24,8 @@ export default async function LoginPage() {
   const mono = (s: string) => <span className="font-mono font-bold">{s}</span>;
   return (
     <>
-      <AuthHeading title={t("auth.welcomeBack")} sub={t("auth.loginSub")} />
       <AuthCard>
+        <AuthHeading title={t("auth.welcomeBack")} sub={t("auth.loginSub")} />
         <LoginForm />
         {dev ? (
           <>

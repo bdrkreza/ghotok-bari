@@ -17,46 +17,39 @@ const SETUP_FEATURES: { icon: IconName; text: Key }[] = [
 ];
 
 /**
- * The sign-in shell. Phone: a slim coloured brand bar, then the form in one column. Web (lg): the bar grows into a
- * full-height panel down the left with the site's pitch, and the form sits centred beside it. Before the site exists
- * (the /setup screen) the panel speaks to the ghotok instead of to families.
+ * The sign-in shell, on the ivory ground of a white saree. Phone: the language switch, the site's name, then the form
+ * in its palki. Web (lg): the name moves left with the pitch and the three promises under it, and the palki stands in
+ * a column on the right. Before the site exists (the /setup screen) the pitch speaks to the ghotok instead of to
+ * families.
  */
 export default async function AuthLayout({ children }: LayoutProps<"/">) {
   const [site, { t }] = await Promise.all([currentSite(), getT()]);
   const features = site ? FAMILY_FEATURES : SETUP_FEATURES;
   return (
-    <div className="flex min-h-dvh flex-col lg:flex-row">
-      <aside className="henna-sides bg-panel px-4 py-4 text-on-panel lg:sticky lg:top-0 lg:flex lg:h-dvh lg:w-104 lg:shrink-0 lg:flex-col lg:justify-between lg:px-12 lg:py-12 xl:w-120 2xl:w-xl 2xl:px-14">
-        <div className="mx-auto flex w-full max-w-md items-center gap-3 lg:mx-0 lg:max-w-none">
-          <span aria-hidden className="grid size-11 shrink-0 place-items-center rounded-2xl bg-on-panel font-display text-xl font-extrabold text-panel outline-2 outline-offset-3 outline-on-panel outline-dotted lg:size-14 lg:text-2xl">ঘ</span>
-          <div className="flex min-w-0 flex-1 flex-col">
-            <p className="truncate font-display text-2xl leading-tight font-bold lg:text-3xl">{site?.name ?? t("common.alta")}</p>
-            <p className="truncate text-sm text-on-panel/80">{site ? (site.tagline ?? t("site.defaultTagline")) : t("auth.ghotokSite")}</p>
-          </div>
-          <LangSwitch tone="panel" className="shrink-0" />
+    <div className="flex min-h-dvh flex-col">
+      <header className="flex justify-end px-4 pt-4 lg:px-12 lg:pt-6">
+        <LangSwitch />
+      </header>
+      <div className="mx-auto grid w-full max-w-6xl flex-1 items-center gap-6 px-4 pt-2 pb-10 lg:grid-cols-[minmax(0,1fr)_30rem] lg:gap-20 lg:px-12 lg:pb-16">
+        <div className="flex flex-col items-center gap-1 text-center lg:items-start lg:text-left">
+          <p className="font-script text-4xl/tight text-balance text-primary lg:text-5xl/tight">{site?.name ?? t("common.alta")}</p>
+          <p className="text-sm text-muted lg:text-base">{site ? (site.tagline ?? t("site.defaultTagline")) : t("auth.ghotokSite")}</p>
+          <p className="mt-8 hidden max-w-xl font-serif text-5xl/tight text-balance lg:block">{site ? t("auth.familyHeadline") : t("auth.setupHeadline")}</p>
+          <p className="mt-4 hidden max-w-md text-lg leading-relaxed text-muted lg:block">{site ? t("auth.familyPitch") : t("auth.setupPitch")}</p>
+          <ul className="mt-8 hidden flex-col gap-4 lg:flex">
+            {features.map((f) => (
+              <li key={f.text} className="flex items-center gap-4 text-lg">
+                <span aria-hidden className="grid size-11 shrink-0 place-items-center rounded-full bg-primary-soft text-primary"><Icon name={f.icon} size={20} /></span>
+                {t(f.text)}
+              </li>
+            ))}
+          </ul>
         </div>
-        <div className="hidden flex-col items-start gap-5 lg:flex">
-          <span className="rounded-full bg-panel-soft px-3.5 py-1 text-sm font-bold text-panel">{site ? t("auth.forFamilies") : t("auth.firstTime")}</span>
-          <p className="max-w-md font-display text-4xl/tight font-extrabold text-balance xl:text-5xl/tight">
-            {site ? t("auth.familyHeadline") : t("auth.setupHeadline")}
-          </p>
-          <p className="max-w-sm text-lg leading-relaxed text-on-panel/85">{site ? t("auth.familyPitch") : t("auth.setupPitch")}</p>
-        </div>
-        <ul className="hidden flex-col gap-4 lg:flex">
-          {features.map((f) => (
-            <li key={f.text} className="flex items-center gap-4 text-lg">
-              <span aria-hidden className="grid size-12 shrink-0 place-items-center rounded-full bg-on-panel/10"><Icon name={f.icon} size={22} /></span>
-              {t(f.text)}
-            </li>
-          ))}
-        </ul>
-      </aside>
-      <main className="flex flex-1 flex-col items-center justify-center px-4 py-8 lg:px-12 lg:py-16">
-        <div className="flex w-full max-w-md flex-col gap-6 lg:max-w-xl">
+        <main className="flex w-full flex-col gap-6">
           {children}
           <p className="flex items-center justify-center gap-2 text-sm text-muted"><Icon name="lock" size={16} />{t("auth.safe")}</p>
-        </div>
-      </main>
+        </main>
+      </div>
     </div>
   );
 }

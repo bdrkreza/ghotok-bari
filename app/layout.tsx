@@ -6,6 +6,8 @@ import "@fontsource/hind-siliguri/600.css";
 import "@fontsource/hind-siliguri/700.css";
 import "@fontsource/baloo-da-2/700.css";
 import "@fontsource/baloo-da-2/800.css";
+import "@fontsource/galada/400.css";
+import "@fontsource/tiro-bangla/400.css";
 import "./globals.css";
 import { ServiceWorker } from "@/components/pwa";
 import { ThemeSync } from "@/components/theme";
