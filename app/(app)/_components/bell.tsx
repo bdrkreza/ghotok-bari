@@ -76,7 +76,7 @@ export function Bell({ items, count, family = false, className = "", tone = "def
       </button>
 
       {open ? (
-        <div id="bell-list" className="absolute top-12 right-0 z-30 flex w-80 max-w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-2xl border border-line bg-surface shadow-lg">
+        <div id="bell-list" className="absolute top-12 right-0 z-30 flex w-80 max-w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-2xl border border-line bg-surface text-ink shadow-lg">
           <p className="border-b border-line px-4 py-3 font-display font-bold">{t("bell.title")}</p>
           {items.length ? (
             // scrolls inside itself (never the page behind it) once the list is taller than the screen allows
