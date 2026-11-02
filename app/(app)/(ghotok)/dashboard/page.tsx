@@ -45,10 +45,10 @@ export default async function HomePage() {
       </section>
 
       <StatOrbit centre={{ value: T.n(d.patro + d.patri), label: t("dash.orbitCentre") }} stats={[
-        { href: "/patro", value: T.n(d.patro), label: t("front.patroLooking"), tone: "sky" },
-        { href: "/patri", value: T.n(d.patri), label: t("front.patriLooking"), tone: "rose" },
-        { href: "/proposals", value: T.n(d.live), label: t("dash.liveProposals"), tone: "mango" },
-        { href: "/proposals?status=all", value: T.n(d.fixed), label: t("dash.fixed"), tone: "mint" },
+        { href: "/patro", value: T.n(d.patro), label: t("front.patroLooking"), icon: "groom", tone: "sky" },
+        { href: "/patri", value: T.n(d.patri), label: t("front.patriLooking"), icon: "bride", tone: "rose" },
+        { href: "/proposals", value: T.n(d.live), label: t("dash.liveProposals"), icon: "heart", tone: "mango" },
+        { href: "/proposals?status=all", value: T.n(d.fixed), label: t("dash.fixed"), icon: "check", tone: "mint" },
       ]} />
 
       {d.pending ? (
