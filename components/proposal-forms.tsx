@@ -6,6 +6,7 @@ import type { ProfileStatus, ProposalStatus } from "@/lib/db/schema";
 import { useT } from "@/lib/i18n/client";
 import { addNoteAction, changeStatusAction, createProposalAction, deleteProposalAction, setFollowUpAction } from "@/lib/actions/proposals";
 import { addEntryAction, deleteEntryAction } from "@/lib/actions/ledger";
+import { addMeetingAction, deleteMeetingAction } from "@/lib/actions/meetings";
 import { deleteProfileAction, setProfileStatusAction } from "@/lib/actions/profiles";
 
 type Option = readonly [string, string];
@@ -150,5 +151,31 @@ export function FollowUpForm({ id, current, today }: { id: string; current: stri
         </ActionForm>
       ) : null}
     </div>
+  );
+}
+
+/** Set a দেখা-দেখি on this proposal: when (Dhaka time) and where. Both families get a notice. */
+export function MeetingForm({ id, today }: { id: string; today: string }) {
+  const { t } = useT();
+  return (
+    <ActionForm action={addMeetingAction} submitLabel={t("mt.add")} tone="quiet" resetOnSuccess>
+      {(v) => (
+        <>
+          <Hidden name="id" value={id} />
+          <Field name="at" label={t("mt.at")} type="datetime-local" min={`${today}T00:00`} required defaultValue={v.at ?? ""} />
+          <Field name="place" label={t("mt.place")} placeholder={t("mt.placePlaceholder")} maxLength={200} defaultValue={v.place ?? ""} />
+          <Field name="note" label={t("mt.note")} placeholder={t("mt.notePlaceholder")} maxLength={500} defaultValue={v.note ?? ""} />
+        </>
+      )}
+    </ActionForm>
+  );
+}
+
+export function DeleteMeetingForm({ id, proposalId }: { id: string; proposalId: string }) {
+  const { t } = useT();
+  return (
+    <ActionForm action={deleteMeetingAction} submitLabel={t("mt.delete")} tone="quiet" compact inline>
+      {() => <><Hidden name="id" value={id} /><Hidden name="proposalId" value={proposalId} /></>}
+    </ActionForm>
   );
 }

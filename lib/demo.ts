@@ -7,6 +7,7 @@ import { submitBiodata } from "./services/biodata";
 import { addEntry } from "./services/ledger";
 import { createProfile, setApproval } from "./services/profiles";
 import { expressInterest, toggleFavorite } from "./services/interests";
+import { addMeeting } from "./services/meetings";
 import { addNote, changeStatus, createProposal, setFollowUp } from "./services/proposals";
 import { createSite, getSite } from "./services/site";
 import { today } from "./time";
@@ -119,6 +120,8 @@ export async function seedDemo(db: Db, auth: Auth, headers: Headers): Promise<{ 
   await addEntry(db, g, { kind: "chukti", amount: "20000", entryDate: daysAgo(6), proposalId: p1, note: "দুই পক্ষ মিলে" });
   await addEntry(db, g, { kind: "joma", amount: "5000", entryDate: daysAgo(2), proposalId: p1, note: "পাত্রপক্ষ থেকে অগ্রিম" });
   await setFollowUp(db, g, p1, today());
+  // the return visit: tomorrow afternoon at Hasan's
+  await addMeeting(db, g, p1, { at: `${daysAgo(-1)}T16:00`, place: "হাসানদের বাড়ি, দেবিদ্বার", note: "পাত্রীর মামা ও চাচা যাবেন" });
 
   // সুমন ও শিউলি: fixed
   const p2 = await createProposal(db, g, { patroId: sumon, patriId: shiuli, note: "" });

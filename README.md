@@ -30,14 +30,15 @@ layout on a computer) and a **phone app** (installed from the browser onto the h
 | `/dashboard/interests` | admin | "আগ্রহ জানান" from families: who asked about which biodata and for whom; make the proposal in one tap, call, close or open again |
 | `/dashboard/site` | admin | The front page's words: site name, tagline, the ghotok's paragraph, address, WhatsApp |
 | `/dashboard/activity` | admin | Who on the ghotok's side changed what, newest first (the last 200) |
+| `/dashboard/meetings` | admin | দেখা-দেখি: today's, tomorrow's and later meetings with the pair, time and place, then the last 30 days'; each opens its proposal |
 | `/profiles/new?kind=patro` | admin | Add a person (name, age, looks, education, work, address, guardian, family, the "after marriage" answers, expectations); listed at once |
 | `/profiles/[id]` | admin | One person: details, their proposals, suggested matches, status, public share link, delete. For a family's biodata: who handed it in, and the buttons to list it or return it with a note |
 | `/b/[token]` | anyone with the link | Public biodata a ghotok chose to share: biodata number, the ghotok's check, age, height, complexion, weight, blood group, religion, marital status, education and medium, profession and workplace, village, upazila and district, where they live now, siblings and the family's means, religious practice, the "after marriage" answers, family, expectations, the parents' names only where the family agreed (the ghotok can switch it on the person's page), and the ghotok's number; never the name, photos, guardian phone, income or notes |
 | `/proposals` | admin | Every proposal, filtered by stage |
 | `/proposals/new` | admin | Pair one patro with one patri (listed people only) |
-| `/proposals/[id]` | admin | Stage changes with a timeline, notes, a call-back day, and the money for this match |
+| `/proposals/[id]` | admin | Stage changes with a timeline, notes, a call-back day, দেখা-দেখি (when and where; both families are told), and the money for this match |
 | `/hisab` | admin | Ledger: agreed fees (চুক্তি), payments received (জমা), own expenses (খরচ); the last six months month by month with weddings; who still owes, with call and WhatsApp reminder buttons |
-| `/settings` | both | Account and role, change password, install on the phone, light or dark theme, sign out; for admins the front page, the activity log and the backup downloads |
+| `/settings` | both | Account and role, change password, news on the phone (push), install on the phone, light or dark theme, sign out; for admins the front page, the activity log and the backup downloads |
 | `/offline` | anyone | What the installed app shows when there is no internet |
 
 Proposal stages: প্রস্তাব দেওয়া → দেখাশোনা → কথা চলছে → বিয়ে ঠিক → বিয়ে হয়েছে, or বাদ at any point.
@@ -110,15 +111,28 @@ own listed biodata it is for. With that, the ghotok makes the proposal in one ta
 the other family is told nothing. Once per family and biodata; it can be taken back until the ghotok acts. A family
 also keeps a private short list (পছন্দের তালিকা). Both only ever point at approved biodata and read back through
 `FAMILY_VIEW` (`lib/services/interests.ts`). When the ghotok lists or returns a family's biodata, or makes a proposal
-from their request, the family finds a notice on `/me` until they dismiss it (`lib/services/notices.ts`); there is no
-SMS or push. A bell in the top bar (phone and web, `app/(app)/_components/bell.tsx`) counts what is new and opens a
+from their request, the family finds a notice on `/me` until they dismiss it (`lib/services/notices.ts`). When a
+biodata is newly listed, each family whose own listed biodata it suits well (`MATCH_NOTICE_MIN`, same religion, not
+already proposed together) is told once ("আপনার জন্য নতুন মিল", `notifyNewMatch` in `lib/services/match.ts`). A bell in the top bar (phone and web, `app/(app)/_components/bell.tsx`) counts what is new and opens a
 list: for a family, these notices, which can be marked read from there; for the ghotok, the biodata waiting for
-approval, the families' interest and the proposals due a call today, each opening its screen. `/me` also suggests "যাঁদের সাথে মিলতে পারে" for the family's listed biodata, scored like the ghotok's
+approval, the families' interest, today's and tomorrow's দেখা-দেখি and the proposals due a call today, each opening
+its screen. `/me` also suggests "যাঁদের সাথে মিলতে পারে" for the family's listed biodata, scored like the ghotok's
 suggestions and shown without names (`matchesForFamily` in `lib/services/match.ts`).
+
+### News on the phone
+
+Settings has a "ফোনে খবর" card: one tap and the phone shows news even with the site closed (Web Push, free; an iPhone
+needs আলতা on the home screen first). A family is woken by every notice; the ghotok by a new biodata handed in and a
+new "আগ্রহ জানান". No paid service and no library: `lib/push.ts` signs a VAPID token with node's crypto and sends the
+push empty, so nothing needs encrypting; `public/sw.js` then asks `/api/push/latest` with the reader's own cookie and
+shows the words in their language. Development makes its own keys (`./.data/vapid.json`); production takes
+`VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` from `npm run vapid`, and hides the card without them.
 
 ### The ghotok's day
 
-A live proposal can carry a call-back day; from that day the dashboard lists it with both guardians' numbers. The
+A দেখা-দেখি is set on a live proposal's page (Dhaka date and time, place, a note): both families get a notice with
+it, it shows on `/me`, on `/dashboard/meetings` and on the dashboard, and the bell reminds the ghotok the day before
+and on the day (`lib/services/meetings.ts`). A live proposal can carry a call-back day; from that day the dashboard lists it with both guardians' numbers. The
 ledger page shows the last six months (received as bars, everything in a table) and who still owes on each match, with
 call and WhatsApp buttons that start a polite reminder. A family forgot their password: **পাসওয়ার্ড রিসেট** on the
 accounts list makes a new one, ends their sessions and shows it once; anyone can change their own in settings.
@@ -244,6 +258,7 @@ npm run dev
 | `npm run db:migrate` | Apply migrations to `DIRECT_URL` |
 | `npm run screenshots` | Capture every screen (phone and web) into `docs/screens/` using the installed Edge or Chrome (dev server must be running) |
 | `npm run icons` | Redraw the home-screen icons in `public/` (only after changing the mark or brand colour) |
+| `npm run vapid` | Print a key pair for push (`VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`) to put in the production environment |
 
 ## Layout
 

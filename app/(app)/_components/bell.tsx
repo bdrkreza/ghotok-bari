@@ -4,32 +4,18 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { ActionForm } from "@/components/form";
-import { Icon, type IconName } from "@/components/icons";
+import { Icon } from "@/components/icons";
 import { dismissNoticeAction, seeNoticeAction } from "@/lib/actions/interests";
+import type { BellItem } from "@/lib/bell";
 import { useT } from "@/lib/i18n/client";
 
 /** Up to this many the badge shows the number; beyond it, "১০০+". */
 const BADGE_MAX = 100;
 
-/** One line in the bell's list, already in the reader's language (the layout builds them on the server). */
-export interface BellItem {
-  key: string;
-  text: string;
-  /** a second, smaller line: the ghotok's note, or the date */
-  sub?: string;
-  href: string;
-  icon: IconName;
-  /** "warn" for what needs a decision or was sent back; the rest are good news */
-  tone: "warn" | "news";
-  /** a family's notice they have already seen: kept in the list, faded, under "আগে দেখা" */
-  seen?: boolean;
-  /** a family's notice: opening it marks it seen */
-  noticeId?: string;
-}
 
 /**
  * The bell in the top bar: a dot with the number of things waiting, and a list that opens under it. The ghotok's
- * list is what waits for them (biodata to approve, families' interest, calls due today), gone once done. A family's
+ * list is what waits for them (biodata to approve, families' interest, today's and tomorrow's meetings, calls due), gone once done. A family's
  * is the news on their biodata: the unseen first under "নতুন", bold with a dot, then the ones already seen, faded,
  * under "আগে দেখা". Opening one marks it seen; "সব দেখেছি" marks them all. `count` (the badge) is the unseen only.
  */

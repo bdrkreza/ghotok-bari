@@ -18,9 +18,18 @@ const DATE: Record<Lang, Intl.DateTimeFormat> = {
   bn: new Intl.DateTimeFormat("bn-BD", { timeZone: "Asia/Dhaka", day: "numeric", month: "long", year: "numeric" }),
   en: new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Dhaka", day: "numeric", month: "long", year: "numeric" }),
 };
-const DATE_TIME: Record<Lang, Intl.DateTimeFormat> = {
-  bn: new Intl.DateTimeFormat("bn-BD", { timeZone: "Asia/Dhaka", day: "numeric", month: "long", hour: "numeric", minute: "2-digit" }),
-  en: new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Dhaka", day: "numeric", month: "long", hour: "numeric", minute: "2-digit" }),
+const BN_DAY = new Intl.DateTimeFormat("bn-BD", { timeZone: "Asia/Dhaka", day: "numeric", month: "long" });
+const BN_TIME = new Intl.DateTimeFormat("bn-BD", { timeZone: "Asia/Dhaka", hour: "numeric", minute: "2-digit", dayPeriod: "short" });
+const EN_DATE_TIME = new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Dhaka", day: "numeric", month: "long", hour: "numeric", minute: "2-digit" });
+const DATE_TIME: Record<Lang, (d: Date) => string> = {
+  // "৪ নভেম্বর, বিকাল ৩:৩০": the part of the day before the time, as it is said; ICU writes "৪ নভেম্বর এ ৩:৩০ PM"
+  bn: (d) => {
+    const parts = BN_TIME.formatToParts(d);
+    const period = parts.find((p) => p.type === "dayPeriod")?.value;
+    const time = parts.filter((p) => p.type !== "dayPeriod").map((p) => p.value).join("").trim();
+    return `${BN_DAY.format(d)}, ${period ? `${period} ` : ""}${time}`;
+  },
+  en: (d) => EN_DATE_TIME.format(d),
 };
 const toDate = (value: string | Date) => (typeof value === "string" ? new Date(`${value}T00:00:00+06:00`) : value);
 
@@ -70,7 +79,7 @@ export function makeT(lang: Lang): T {
     num: (x) => n(group(x)),
     money: (x) => `৳${n(group(x))}`,
     date: (d) => DATE[lang].format(toDate(d)),
-    dateTime: (d) => DATE_TIME[lang].format(d),
+    dateTime: (d) => DATE_TIME[lang](d),
     height: (cm) => {
       const inches = Math.round(cm / 2.54);
       return t("height", { ft: Math.floor(inches / 12), in: inches % 12 });

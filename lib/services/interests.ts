@@ -3,6 +3,7 @@ import type { Db } from "../db";
 import { favorite, interest, profile, proposal, type InterestStatus } from "../db/schema";
 import { AppError } from "../errors";
 import { notify } from "./notices";
+import { pushToAdmins } from "./push";
 import { createProposal } from "./proposals";
 import { FAMILY_VIEW } from "./share";
 
@@ -34,8 +35,11 @@ export async function expressInterest(db: Db, ghotokId: string, userId: string, 
     forProfileId = own.id;
   }
   const note = input.note?.trim().slice(0, 500) || null;
+  const [before] = await db.select({ status: interest.status }).from(interest).where(and(eq(interest.userId, userId), eq(interest.profileId, liked.id)));
   await db.insert(interest).values({ id: crypto.randomUUID(), ghotokId, userId, profileId: liked.id, forProfileId, note })
     .onConflictDoUpdate({ target: [interest.userId, interest.profileId], set: { forProfileId, note, status: "new" }, where: sql`${interest.status} <> 'proposed'` });
+  // a new request (or a closed one woken) reaches the ghotok's phone; changing the note of one already waiting does not
+  if (!before || before.status === "closed") await pushToAdmins(db, ghotokId);
 }
 
 /** The family takes a request back, while the ghotok has not acted on it. */

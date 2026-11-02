@@ -34,7 +34,7 @@ interface FieldProps {
   /** defaults to `name`; set it when two forms on one page have a field of the same name */
   id?: string;
   label: string;
-  type?: "text" | "tel" | "password" | "date" | "number" | "url";
+  type?: "text" | "tel" | "password" | "date" | "datetime-local" | "number" | "url";
   autoComplete?: string;
   inputMode?: "text" | "tel" | "numeric" | "decimal" | "email" | "url";
   required?: boolean;

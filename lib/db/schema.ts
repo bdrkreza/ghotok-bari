@@ -269,7 +269,7 @@ export const favorite = pgTable("favorite", {
  * What happened to a family's biodata or request, shown on their page until they dismiss it. The words come from the
  * dictionary ("notice.kind.*"), filled with `label` (a biodata number such as "পাত্রী-৭" is stored as kind + code).
  */
-export type NoticeKind = "approved" | "returned" | "proposed";
+export type NoticeKind = "approved" | "returned" | "proposed" | "match" | "meeting";
 
 export const notice = pgTable("notice", {
   id: id(),
@@ -278,11 +278,39 @@ export const notice = pgTable("notice", {
   kind: text("kind").$type<NoticeKind>().notNull(),
   /** the biodata it is about */
   profileId: uuid("profile_id").references(() => profile.id, { onDelete: "cascade" }),
-  /** the ghotok's note, for "returned" */
+  /** the ghotok's note, for "returned"; the place, for "meeting" */
   note: text("note"),
+  /** when, for "meeting" */
+  at: timestamp("at", { withTimezone: true }),
   readAt: timestamp("read_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 }, (t) => [index("notice_user").on(t.userId, t.readAt)]).enableRLS();
+
+/**
+ * A "দেখা-দেখি": the day and place two families meet over a proposal. Listed on /dashboard/meetings and on the
+ * proposal; the bell reminds the ghotok of today's and tomorrow's, and both families get a notice when it is set.
+ */
+export const meeting = pgTable("meeting", {
+  id: id(),
+  ghotokId: text("ghotok_id").notNull().references(() => user.id, { onDelete: "cascade" }),
+  proposalId: uuid("proposal_id").notNull().references(() => proposal.id, { onDelete: "cascade" }),
+  at: timestamp("at", { withTimezone: true }).notNull(),
+  place: text("place"),
+  note: text("note"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => [index("meeting_ghotok_at").on(t.ghotokId, t.at)]).enableRLS();
+
+/**
+ * A phone or browser that asked for news while the site is closed (Web Push, lib/push.ts). Only the address the
+ * browser's push service gave; the push carries no data, the worker fetches the words from /api/push/latest.
+ */
+export const pushSubscription = pgTable("push_subscription", {
+  id: id(),
+  ghotokId: text("ghotok_id").notNull().references(() => user.id, { onDelete: "cascade" }),
+  userId: text("user_id").notNull().references(() => user.id, { onDelete: "cascade" }),
+  endpoint: text("endpoint").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => [uniqueIndex("push_endpoint").on(t.endpoint), index("push_user").on(t.userId)]).enableRLS();
 
 /* ---------- keeping the site safe ---------- */
 
@@ -326,6 +354,11 @@ export const proposalRelations = relations(proposal, ({ one, many }) => ({
   patri: one(profile, { fields: [proposal.patriId], references: [profile.id], relationName: "patri" }),
   events: many(proposalEvent),
   ledger: many(ledgerEntry),
+  meetings: many(meeting),
+}));
+
+export const meetingRelations = relations(meeting, ({ one }) => ({
+  proposal: one(proposal, { fields: [meeting.proposalId], references: [proposal.id] }),
 }));
 
 export const proposalEventRelations = relations(proposalEvent, ({ one }) => ({
@@ -352,3 +385,4 @@ export type ProfilePhoto = typeof profilePhoto.$inferSelect;
 export type Interest = typeof interest.$inferSelect;
 export type Notice = typeof notice.$inferSelect;
 export type Activity = typeof activity.$inferSelect;
+export type Meeting = typeof meeting.$inferSelect;

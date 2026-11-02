@@ -16,6 +16,7 @@ export {
 import { normalizePhone } from "../auth/phone";
 import type { Place } from "../search";
 import { currentYear } from "../time";
+import { notifyNewMatch } from "./match";
 import { notify } from "./notices";
 
 
@@ -349,6 +350,8 @@ export async function setApproval(db: Db, ghotokId: string, id: string, decision
   await db.update(profile).set(change).where(and(eq(profile.id, id), eq(profile.ghotokId, ghotokId)));
   // the family who wrote it hears about the decision on their page
   if (p.ownerUserId) await notify(db, ghotokId, p.ownerUserId, decision, id, change.returnNote);
+  // newly listed: families it suits hear of it too (not again when it was already listed)
+  if (decision === "approved" && p.approval !== "approved") await notifyNewMatch(db, ghotokId, { ...p, ...change });
 }
 
 /** Every district and upazila this ghotok has written on someone, as choices for the search bar. */

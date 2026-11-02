@@ -11,6 +11,7 @@ import { Icon, type IconName } from "@/components/icons";
 import { LangSwitch } from "@/components/lang-switch";
 import { LogoutIcon } from "@/components/logout";
 import { ThemeButton } from "@/components/theme";
+import { MoreMenu } from "./more-menu";
 import { MoreWheel } from "./more-wheel";
 
 interface Tab {
@@ -30,10 +31,11 @@ const GHOTOK_TABS: Tab[] = [
   { href: "/hisab", label: "nav.ledger", icon: "wallet" },
 ];
 
-/** Only on the wide bar, where there is room: the biodata requests and the accounts screen. */
+/** Not everyday: behind "আরও" on both bars (the wheel on a phone, a dropdown on the web). */
 const GHOTOK_MORE: Tab[] = [
   { href: "/dashboard/approvals", label: "nav.requests", icon: "note" },
   { href: "/dashboard/interests", label: "nav.interests", icon: "heart" },
+  { href: "/dashboard/meetings", label: "nav.meetings", icon: "calendar" },
   { href: "/dashboard/customers", label: "nav.customers", icon: "people" },
 ];
 
@@ -101,16 +103,17 @@ export function Nav({ role, badges = {} }: { role: Role; badges?: Record<string,
   );
 }
 
-/** Web: a bar across the top with the site's name, the role's screens and who is signed in (opens settings), then logout. Only on wide screens (lg). */
-export function TopNav({ userName, role, siteName, bell }: { userName: string; role: Role; siteName: string; bell?: ReactNode }) {
+/** Web: a bar across the top with the site's name, the role's screens and who is signed in (opens settings), then logout. Only on wide screens (lg).
+ *  The ghotok's everyday screens are tabs; the rest sit under "আরও ▾" with what is new in them (badges, by address). */
+export function TopNav({ userName, role, siteName, bell, badges = {} }: { userName: string; role: Role; siteName: string; bell?: ReactNode; badges?: Record<string, number> }) {
   const active = useActive();
   const { t } = useT();
   const settingsOn = active({ href: "/settings" });
-  const tabs = role === "admin" ? [...GHOTOK_TABS, ...GHOTOK_MORE] : CUSTOMER_TABS.filter((tab) => tab.href !== "/settings");
+  const tabs = role === "admin" ? GHOTOK_TABS : CUSTOMER_TABS.filter((tab) => tab.href !== "/settings");
   return (
     <header className="henna-edge sticky top-0 z-20 hidden bg-surface/95 pb-2.5 backdrop-blur lg:block print:hidden">
       <div className="mx-auto flex h-18 max-w-6xl items-stretch gap-4 px-8">
-        {/* the name never shrinks away; with seven tabs and the switches, the tab row scrolls instead */}
+        {/* the name never shrinks away; should the tabs still not fit (a narrow window, English), their row scrolls */}
         <Link href={role === "admin" ? "/dashboard" : "/me"} className="flex shrink-0 items-center gap-2.5">
           <span aria-hidden className="grid size-10 shrink-0 place-items-center rounded-xl bg-primary font-display text-lg font-extrabold text-on-primary outline-2 outline-offset-3 outline-primary outline-dotted">ঘ</span>
           <span className="flex flex-col leading-tight">
@@ -118,7 +121,7 @@ export function TopNav({ userName, role, siteName, bell }: { userName: string; r
             <span className="text-xs text-muted">{role === "admin" ? t("nav.ghotokDashboard") : t("nav.trusted")}</span>
           </span>
         </Link>
-        <nav aria-label={t("nav.main")} className="flex min-w-0 flex-1 items-stretch gap-0.5 overflow-x-auto">
+        <nav aria-label={t("nav.main")} className="flex min-w-0 items-stretch gap-0.5 overflow-x-auto">
           {tabs.map((tab) => {
             const on = active(tab);
             return (
@@ -129,10 +132,13 @@ export function TopNav({ userName, role, siteName, bell }: { userName: string; r
             );
           })}
         </nav>
+        {/* outside the tab row: that row scrolls, and a scrolling box would clip the open list */}
+        {role === "admin" ? <MoreMenu items={GHOTOK_MORE.map((tab) => ({ href: tab.href, label: t(tab.label), icon: tab.icon, on: active(tab), badge: badges[tab.href] ?? 0 }))} /> : null}
+        <span aria-hidden className="flex-1" />
         <LangSwitch className="my-auto shrink-0" />
         <ThemeButton className="my-auto" />
         {bell}
-        {/* the ghotok's bar carries seven tabs, so their pill is initials only (the name is in the label); a family's bar has room for the name */}
+        {/* the ghotok's bar is the fuller one, so their pill is initials only (the name is in the label); a family's bar has room for the name */}
         <Link href="/settings" aria-current={settingsOn ? "page" : undefined} aria-label={t("nav.settingsFor", { name: userName })} title={userName}
           className={`my-auto flex shrink-0 items-center gap-2.5 rounded-full border p-1 text-sm font-bold ${role === "admin" ? "" : "pr-4"} ${settingsOn ? "border-primary bg-primary-soft text-primary" : "border-line hover:bg-sunk"}`}>
           <span aria-hidden className="grid size-9 place-items-center rounded-full bg-primary-soft text-sm text-primary">{initials(userName)}</span>

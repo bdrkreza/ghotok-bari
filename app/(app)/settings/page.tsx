@@ -3,6 +3,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { LogoutButton } from "@/components/logout";
 import { PasswordForm } from "./_components/password-form";
+import { PushCard } from "./_components/push-card";
 import { Icon } from "@/components/icons";
 import { LangChoice } from "@/components/lang-switch";
 import { InstallCard } from "@/components/pwa";
@@ -13,6 +14,7 @@ import { homeFor, requireSite, requireUser } from "@/lib/auth/session";
 import { initials } from "@/lib/bn";
 import { getDb } from "@/lib/db";
 import { getT } from "@/lib/i18n/server";
+import { vapidKeys } from "@/lib/push";
 import { publicSite } from "@/lib/services/site";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -105,6 +107,7 @@ export default async function SettingsPage() {
         </div>
 
         <div className="flex flex-col gap-5">
+          <PushCard publicKey={vapidKeys()?.publicKey ?? null} />
           <InstallCard />
           <Card title={t("st.aboutTitle", { site: site.name })}>
             <p className="text-sm text-muted">{user.role === "admin" ? t("st.aboutAdmin") : t("st.aboutCustomer")}</p>

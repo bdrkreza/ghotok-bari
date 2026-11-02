@@ -12,6 +12,7 @@ import { getT } from "@/lib/i18n/server";
 import { myBiodata, recentBiodata } from "@/lib/services/biodata";
 import { myFavorites, myInterests } from "@/lib/services/interests";
 import { matchesForFamily } from "@/lib/services/match";
+import { myMeetings } from "@/lib/services/meetings";
 import { unreadNotices } from "@/lib/services/notices";
 import { publicSite } from "@/lib/services/site";
 import { ageFromYear } from "@/lib/time";
@@ -29,12 +30,16 @@ export default async function MePage() {
   const [me, T] = await Promise.all([requireCustomer(), getT()]);
   const { t } = T;
   const db = getDb();
-  const [site, mine, recent, notices, matches, favorites, interests] = await Promise.all([
+  const [site, mine, recent, notices, matches, favorites, interests, meetings] = await Promise.all([
     publicSite(db), myBiodata(db, me.ghotokId, me.id), recentBiodata(db, me.ghotokId), unreadNotices(db, me.ghotokId, me.id),
     matchesForFamily(db, me.ghotokId, me.id), myFavorites(db, me.ghotokId, me.id), myInterests(db, me.ghotokId, me.id),
+    myMeetings(db, me.ghotokId, me.id),
   ]);
   const noticeItems = notices.map((n) => ({
-    id: n.id, kind: n.kind, note: n.note, when: T.date(n.createdAt),
+    id: n.id, kind: n.kind,
+    // a meeting's note is its place, said with its time rather than as the ghotok's words
+    note: n.kind === "meeting" ? null : n.note,
+    when: n.kind === "meeting" && n.at ? [T.dateTime(n.at), n.note].filter(Boolean).join(" · ") : T.date(n.createdAt),
     no: n.profileKind && n.profileCode !== null ? T.biodataNo(n.profileKind, n.profileCode) : "",
     // their own biodata opens on their side; one they asked about, on the list side
     href: n.profileId ? (n.ownedBy === me.id ? `/me/biodata/${n.profileId}` : `/biodata/${n.profileId}`) : null,
@@ -81,6 +86,21 @@ export default async function MePage() {
       </section>
 
       <Notices items={noticeItems} />
+
+      {meetings.length ? (
+        <section aria-label={t("me.meetings")} className="flex flex-col gap-3 rounded-3xl border border-line bg-surface p-4">
+          <p className="flex items-center gap-2 font-bold"><Icon name="calendar" size={20} className="text-primary" />{t("me.meetings")}</p>
+          <ul className="flex flex-col divide-y divide-line">
+            {meetings.map((m) => (
+              <li key={m.id} className="py-2">
+                <p className="font-semibold">{T.dateTime(m.at)}</p>
+                <p className="text-sm text-muted">{[T.biodataNo(m.kind, m.code), m.place].filter(Boolean).join(" · ")}</p>
+              </li>
+            ))}
+          </ul>
+          <p className="text-xs text-muted">{t("me.meetingsHint")}</p>
+        </section>
+      ) : null}
 
       <section aria-label={t("me.glance")} className="grid grid-cols-3 gap-1 rounded-3xl border border-line bg-surface p-2">
         <Stat icon="note" value={T.n(mine.length)} label={pending ? t("me.myBiodataPending", { n: pending }) : t("me.myBiodata")} href="#amar" />

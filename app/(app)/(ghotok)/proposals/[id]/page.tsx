@@ -1,5 +1,5 @@
 import { Icon } from "@/components/icons";
-import { DeleteProposalForm, FollowUpForm, LedgerForm, NoteForm, StatusForm } from "@/components/proposal-forms";
+import { DeleteMeetingForm, DeleteProposalForm, FollowUpForm, LedgerForm, MeetingForm, NoteForm, StatusForm } from "@/components/proposal-forms";
 import { Badge, Card, PageHeader, ProposalBadge, RowLink } from "@/components/ui";
 import { requireAdmin } from "@/lib/auth/session";
 import { PROPOSAL_STATUS } from "@/lib/bn";
@@ -51,6 +51,26 @@ export default async function ProposalPage(props: PageProps<"/proposals/[id]">) 
             <Card title={t("pr.followUp")}>
               <p className="text-sm text-muted">{p.followUpOn ? t("pr.followUpWhen", { date: T.date(p.followUpOn) }) : t("pr.followUpHint")}</p>
               <FollowUpForm id={p.id} current={p.followUpOn} today={today()} />
+            </Card>
+          ) : null}
+
+          {LIVE.includes(p.status) || p.meetings.length ? (
+            <Card title={t("mt.title")}>
+              {p.meetings.length ? (
+                <ul className="divide-y divide-line">
+                  {p.meetings.map((m) => (
+                    <li key={m.id} className="flex items-start gap-3 py-2">
+                      <Icon name="calendar" size={18} className="mt-0.5 shrink-0 text-muted" />
+                      <div className="min-w-0 flex-1">
+                        <p className="font-semibold">{T.dateTime(m.at)}</p>
+                        {m.place || m.note ? <p className="text-sm text-muted">{[m.place, m.note].filter(Boolean).join(" · ")}</p> : null}
+                      </div>
+                      <DeleteMeetingForm id={m.id} proposalId={p.id} />
+                    </li>
+                  ))}
+                </ul>
+              ) : <p className="text-sm text-muted">{t("mt.hint")}</p>}
+              {LIVE.includes(p.status) ? <MeetingForm id={p.id} today={today()} /> : null}
             </Card>
           ) : null}
 

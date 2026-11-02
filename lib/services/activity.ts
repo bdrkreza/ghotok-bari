@@ -10,7 +10,8 @@ import { activity, user } from "../db/schema";
 export type ActivityAction =
   | "profileAdded" | "profileEdited" | "profileDeleted" | "profileStatus" | "listed" | "returned" | "visibility"
   | "shareOn" | "shareOff"
-  | "proposalAdded" | "proposalStatus" | "proposalNote" | "proposalDeleted" | "followUp" | "interestProposed" | "interestClosed"
+  | "proposalAdded" | "proposalStatus" | "proposalNote" | "proposalDeleted" | "followUp" | "meetingAdded" | "meetingDeleted"
+  | "interestProposed" | "interestClosed"
   | "ledgerAdded" | "ledgerDeleted"
   | "roleChanged" | "passwordReset" | "siteEdited" | "backup";
 

@@ -1,6 +1,6 @@
 import { and, asc, desc, eq, inArray, isNotNull, lte, or, sql, type SQL } from "drizzle-orm";
 import type { Db } from "../db";
-import { profile, proposal, proposalEvent, type ProposalStatus } from "../db/schema";
+import { meeting, profile, proposal, proposalEvent, type ProposalStatus } from "../db/schema";
 import { AppError } from "../errors";
 import { getProfile } from "./profiles";
 import { today } from "../time";
@@ -46,6 +46,7 @@ export async function getProposal(db: Db, ghotokId: string, id: string) {
       patri: true,
       events: { orderBy: [desc(proposalEvent.createdAt)] },
       ledger: true,
+      meetings: { orderBy: [asc(meeting.at)] },
     },
   });
   if (!row) throw new AppError("not_found");

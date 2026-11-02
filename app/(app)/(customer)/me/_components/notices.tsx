@@ -26,7 +26,7 @@ export function Notices({ items }: { items: NoticeItem[] }) {
       {items.map((n) => (
         <div key={n.id} className={`flex items-start gap-3 rounded-2xl border p-4 ${n.kind === "returned" ? "border-warn-line bg-warn text-warn-ink" : "border-primary-soft bg-primary-soft/50"}`}>
           <span aria-hidden className="grid size-10 shrink-0 place-items-center rounded-full bg-surface/70 text-primary">
-            <Icon name={n.kind === "approved" ? "check" : n.kind === "proposed" ? "rings" : "note"} size={20} />
+            <Icon name={n.kind === "approved" ? "check" : n.kind === "proposed" ? "rings" : n.kind === "match" ? "heart" : n.kind === "meeting" ? "calendar" : "note"} size={20} />
           </span>
           <div className="min-w-0 flex-1">
             <p className="font-bold">{t(`me.notice.${n.kind}`, { no: n.no })}</p>

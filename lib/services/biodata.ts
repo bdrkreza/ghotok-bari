@@ -4,6 +4,7 @@ import { profile, type Profile } from "../db/schema";
 import { AppError } from "../errors";
 import { FAMILY_REQUIRED, createProfile, findSame, parseProfile, profileWhere, type ProfileFilter } from "./profiles";
 import { deletePhotosOf } from "./photos";
+import { pushToAdmins } from "./push";
 import { FAMILY_VIEW } from "./share";
 
 // A family's side of biodata. Their own entries are scoped twice: to the site's ghotok and to their account
@@ -43,7 +44,9 @@ async function handedInBefore(db: Db, ghotokId: string, ownerUserId: string, dat
 export async function submitBiodata(db: Db, ghotokId: string, ownerUserId: string, raw: Record<string, string>): Promise<string> {
   const pledgedAt = pledged(raw);
   await handedInBefore(db, ghotokId, ownerUserId, parseProfile({ ...raw, notes: "" }, FAMILY_REQUIRED));
-  return createProfile(db, ghotokId, { ...raw, notes: "" }, { ownerUserId, pledgedAt }, { require: FAMILY_REQUIRED });
+  const id = await createProfile(db, ghotokId, { ...raw, notes: "" }, { ownerUserId, pledgedAt }, { require: FAMILY_REQUIRED });
+  await pushToAdmins(db, ghotokId);
+  return id;
 }
 
 /** Change one's own biodata. Whatever the ghotok had decided, the new text waits for approval again. */

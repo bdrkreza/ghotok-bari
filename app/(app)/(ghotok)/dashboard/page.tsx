@@ -147,6 +147,9 @@ export default async function HomePage() {
           </div>
           <LinkCard icon="note" title={t("dash.requestsCard")} text={d.pending ? t("dash.requestsPending", { n: d.pending }) : t("dash.requestsNone")} href="/dashboard/approvals" t={T} />
           <LinkCard icon="heart" title={t("dash.interestsCard")} text={d.interests ? t("dash.interestsNew", { n: d.interests }) : t("dash.interestsNone")} href="/dashboard/interests" t={T} />
+          <LinkCard icon="calendar" title={t("mt.title")}
+            text={d.meetings[0] ? t("dash.meetingNext", { when: T.dateTime(d.meetings[0].at), pair: t("common.and", { a: d.meetings[0].proposal.patro.name, b: d.meetings[0].proposal.patri.name }) }) : t("dash.meetingsNone")}
+            href="/dashboard/meetings" t={T} />
           <LinkCard icon="people" title={t("dash.customersCard")} text={t("dash.customersText")} href="/dashboard/customers" t={T} />
           <LinkCard icon="edit" title={t("dash.siteCard")} text={t("dash.siteText")} href="/dashboard/site" t={T} />
           <LinkCard icon="note" title={t("dash.activityCard")} text={t("dash.activityText")} href="/dashboard/activity" t={T} />

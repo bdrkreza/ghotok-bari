@@ -1,7 +1,8 @@
-import { and, eq, inArray, or } from "drizzle-orm";
+import { and, eq, inArray, isNotNull, ne, or } from "drizzle-orm";
 import type { Db } from "../db";
 import { profile, proposal, type Profile } from "../db/schema";
 import { ageFromYear } from "../time";
+import { notify } from "./notices";
 import { FAMILY_VIEW } from "./share";
 
 /** Why two people might suit each other; the page turns the key into words in the user's language ("reason.*"). */
@@ -95,4 +96,35 @@ export async function matchesForFamily(db: Db, ghotokId: string, ownerUserId: st
     const b = byId.get(id);
     return b ? [{ b, reasons: m.reasons, forId: m.forId }] : [];
   });
+}
+
+/** How well a newly listed biodata must suit a family's own before they are told about it (scorePair, out of 15). */
+export const MATCH_NOTICE_MIN = 6;
+
+/**
+ * A biodata was just listed: tell each family whose own listed, still-looking biodata it suits well (MATCH_NOTICE_MIN
+ * and up, same religion, not already proposed together), once per family. Not its own family. Returns who was told.
+ */
+export async function notifyNewMatch(db: Db, ghotokId: string, person: Profile): Promise<string[]> {
+  if (person.approval !== "approved" || person.status !== "active") return [];
+  const otherKind = person.kind === "patro" ? "patri" : "patro";
+  const [families, existing] = await Promise.all([
+    db.select().from(profile).where(and(
+      eq(profile.ghotokId, ghotokId), eq(profile.kind, otherKind), eq(profile.status, "active"), eq(profile.approval, "approved"),
+      eq(profile.religion, person.religion), isNotNull(profile.ownerUserId),
+      ...(person.ownerUserId ? [ne(profile.ownerUserId, person.ownerUserId)] : []),
+    )),
+    db.select({ patroId: proposal.patroId, patriId: proposal.patriId }).from(proposal)
+      .where(and(eq(proposal.ghotokId, ghotokId), or(eq(proposal.patroId, person.id), eq(proposal.patriId, person.id)))),
+  ]);
+  const taken = new Set(existing.flatMap((p) => [p.patroId, p.patriId]));
+  const told = new Set<string>();
+  for (const own of families) {
+    if (!own.ownerUserId || told.has(own.ownerUserId) || taken.has(own.id)) continue;
+    const { score } = person.kind === "patro" ? scorePair(person, own) : scorePair(own, person);
+    if (score < MATCH_NOTICE_MIN) continue;
+    told.add(own.ownerUserId);
+    await notify(db, ghotokId, own.ownerUserId, "match", person.id);
+  }
+  return [...told];
 }

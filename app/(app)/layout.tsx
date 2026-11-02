@@ -1,7 +1,8 @@
 import Link from "next/link";
-import { Bell, type BellItem } from "./_components/bell";
+import { Bell } from "./_components/bell";
 import { Nav, TopNav } from "./_components/nav";
 import { homeFor, requireSite, requireUser, type SessionUser } from "@/lib/auth/session";
+import { adminItems, noticeItem, type BellItem } from "@/lib/bell";
 import { getDb } from "@/lib/db";
 import type { Site } from "@/lib/db/schema";
 import type { T } from "@/lib/i18n";
@@ -17,7 +18,7 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
   const { badges, ...bell } = await bellFor(user, site, T);
   return (
     <div className="flex min-h-dvh flex-col">
-      <TopNav userName={user.name} role={user.role} siteName={site.name} bell={<Bell {...bell} className="my-auto shrink-0" />} />
+      <TopNav userName={user.name} role={user.role} siteName={site.name} badges={badges} bell={<Bell {...bell} className="my-auto shrink-0" />} />
       {/* the palki's arch: maroon, its foot curved. Only the name and the bell, so the name has room; the
           language, the theme and the rest are one tab away on the settings screen */}
       <header className="sticky top-0 z-10 rounded-b-[50%_1.4rem] bg-panel pb-4 text-on-panel shadow-md lg:hidden print:hidden">
@@ -46,35 +47,15 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
  * screen, for the ghotok's wheel on the phone bar.
  */
 async function bellFor(user: SessionUser, site: Site, T: T): Promise<{ items: BellItem[]; count: number; family: boolean; badges: Record<string, number> }> {
-  const { t } = T;
   const db = getDb();
   if (user.role === "admin") {
     const a = await alerts(db, site.ghotokId);
-    const items: BellItem[] = [
-      ...(a.pending ? [{ key: "pending", text: t("dash.pendingBanner", { n: a.pending }), sub: t("dash.pendingBannerText"), href: "/dashboard/approvals", icon: "note" as const, tone: "warn" as const }] : []),
-      ...(a.interests ? [{ key: "interests", text: t("dash.interestBanner", { n: a.interests }), sub: t("dash.interestBannerText"), href: "/dashboard/interests", icon: "heart" as const, tone: "news" as const }] : []),
-      ...(a.followUps ? [{ key: "followUps", text: t("dash.followUpTitle", { n: a.followUps }), sub: t("bell.followUpSub"), href: "/dashboard#followups", icon: "calendar" as const, tone: "warn" as const }] : []),
-    ];
     return {
-      items, count: a.pending + a.interests + a.followUps, family: false,
-      badges: { "/dashboard/approvals": a.pending, "/dashboard/interests": a.interests },
+      items: adminItems(a, T), count: a.pending + a.interests + a.followUps + a.meetings, family: false,
+      badges: { "/dashboard/approvals": a.pending, "/dashboard/interests": a.interests, "/dashboard/meetings": a.meetings },
     };
   }
   // the list holds the latest fifty, seen and unseen, and scrolls; the badge counts every unseen one
   const [notices, unread] = await Promise.all([recentNotices(db, site.ghotokId, user.id, 50), unreadCount(db, site.ghotokId, user.id)]);
-  const items: BellItem[] = notices.map((n) => {
-    const no = n.profileKind && n.profileCode !== null ? T.biodataNo(n.profileKind, n.profileCode) : "";
-    return {
-      key: n.id,
-      text: t(`me.notice.${n.kind}`, { no }),
-      sub: n.note ? t("me.ghotokNote", { note: n.note }) : T.date(n.createdAt),
-      // their own biodata opens on their side; one they asked about, on the list side
-      href: n.profileId ? (n.ownedBy === user.id ? `/me/biodata/${n.profileId}` : `/biodata/${n.profileId}`) : "/me",
-      icon: n.kind === "approved" ? "check" : n.kind === "proposed" ? "rings" : "note",
-      tone: n.kind === "returned" ? "warn" : "news",
-      seen: n.readAt !== null,
-      noticeId: n.id,
-    };
-  });
-  return { items, count: unread, family: true, badges: {} };
+  return { items: notices.map((n) => noticeItem(n, user.id, T)), count: unread, family: true, badges: {} };
 }

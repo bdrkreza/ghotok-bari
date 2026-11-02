@@ -1,7 +1,8 @@
 /* আলতা service worker.
    Pages always come from the network (they show one ghotok's private data, so none of them is kept here);
    when the network is gone the offline page is shown instead. Build assets under /_next/static/ carry a content
-   hash in their name, so once fetched they are served from the cache. Registered by components/pwa.tsx. */
+   hash in their name, so once fetched they are served from the cache. Registered by components/pwa.tsx, and by the
+   settings card that turns on news on the phone (push), which also works in development. */
 const CACHE = "alta-v2"; // bumped with the mehedi scheme, so installed phones refetch the offline page's colours
 const OFFLINE_URL = "/offline";
 const STAMP_URL = "/__offline-stamp";
@@ -64,7 +65,8 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  if (url.pathname.startsWith("/_next/static/")) {
+  // the dev server's files keep their names between edits: never cache them
+  if (url.pathname.startsWith("/_next/static/") && !["localhost", "127.0.0.1"].includes(self.location.hostname)) {
     event.respondWith((async () => {
       const cache = await caches.open(CACHE);
       const hit = await cache.match(request);
@@ -74,4 +76,36 @@ self.addEventListener("fetch", (event) => {
       return res;
     })());
   }
+});
+
+/* News on the phone. The push arrives empty (lib/push.ts); the words come from /api/push/latest with the reader's own
+   cookie, in their language. Every push must show a notification, so a failed fetch still shows a plain one. */
+self.addEventListener("push", (event) => {
+  event.waitUntil((async () => {
+    let news = { title: "আলতা", body: "নতুন খবর দেখতে খুলুন", url: "/" };
+    try {
+      const res = await fetch("/api/push/latest", { cache: "no-store" });
+      if (res.ok) news = await res.json();
+    } catch {
+      /* offline for a moment: the plain words */
+    }
+    await self.registration.showNotification(news.title, {
+      body: news.body, icon: "/icon-192.png", badge: "/icon-192.png", tag: "alta", renotify: true, data: { url: news.url },
+    });
+  })());
+});
+
+/* Tapping it opens the page it is about: in a window of the site already open, or a new one. */
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const url = new URL(event.notification.data?.url ?? "/", self.location.origin).href;
+  event.waitUntil((async () => {
+    const open = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
+    const win = open.find((w) => new URL(w.url).origin === self.location.origin);
+    if (win) {
+      await win.focus();
+      if ("navigate" in win) return win.navigate(url).catch(() => self.clients.openWindow(url));
+    }
+    return self.clients.openWindow(url);
+  })());
 });
