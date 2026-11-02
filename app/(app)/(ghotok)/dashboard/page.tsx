@@ -73,7 +73,7 @@ export default async function HomePage() {
       ) : null}
 
       {d.followUps.length ? (
-        <section className="flex flex-col gap-3 rounded-3xl border border-warn-line bg-warn p-4 text-warn-ink lg:p-5">
+        <section id="followups" className="flex scroll-mt-24 flex-col gap-3 rounded-3xl border border-warn-line bg-warn p-4 text-warn-ink lg:p-5">
           <p className="flex items-center gap-2 font-bold"><Icon name="calendar" size={20} />{t("dash.followUpTitle", { n: d.followUps.length })}</p>
           <ul className="flex flex-col gap-2">
             {d.followUps.map((f) => (

@@ -5,7 +5,7 @@ import type { Place } from "../search";
 import { totals, type Totals } from "./ledger";
 import { activeCounts, pendingCount, places, recentProfiles, type RecentProfile } from "./profiles";
 import { newInterestCount } from "./interests";
-import { LIVE, dueFollowUps, listProposals, type FollowUpRow, type ProposalRow } from "./proposals";
+import { LIVE, dueFollowUps, followUpCount, listProposals, type FollowUpRow, type ProposalRow } from "./proposals";
 
 export interface Dashboard {
   patro: number;
@@ -51,4 +51,16 @@ export async function dashboard(db: Db, ghotokId: string): Promise<Dashboard> {
     people,
     places: seen,
   };
+}
+
+/** What waits for the ghotok, for the bell in the bar: three counts, read on every screen, so kept to counts. */
+export interface Alerts {
+  pending: number;
+  interests: number;
+  followUps: number;
+}
+
+export async function alerts(db: Db, ghotokId: string): Promise<Alerts> {
+  const [pending, interests, followUps] = await Promise.all([pendingCount(db, ghotokId), newInterestCount(db, ghotokId), followUpCount(db, ghotokId)]);
+  return { pending, interests, followUps };
 }

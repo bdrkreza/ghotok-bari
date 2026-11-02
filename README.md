@@ -111,7 +111,9 @@ the other family is told nothing. Once per family and biodata; it can be taken b
 also keeps a private short list (পছন্দের তালিকা). Both only ever point at approved biodata and read back through
 `FAMILY_VIEW` (`lib/services/interests.ts`). When the ghotok lists or returns a family's biodata, or makes a proposal
 from their request, the family finds a notice on `/me` until they dismiss it (`lib/services/notices.ts`); there is no
-SMS or push. `/me` also suggests "যাঁদের সাথে মিলতে পারে" for the family's listed biodata, scored like the ghotok's
+SMS or push. A bell in the top bar (phone and web, `app/(app)/_components/bell.tsx`) counts what is new and opens a
+list: for a family, these notices, which can be marked read from there; for the ghotok, the biodata waiting for
+approval, the families' interest and the proposals due a call today, each opening its screen. `/me` also suggests "যাঁদের সাথে মিলতে পারে" for the family's listed biodata, scored like the ghotok's
 suggestions and shown without names (`matchesForFamily` in `lib/services/match.ts`).
 
 ### The ghotok's day

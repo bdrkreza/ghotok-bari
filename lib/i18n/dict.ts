@@ -1021,6 +1021,12 @@ export const bn = {
   "st.backupJsonText": "প্রস্তাব আর হিসাবসহ সব; রেখে দেওয়ার জন্য",
   "st.backupCsvText": "কম্পিউটারে খুলে দেখা ও প্রিন্ট করা যায়",
   "st.backupHint": "মাসে একবার নামিয়ে Google Drive বা পেনড্রাইভে রেখে দিন। এতে অভিভাবকদের ফোন নম্বর আছে, তাই কাউকে পাঠাবেন না।",
+  "bell.aria": "নোটিফিকেশন",
+  "bell.ariaCount": "নোটিফিকেশন, {n}টি নতুন",
+  "bell.title": "নোটিফিকেশন",
+  "bell.empty": "নতুন কিছু নেই।",
+  "bell.seeAll": "সব দেখুন",
+  "bell.followUpSub": "দুই পরিবারের নম্বর ড্যাশবোর্ডে",
 } as const;
 
 export type Key = keyof typeof bn;
@@ -2024,4 +2030,10 @@ export const en: Record<Key, string> = {
   "st.backupJsonText": "Everything, with proposals and the ledger; to keep safe",
   "st.backupCsvText": "Opens on a computer to read or print",
   "st.backupHint": "Download once a month and keep it on Google Drive or a pen drive. It has guardians' phone numbers, so don't send it to anyone.",
+  "bell.aria": "Notifications",
+  "bell.ariaCount": "Notifications, {n} new",
+  "bell.title": "Notifications",
+  "bell.empty": "Nothing new.",
+  "bell.seeAll": "See all",
+  "bell.followUpSub": "Both families' numbers are on the dashboard",
 };

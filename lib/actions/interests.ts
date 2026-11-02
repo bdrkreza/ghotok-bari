@@ -51,7 +51,8 @@ export async function dismissNoticeAction(_prev: FormState, form: FormData): Pro
   const me = await requireCustomer();
   return attempt(async () => {
     await dismissNotice(getDb(), me.ghotokId, me.id, field(form, "id"));
-    revalidatePath("/me");
+    // the bell in every bar counts them too
+    revalidatePath("/", "layout");
   });
 }
 

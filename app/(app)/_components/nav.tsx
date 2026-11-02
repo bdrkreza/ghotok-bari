@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import type { ReactNode } from "react";
 import { initials } from "@/lib/bn";
 import type { Role } from "@/lib/db/schema";
 import type { Key } from "@/lib/i18n";
@@ -75,7 +76,7 @@ export function Nav({ role }: { role: Role }) {
 }
 
 /** Web: a bar across the top with the site's name, the role's screens and who is signed in (opens settings). Only on wide screens (lg). */
-export function TopNav({ userName, role, siteName }: { userName: string; role: Role; siteName: string }) {
+export function TopNav({ userName, role, siteName, bell }: { userName: string; role: Role; siteName: string; bell?: ReactNode }) {
   const active = useActive();
   const { t } = useT();
   const settingsOn = active({ href: "/settings" });
@@ -104,6 +105,7 @@ export function TopNav({ userName, role, siteName }: { userName: string; role: R
         </nav>
         <LangSwitch className="my-auto shrink-0" />
         <ThemeButton className="my-auto" />
+        {bell}
         {/* the ghotok's bar carries seven tabs, so their pill is initials only (the name is in the label); a family's bar has room for the name */}
         <Link href="/settings" aria-current={settingsOn ? "page" : undefined} aria-label={t("nav.settingsFor", { name: userName })} title={userName}
           className={`my-auto flex shrink-0 items-center gap-2.5 rounded-full border p-1 text-sm font-bold ${role === "admin" ? "" : "pr-4"} ${settingsOn ? "border-primary bg-primary-soft text-primary" : "border-line hover:bg-sunk"}`}>

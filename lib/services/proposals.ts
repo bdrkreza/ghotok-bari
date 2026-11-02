@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, inArray, isNotNull, lte, or, type SQL } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, isNotNull, lte, or, sql, type SQL } from "drizzle-orm";
 import type { Db } from "../db";
 import { profile, proposal, proposalEvent, type ProposalStatus } from "../db/schema";
 import { AppError } from "../errors";
@@ -136,3 +136,10 @@ export async function dueFollowUps(db: Db, ghotokId: string, on = today()) {
 }
 
 export type FollowUpRow = Awaited<ReturnType<typeof dueFollowUps>>[number];
+
+/** How many live proposals are due a call today or earlier: the number on the bell. */
+export async function followUpCount(db: Db, ghotokId: string, on = today()): Promise<number> {
+  const [row] = await db.select({ n: sql<number>`count(*)::int` }).from(proposal)
+    .where(and(eq(proposal.ghotokId, ghotokId), inArray(proposal.status, LIVE), isNotNull(proposal.followUpOn), lte(proposal.followUpOn, on)));
+  return row?.n ?? 0;
+}
