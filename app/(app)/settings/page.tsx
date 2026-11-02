@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { LogoutButton } from "@/components/logout";
 import { PasswordForm } from "./_components/password-form";
 import { Icon } from "@/components/icons";
 import { LangChoice } from "@/components/lang-switch";
@@ -8,7 +9,6 @@ import { InstallCard } from "@/components/pwa";
 import { ContactButtons } from "@/components/site";
 import { ThemeChoice } from "@/components/theme";
 import { Badge, Card, PageHeader, quietButton, type Tone } from "@/components/ui";
-import { logoutAction } from "@/lib/auth/actions";
 import { homeFor, requireSite, requireUser } from "@/lib/auth/session";
 import { initials } from "@/lib/bn";
 import { getDb } from "@/lib/db";
@@ -54,12 +54,8 @@ export default async function SettingsPage() {
                 </p>
               </div>
             </div>
-            <div className="flex flex-col gap-3 border-t border-line pt-3 lg:flex-row lg:items-center lg:justify-between">
-              {hint ? <p className="text-sm text-muted lg:max-w-md">{hint}</p> : <span />}
-              <form action={logoutAction} className="flex lg:shrink-0">
-                <button type="submit" className={`${quietButton} w-full lg:w-auto`}><Icon name="logout" size={18} />{t("st.logout")}</button>
-              </form>
-            </div>
+            {/* logging out is at the foot of the screen, behind a question */}
+            {hint ? <p className="border-t border-line pt-3 text-sm text-muted">{hint}</p> : null}
           </Card>
 
           <Card title={t("st.passwordTitle")}>
@@ -127,6 +123,7 @@ export default async function SettingsPage() {
           </Card>
         </div>
       </div>
+      <LogoutButton />
     </>
   );
 }

@@ -38,6 +38,8 @@
   --panel-soft: #fbe3e3;
   /* zari gold, for the ornaments on a deep ground; the same in both schemes */
   --gold: #e3b55a;
+  /* the dimmed page behind a menu or a sheet */
+  --shade: #28080eb8;
   /* the palki around the sign-in card (.palki below) */
   --palki-roof-a: #f0d58e;
   --palki-roof-b: #c99a3e;
@@ -84,6 +86,7 @@
     --neg: #ff8d7b;
     --panel: #5a0614;
     --panel-soft: #3a1015;
+    --shade: #080203cc;
     --palki-roof-a: #e9667a;
     --palki-roof-b: #e0243e;
     --palki-roof-c: #9c1028;
@@ -131,6 +134,7 @@
     --neg: #ff8d7b;
     --panel: #5a0614;
     --panel-soft: #3a1015;
+    --shade: #080203cc;
     --palki-roof-a: #e9667a;
     --palki-roof-b: #e0243e;
     --palki-roof-c: #9c1028;
@@ -170,6 +174,7 @@
   --color-on-panel: var(--on-panel);
   --color-panel-soft: var(--panel-soft);
   --color-gold: var(--gold);
+  --color-shade: var(--shade);
   --color-mango: var(--mango);
   --color-mango-ink: var(--mango-ink);
   --color-mint: var(--mint);

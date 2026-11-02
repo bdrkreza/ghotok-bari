@@ -10,6 +10,7 @@ import { useT } from "@/lib/i18n/client";
 import { Icon, type IconName } from "@/components/icons";
 import { LangSwitch } from "@/components/lang-switch";
 import { ThemeButton } from "@/components/theme";
+import { MoreWheel } from "./more-wheel";
 
 interface Tab {
   href: string;
@@ -43,7 +44,13 @@ const CUSTOMER_TABS: Tab[] = [
   { href: "/settings", label: "nav.settings", icon: "settings" },
 ];
 
-const tabsFor = (role: Role) => (role === "admin" ? GHOTOK_TABS : CUSTOMER_TABS);
+const SETTINGS: Tab = { href: "/settings", label: "nav.settings", icon: "settings" };
+
+/** The ghotok on a phone: four tabs, and the rest behind the raised "আরও" button in the middle. */
+const GHOTOK_PHONE = GHOTOK_TABS.filter((tab) => tab.href !== "/hisab");
+const GHOTOK_SHEET: Tab[] = [...GHOTOK_TABS.filter((tab) => tab.href === "/hisab"), ...GHOTOK_MORE, SETTINGS];
+
+const tabsFor = (role: Role) => (role === "admin" ? GHOTOK_PHONE : CUSTOMER_TABS);
 
 /** Is this screen, or one of its sub-screens, the current one? */
 function useActive() {
@@ -52,8 +59,9 @@ function useActive() {
 }
 
 /** Phone: bottom tab bar, the role's screens one thumb away. Hidden on wide screens, where TopNav takes over.
- *  A family's bar has a raised round button in the middle for handing in a biodata; the ghotok's five tabs fill it. */
-export function Nav({ role }: { role: Role }) {
+ *  The middle is a raised round button: a family hands in a biodata there; the ghotok turns a wheel of the screens that
+ *  do not fit (more-wheel.tsx). badges: what is new, by address, shown on those screens' buttons. */
+export function Nav({ role, badges = {} }: { role: Role; badges?: Record<string, number> }) {
   const active = useActive();
   const { t } = useT();
   const tabs = tabsFor(role).map((tab) => {
@@ -68,7 +76,10 @@ export function Nav({ role }: { role: Role }) {
       </li>
     );
   });
-  if (role !== "admin") {
+  if (role === "admin") {
+    const items = GHOTOK_SHEET.map((tab) => ({ href: tab.href, label: t(tab.label), icon: tab.icon, on: active(tab), badge: badges[tab.href] ?? 0 }));
+    tabs.splice(2, 0, <MoreWheel key="more" items={items} />);
+  } else {
     const on = active({ href: "/me/biodata/new" });
     tabs.splice(2, 0, (
       <li key="add" className="flex flex-1 justify-center">
@@ -83,7 +94,7 @@ export function Nav({ role }: { role: Role }) {
     ));
   }
   return (
-    <nav aria-label={t("nav.main")} className="fixed inset-x-0 bottom-0 z-20 border-t border-line bg-surface/95 pt-1 pb-[env(safe-area-inset-bottom)] backdrop-blur lg:hidden print:hidden">
+    <nav aria-label={t("nav.main")} className="fixed inset-x-0 bottom-0 z-20 border-t border-line bg-surface pt-1 pb-[env(safe-area-inset-bottom)] lg:hidden print:hidden">
       <ul className="mx-auto flex max-w-md">{tabs}</ul>
     </nav>
   );

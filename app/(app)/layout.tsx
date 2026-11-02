@@ -14,7 +14,7 @@ import { recentNotices, unreadCount } from "@/lib/services/notices";
 export default async function AppLayout({ children }: LayoutProps<"/">) {
   const [user, site, T] = await Promise.all([requireUser(), requireSite(), getT()]);
   const { t } = T;
-  const bell = await bellFor(user, site, T);
+  const { badges, ...bell } = await bellFor(user, site, T);
   return (
     <div className="flex min-h-dvh flex-col">
       <TopNav userName={user.name} role={user.role} siteName={site.name} bell={<Bell {...bell} className="my-auto shrink-0" />} />
@@ -35,16 +35,17 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
       <main className="mx-auto flex w-full max-w-md flex-col gap-5 px-4 pt-5 pb-[calc(5.5rem+env(safe-area-inset-bottom))] lg:max-w-6xl lg:gap-6 lg:px-8 lg:py-8">
         {children}
       </main>
-      <Nav role={user.role} />
+      <Nav role={user.role} badges={badges} />
     </div>
   );
 }
 
 /**
  * What the bell shows. The ghotok's side: what waits for a decision or a call, one line per kind with its count. A
- * family: the news on their biodata and requests (lib/services/notices.ts), newest first.
+ * family: the news on their biodata and requests (lib/services/notices.ts), newest first. badges: the same counts by
+ * screen, for the ghotok's wheel on the phone bar.
  */
-async function bellFor(user: SessionUser, site: Site, T: T): Promise<{ items: BellItem[]; count: number; family: boolean }> {
+async function bellFor(user: SessionUser, site: Site, T: T): Promise<{ items: BellItem[]; count: number; family: boolean; badges: Record<string, number> }> {
   const { t } = T;
   const db = getDb();
   if (user.role === "admin") {
@@ -54,7 +55,10 @@ async function bellFor(user: SessionUser, site: Site, T: T): Promise<{ items: Be
       ...(a.interests ? [{ key: "interests", text: t("dash.interestBanner", { n: a.interests }), sub: t("dash.interestBannerText"), href: "/dashboard/interests", icon: "heart" as const, tone: "news" as const }] : []),
       ...(a.followUps ? [{ key: "followUps", text: t("dash.followUpTitle", { n: a.followUps }), sub: t("bell.followUpSub"), href: "/dashboard#followups", icon: "calendar" as const, tone: "warn" as const }] : []),
     ];
-    return { items, count: a.pending + a.interests + a.followUps, family: false };
+    return {
+      items, count: a.pending + a.interests + a.followUps, family: false,
+      badges: { "/dashboard/approvals": a.pending, "/dashboard/interests": a.interests },
+    };
   }
   // the list holds the latest fifty, seen and unseen, and scrolls; the badge counts every unseen one
   const [notices, unread] = await Promise.all([recentNotices(db, site.ghotokId, user.id, 50), unreadCount(db, site.ghotokId, user.id)]);
@@ -72,5 +76,5 @@ async function bellFor(user: SessionUser, site: Site, T: T): Promise<{ items: Be
       noticeId: n.id,
     };
   });
-  return { items, count: unread, family: true };
+  return { items, count: unread, family: true, badges: {} };
 }
