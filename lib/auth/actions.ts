@@ -35,9 +35,10 @@ export async function loginAction(_prev: FormState, form: FormData): Promise<For
   redirect(homeFor(role));
 }
 
+/** Signing out lands on the ghotok's front page (the site's face, with its own login button), not a bare login form. */
 export async function logoutAction(): Promise<void> {
   await getAuth().api.signOut({ headers: await headers() });
-  redirect("/login");
+  redirect("/");
 }
 
 /**
