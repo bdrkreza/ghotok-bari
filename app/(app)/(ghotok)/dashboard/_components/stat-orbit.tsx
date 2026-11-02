@@ -165,7 +165,7 @@ export function StatOrbit({ stats, centre }: { stats: OrbitStat[]; centre: { val
         <p className="text-xs text-muted">{t("dash.orbitHint")}</p>
       </div>
       <div ref={stage} onPointerDown={drag}
-        className="relative h-72 w-full touch-pan-y select-none lg:grid lg:h-auto lg:touch-auto lg:grid-cols-4 lg:gap-4">
+        className="relative isolate h-72 w-full touch-pan-y select-none lg:grid lg:h-auto lg:touch-auto lg:grid-cols-4 lg:gap-4">
         <span aria-hidden className="absolute top-1/2 left-1/2 h-36 w-[min(16rem,80%)] -translate-1/2 rounded-full border-[1.5px] border-dashed border-gold/70 lg:hidden" />
         <span aria-hidden className="absolute top-1/2 left-1/2 z-[100] grid size-20 -translate-1/2 place-items-center rounded-full bg-panel text-center text-on-panel shadow-[0_8px_0_var(--wood-lo),0_16px_26px_var(--shade)] lg:hidden">
           <span>
