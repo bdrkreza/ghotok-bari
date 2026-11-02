@@ -463,6 +463,60 @@ body::before {
     --cabin-px: 2rem;
   }
 }
+/* phone: the same palki, slimmer, so the register button is on the first screen: a low roof, thin posts, a narrow
+   band, and the carrying pole under the cabin instead of across the roof (no tassels, base or feet) */
+@media (max-width: 1023.98px) {
+  .palki {
+    --cabin-px: 1rem;
+    width: calc(100% - 20px);
+    padding-top: 10px;
+  }
+  .palki-finial {
+    width: 15px;
+    height: 18px;
+  }
+  .palki-roof {
+    height: 24px;
+    margin-inline: -6px;
+    box-shadow: inset 0 -5px 0 var(--palki-eave), 0 8px 12px -8px rgb(0 0 0 / 0.6);
+  }
+  .palki-fringe {
+    height: 12px;
+    margin: 0 -4px -12px;
+    background: radial-gradient(circle at 50% 0, var(--palki-gold) 0 3.5px, var(--palki-gold-deep) 4px 4.5px, transparent 5px) 0 0 / 11px 9px repeat-x;
+  }
+  .palki-cabin {
+    padding-bottom: 1.1rem;
+    border-inline-width: 3px;
+    box-shadow: inset 1px 0 0 var(--palki-gold-deep), inset -1px 0 0 var(--palki-gold-deep), 0 24px 40px -28px rgb(0 0 0 / 0.7);
+  }
+  .palki-lattice {
+    height: 14px;
+  }
+  .palki-lattice::before {
+    mask-size: 52px 9px;
+  }
+  .palki-pole {
+    position: relative;
+    order: 1;
+    top: auto;
+    left: auto;
+    right: auto;
+    height: 9px;
+    margin: -2px -14px 0;
+  }
+  .palki-pole::before,
+  .palki-pole::after {
+    top: -2px;
+    width: 13px;
+    height: 13px;
+  }
+  .palki-tassel,
+  .palki-base,
+  .palki-feet {
+    display: none;
+  }
+}
 
 /* Chrome paints its own blue behind autofilled fields; keep them on the page's surface. */
 input:-webkit-autofill,

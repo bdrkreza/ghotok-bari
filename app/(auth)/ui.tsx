@@ -4,9 +4,10 @@ import type { ReactNode } from "react";
 
 export function AuthHeading({ title, sub }: { title: string; sub: string }) {
   return (
-    <div className="flex flex-col gap-1">
-      <h1 className="font-serif text-3xl leading-tight lg:text-4xl">{title}</h1>
-      <p className="text-muted">{sub}</p>
+    <div className="flex flex-col gap-0.5 lg:gap-1">
+      {/* phone: the hand-lettered face in red, as on the palki's door; web: the book face */}
+      <h1 className="font-script text-2xl leading-tight text-primary lg:font-serif lg:text-4xl lg:text-ink">{title}</h1>
+      <p className="text-sm text-muted lg:text-base">{sub}</p>
     </div>
   );
 }
@@ -23,7 +24,7 @@ export function AuthCard({ children }: { children: ReactNode }) {
       <div aria-hidden className="palki-tassel palki-tassel-l" />
       <div aria-hidden className="palki-tassel palki-tassel-r" />
       <div aria-hidden className="palki-fringe" />
-      <section className="palki-cabin flex flex-col gap-5">
+      <section className="palki-cabin flex flex-col gap-4 lg:gap-5">
         <div aria-hidden className="palki-lattice" />
         {children}
       </section>
