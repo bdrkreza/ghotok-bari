@@ -103,6 +103,20 @@ export async function listProposals(db: Db, ghotokId: string, status: ProposalLi
 
 export type ProposalRow = Awaited<ReturnType<typeof listProposals>>[number];
 
+/** How many proposals each list filter would show, for the counts on the filter chips. */
+export async function proposalCounts(db: Db, ghotokId: string): Promise<Record<ProposalListFilter, number>> {
+  const rows = await db.select({ status: proposal.status, n: sql<number>`count(*)::int` }).from(proposal)
+    .where(eq(proposal.ghotokId, ghotokId)).groupBy(proposal.status);
+  const by = Object.fromEntries(rows.map((r) => [r.status, r.n])) as Partial<Record<ProposalStatus, number>>;
+  const of = (s: ProposalStatus) => by[s] ?? 0;
+  return {
+    live: LIVE.reduce((sum, s) => sum + of(s), 0),
+    all: rows.reduce((sum, r) => sum + r.n, 0),
+    prostab: of("prostab"), dekha_shona: of("dekha_shona"), kotha_cholche: of("kotha_cholche"),
+    thik_hoyeche: of("thik_hoyeche"), biye_hoyeche: of("biye_hoyeche"), bad: of("bad"),
+  };
+}
+
 /** Every proposal one person is part of, newest first. */
 export async function proposalsFor(db: Db, ghotokId: string, profileId: string) {
   return db.query.proposal.findMany({

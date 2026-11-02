@@ -44,14 +44,18 @@ export function ApprovalBadge({ approval }: { approval: Approval }) {
 }
 
 /** A small set of links that act like tabs: the current one is filled. */
-export function Chips({ items }: { items: { href: string; label: string; active: boolean }[] }) {
-  const { t } = useT();
+/** Filter chips that wrap onto a second line rather than scroll, so none hides off the edge; count, when given, sits in a bubble. */
+export function Chips({ items }: { items: { href: string; label: string; active: boolean; count?: number }[] }) {
+  const { t, n } = useT();
   return (
-    <nav className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1" aria-label={t("common.filters")}>
+    <nav className="flex flex-wrap gap-2" aria-label={t("common.filters")}>
       {items.map((it) => (
         <Link key={it.href} href={it.href} aria-current={it.active ? "page" : undefined}
-          className={`shrink-0 rounded-full px-3.5 py-1.5 text-sm font-bold ${it.active ? "bg-ink text-bg" : "border border-line bg-surface text-muted"}`}>
+          className={`flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-1.5 text-sm font-bold ${it.active ? "bg-ink text-bg" : "border border-line bg-surface text-muted"}`}>
           {it.label}
+          {it.count !== undefined ? (
+            <span className={`grid h-5 min-w-5 place-items-center rounded-full px-1 text-[11px] leading-none ${it.active ? "bg-bg/20" : "bg-sunk"}`}>{n(it.count)}</span>
+          ) : null}
         </Link>
       ))}
     </nav>
