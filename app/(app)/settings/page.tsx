@@ -22,7 +22,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
 /**
  * Settings for either role. Phone: one column, account first, then preferences, then the app and about cards.
- * Web: the same cards in two columns, the account and preferences on the left, the app and about on the right.
+ * Web: the same cards in two columns, the account and preferences on the left, the app, about and logout on the right.
  */
 export default async function SettingsPage() {
   const [user, site, T] = await Promise.all([requireUser(), requireSite(), getT()]);
@@ -121,9 +121,10 @@ export default async function SettingsPage() {
               </>
             ) : null}
           </Card>
+          {/* the last thing on a phone; on the web it closes the right column instead of floating under the grid */}
+          <LogoutButton />
         </div>
       </div>
-      <LogoutButton />
     </>
   );
 }

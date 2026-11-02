@@ -9,6 +9,7 @@ import type { Key } from "@/lib/i18n";
 import { useT } from "@/lib/i18n/client";
 import { Icon, type IconName } from "@/components/icons";
 import { LangSwitch } from "@/components/lang-switch";
+import { LogoutIcon } from "@/components/logout";
 import { ThemeButton } from "@/components/theme";
 import { MoreWheel } from "./more-wheel";
 
@@ -100,7 +101,7 @@ export function Nav({ role, badges = {} }: { role: Role; badges?: Record<string,
   );
 }
 
-/** Web: a bar across the top with the site's name, the role's screens and who is signed in (opens settings). Only on wide screens (lg). */
+/** Web: a bar across the top with the site's name, the role's screens and who is signed in (opens settings), then logout. Only on wide screens (lg). */
 export function TopNav({ userName, role, siteName, bell }: { userName: string; role: Role; siteName: string; bell?: ReactNode }) {
   const active = useActive();
   const { t } = useT();
@@ -137,6 +138,7 @@ export function TopNav({ userName, role, siteName, bell }: { userName: string; r
           <span aria-hidden className="grid size-9 place-items-center rounded-full bg-primary-soft text-sm text-primary">{initials(userName)}</span>
           {role === "admin" ? null : <span className="max-w-36 truncate">{userName}</span>}
         </Link>
+        <LogoutIcon className="my-auto" />
       </div>
     </header>
   );

@@ -38,8 +38,24 @@ export function LogoutButton() {
   const { open, sheet } = useLogoutSheet();
   return (
     <>
-      <button type="button" onClick={open} className={`${linkButton} w-full border border-neg/40 bg-surface text-neg lg:w-auto lg:self-end`}>
+      <button type="button" onClick={open} className={`${linkButton} w-full border border-neg/40 bg-surface text-neg`}>
         <Icon name="logout" size={18} />{t("st.logout")}
+      </button>
+      {sheet}
+    </>
+  );
+}
+
+/** The round logout button at the end of the web bar, beside the settings pill. The sheet is a top-layer <dialog>, so
+ *  the bar's backdrop-blur cannot trap it. */
+export function LogoutIcon({ className = "" }: { className?: string }) {
+  const { t } = useT();
+  const { open, sheet } = useLogoutSheet();
+  return (
+    <>
+      <button type="button" onClick={open} aria-label={t("st.logout")} title={t("st.logout")}
+        className={`grid size-10 shrink-0 place-items-center rounded-full border border-line text-neg hover:border-neg/40 hover:bg-neg-soft ${className}`}>
+        <Icon name="logout" size={20} />
       </button>
       {sheet}
     </>
