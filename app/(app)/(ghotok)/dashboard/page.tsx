@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { HomeSearch } from "./_components/home-search";
+import { StatOrbit } from "./_components/stat-orbit";
 import { Icon, type IconName } from "@/components/icons";
 import { Empty, ProfileBadge, ProposalBadge, outlineButton, primaryButton, quietButton } from "@/components/ui";
 import { requireAdmin } from "@/lib/auth/session";
@@ -43,12 +44,12 @@ export default async function HomePage() {
         <HomeSearch places={d.places} />
       </section>
 
-      <section aria-label={t("me.glance")} className="grid grid-cols-2 gap-1 rounded-3xl border border-line bg-surface p-2 lg:grid-cols-4">
-        <Stat icon="groom" value={T.n(d.patro)} label={t("front.patroLooking")} href="/patro" />
-        <Stat icon="bride" value={T.n(d.patri)} label={t("front.patriLooking")} href="/patri" />
-        <Stat icon="heart" value={T.n(d.live)} label={t("dash.liveProposals")} href="/proposals" />
-        <Stat icon="check" value={T.n(d.fixed)} label={t("dash.fixed")} href="/proposals?status=all" />
-      </section>
+      <StatOrbit centre={{ value: T.n(d.patro + d.patri), label: t("dash.orbitCentre") }} stats={[
+        { href: "/patro", value: T.n(d.patro), label: t("front.patroLooking"), tone: "sky" },
+        { href: "/patri", value: T.n(d.patri), label: t("front.patriLooking"), tone: "rose" },
+        { href: "/proposals", value: T.n(d.live), label: t("dash.liveProposals"), tone: "mango" },
+        { href: "/proposals?status=all", value: T.n(d.fixed), label: t("dash.fixed"), tone: "mint" },
+      ]} />
 
       {d.pending ? (
         <Link href="/dashboard/approvals" className="flex items-center gap-4 rounded-2xl border border-warn-line bg-warn p-4 text-warn-ink">
@@ -194,19 +195,6 @@ export default async function HomePage() {
         ))}
       </section>
     </>
-  );
-}
-
-/** One of the four numbers at a glance; the whole thing links to its list. */
-function Stat({ icon, value, label, href }: { icon: IconName; value: string; label: string; href: string }) {
-  return (
-    <Link href={href} className="flex items-center gap-4 rounded-2xl p-3 hover:bg-sunk lg:p-4">
-      <span aria-hidden className="grid size-14 shrink-0 place-items-center rounded-full bg-primary-soft text-primary"><Icon name={icon} size={24} /></span>
-      <span className="flex min-w-0 flex-col">
-        <span className="font-display text-3xl font-bold tabular-nums">{value}</span>
-        <span className="truncate text-sm text-muted">{label}</span>
-      </span>
-    </Link>
   );
 }
 
