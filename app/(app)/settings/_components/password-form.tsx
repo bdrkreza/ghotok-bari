@@ -12,8 +12,8 @@ export function PasswordForm() {
     <ActionForm action={changePasswordAction} tone="quiet" submitLabel={t("st.changePassword")} resetOnSuccess>
       {() => (
         <>
-          <Field name="current" id="current-password" label={t("st.currentPassword")} type="password" autoComplete="current-password" required />
-          <Field name="next" id="new-password" label={t("st.newPassword")} type="password" autoComplete="new-password" required minLength={MIN_PASSWORD_LENGTH}
+          <Field name="current" id="current-password" label={t("st.currentPassword")} type="password" autoComplete="current-password" placeholder={t("st.currentPasswordPlaceholder")} required />
+          <Field name="next" id="new-password" label={t("st.newPassword")} type="password" autoComplete="new-password" placeholder={t("st.newPasswordPlaceholder")} required minLength={MIN_PASSWORD_LENGTH}
             hint={t("auth.minChars", { n: MIN_PASSWORD_LENGTH })} />
         </>
       )}

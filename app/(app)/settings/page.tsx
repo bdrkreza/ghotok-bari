@@ -94,8 +94,14 @@ export default async function SettingsPage() {
               <p className="text-sm text-muted">{t("st.backupText")}</p>
               <div className="grid gap-2 sm:grid-cols-2">
                 {/* plain links: the browser downloads the file the route sends */}
-                <a href="/api/backup?format=csv" download className={quietButton}><Icon name="note" size={18} />{t("st.backupCsv")}</a>
-                <a href="/api/backup?format=json" download className={quietButton}><Icon name="shield" size={18} />{t("st.backupJson")}</a>
+                <a href="/api/backup?format=csv" download className={`${quietButton} justify-start py-2.5 text-left`}>
+                  <Icon name="note" size={20} className="shrink-0" />
+                  <span className="flex flex-col leading-tight">{t("st.backupCsv")}<span className="text-xs font-semibold text-muted">{t("st.backupCsvText")}</span></span>
+                </a>
+                <a href="/api/backup?format=json" download className={`${quietButton} justify-start py-2.5 text-left`}>
+                  <Icon name="shield" size={20} className="shrink-0" />
+                  <span className="flex flex-col leading-tight">{t("st.backupJson")}<span className="text-xs font-semibold text-muted">{t("st.backupJsonText")}</span></span>
+                </a>
               </div>
               <p className="text-xs text-muted">{t("st.backupHint")}</p>
             </Card>
