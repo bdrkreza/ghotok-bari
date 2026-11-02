@@ -20,6 +20,8 @@ const PROMISES: { icon: IconName; title: Key; text: Key }[] = [
 /**
  * The ghotok's front page, for anyone who has the address: who the ghotok is, how many people are looking, how it
  * works, and how to get in touch. Signed-in people go straight to their own screen.
+ * Phone: the top bar keeps the name and the language; login, register and the rest sit in a tab bar along the bottom,
+ * the same shape as the one after signing in, register raised in the middle. Wide screens: everything in the top bar.
  */
 export default async function FrontPage() {
   const [user, T] = await Promise.all([getSessionUser(), getT()]);
@@ -32,15 +34,21 @@ export default async function FrontPage() {
     <div className="flex min-h-dvh flex-col">
       <header className="henna-edge sticky top-0 z-20 bg-bg/90 pb-2.5 backdrop-blur">
         <div className="mx-auto flex h-14 max-w-md items-center justify-between gap-3 px-4 lg:h-18 lg:max-w-6xl lg:px-8">
-          <Link href="/" className="flex min-w-0 items-center gap-2 font-display text-lg font-extrabold">
-            <span aria-hidden className="grid size-8 shrink-0 place-items-center rounded-xl bg-primary text-base text-on-primary outline-2 outline-offset-3 outline-primary outline-dotted lg:size-10 lg:text-lg">ঘ</span>
-            <span className="truncate">{site.name}</span>
+          <Link href="/" className="flex min-w-0 items-center gap-2.5">
+            <span aria-hidden className="grid size-8 shrink-0 place-items-center rounded-xl bg-primary font-display text-base font-extrabold text-on-primary outline-2 outline-offset-3 outline-primary outline-dotted lg:size-10 lg:text-lg">ঘ</span>
+            <span className="flex min-w-0 flex-col leading-tight">
+              <span className="truncate font-display text-base font-extrabold lg:text-lg">{site.name}</span>
+              <span className="truncate text-[11px] font-medium text-muted lg:text-xs">{t("nav.trusted")}</span>
+            </span>
           </Link>
           <nav aria-label={t("front.account")} className="flex shrink-0 items-center gap-2">
             <LangSwitch />
-            <ThemeButton />
-            <Link href="/login" className={`${quietButton} min-h-10 px-3 text-sm`}>{t("front.login")}</Link>
-            <Link href="/register" className={`${primaryButton} hidden min-h-10 px-3 text-sm sm:inline-flex`}>{t("front.register")}</Link>
+            {/* wrapped, so "hidden" never fights the buttons' own display class */}
+            <span className="hidden items-center gap-2 lg:flex">
+              <ThemeButton />
+              <Link href="/login" className={`${quietButton} min-h-10 px-3 text-sm`}>{t("front.login")}</Link>
+              <Link href="/register" className={`${primaryButton} min-h-10 px-3 text-sm`}>{t("front.register")}</Link>
+            </span>
           </nav>
         </div>
       </header>
@@ -65,7 +73,7 @@ export default async function FrontPage() {
           </dl>
         </section>
 
-        <section className="flex flex-col gap-4">
+        <section id="how" className="flex scroll-mt-24 flex-col gap-4">
           <div>
             <p className="text-xs font-bold text-primary">{t("front.howEyebrow")}</p>
             <h2 className="font-display text-xl font-bold lg:text-2xl">{t("front.howTitle")}</h2>
@@ -85,7 +93,7 @@ export default async function FrontPage() {
           ))}
         </section>
 
-        <section className="flex flex-col gap-4 rounded-3xl border border-line bg-surface p-5 lg:flex-row lg:items-center lg:justify-between lg:gap-8 lg:p-8">
+        <section id="contact" className="flex scroll-mt-24 flex-col gap-4 rounded-3xl border border-line bg-surface p-5 lg:flex-row lg:items-center lg:justify-between lg:gap-8 lg:p-8">
           <div className="flex items-center gap-4">
             <span aria-hidden className="grid size-14 shrink-0 place-items-center rounded-full bg-primary-soft font-display text-2xl font-bold text-primary">ঘ</span>
             <div className="min-w-0">
@@ -98,9 +106,26 @@ export default async function FrontPage() {
         </section>
       </main>
 
-      <footer className="border-t border-line">
+      <footer className="border-t border-line pb-[calc(5rem+env(safe-area-inset-bottom))] lg:pb-0">
         <p className="mx-auto max-w-md px-4 py-5 text-center text-sm text-muted lg:max-w-6xl lg:px-8">{site.name} · {t("common.madeWith")}</p>
       </footer>
+
+      <nav aria-label={t("nav.main")} className="fixed inset-x-0 bottom-0 z-20 border-t border-line bg-surface pt-1 pb-[env(safe-area-inset-bottom)] lg:hidden print:hidden">
+        <ul className="mx-auto flex max-w-md">
+          <FrontTab href="/" icon="home" label={t("nav.home")} on />
+          <FrontTab href="#how" icon="note" label={t("front.navHow")} />
+          <li className="flex flex-1 justify-center">
+            <Link href="/register" className="flex flex-col items-center gap-0.5 text-[11px] font-bold text-primary">
+              <span aria-hidden className="-mt-7 grid size-14 place-items-center rounded-full border-[5px] border-bg bg-primary text-on-primary shadow-lg">
+                <Icon name="plus" size={24} strokeWidth={2.4} />
+              </span>
+              {t("front.register")}
+            </Link>
+          </li>
+          <FrontTab href="#contact" icon="phone" label={t("front.navContact")} />
+          <FrontTab href="/login" icon="lock" label={t("front.login")} />
+        </ul>
+      </nav>
     </div>
   );
 }
@@ -112,5 +137,18 @@ function Count({ icon, value, label }: { icon: IconName; value: string; label: s
       <dd className="font-display text-3xl font-bold tabular-nums lg:text-4xl">{value}</dd>
       <dt className="text-sm text-muted">{label}</dt>
     </div>
+  );
+}
+
+/** One tab of the phone bar along the bottom. */
+function FrontTab({ href, icon, label, on = false }: { href: string; icon: IconName; label: string; on?: boolean }) {
+  return (
+    <li className="flex-1">
+      <Link href={href} aria-current={on ? "page" : undefined}
+        className={`flex min-h-14 flex-col items-center justify-center gap-0.5 text-[11px] font-bold ${on ? "text-primary" : "text-muted"}`}>
+        <Icon name={icon} size={22} strokeWidth={on ? 2.3 : 1.9} />
+        {label}
+      </Link>
+    </li>
   );
 }
