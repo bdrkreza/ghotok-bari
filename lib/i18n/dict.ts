@@ -6,6 +6,8 @@ export const bn = {
   // common
   "common.back": "পেছনে",
   "common.filters": "ছাঁকনি",
+  "common.scrollBack": "আগের ট্যাব",
+  "common.scrollMore": "আরও ট্যাব",
   "common.search": "খুঁজুন",
   "common.new": "নতুন",
   "common.view": "দেখুন",
@@ -1048,6 +1050,8 @@ export type Key = keyof typeof bn;
 export const en: Record<Key, string> = {
   "common.back": "Back",
   "common.filters": "Filters",
+  "common.scrollBack": "Earlier tabs",
+  "common.scrollMore": "More tabs",
   "common.search": "Search",
   "common.new": "New",
   "common.view": "View",

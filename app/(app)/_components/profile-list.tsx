@@ -1,3 +1,4 @@
+import { ScrollRow } from "./scroll-row";
 import { Avatar } from "@/components/avatar";
 import { Icon, type IconName } from "@/components/icons";
 import {
@@ -355,11 +356,8 @@ export async function ProfileList({
         <section className="flex min-w-0 flex-col gap-4">
           <div className="rounded-2xl border border-line bg-surface">
             {viewer === "admin" ? (
-              // the tabs slide sideways on a narrow screen; no scrollbar, the cut-off tab says there is more
-              <nav
-                aria-label={t("list.status")}
-                className="flex gap-1 overflow-x-auto overflow-y-hidden px-2 scrollbar-none"
-              >
+              // the tabs slide sideways on a narrow screen; the faded edge and its arrow say there is more
+              <ScrollRow label={t("list.status")}>
                 {STATUSES.map((s) => {
                   const on = s === status;
                   return (
@@ -380,7 +378,7 @@ export async function ProfileList({
                     </Link>
                   );
                 })}
-              </nav>
+              </ScrollRow>
             ) : null}
             <div
               className={`flex flex-wrap items-center gap-x-3 gap-y-2 px-4 py-3 text-sm text-muted ${viewer === "admin" ? "border-t border-line" : ""}`}
