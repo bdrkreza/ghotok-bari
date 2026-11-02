@@ -62,15 +62,26 @@ export default async function FrontPage() {
             {site.address ? (
               <p className="flex items-center gap-2 text-sm font-semibold text-muted"><Icon name="location" size={18} className="text-primary" />{site.address}</p>
             ) : null}
-            <div className="grid w-full grid-cols-2 gap-3 sm:flex">
+            {/* wide screens; on a phone these two sit in the maroon card beside the counts */}
+            <div className="hidden w-full gap-3 lg:flex">
               <Link href="/register" className={primaryButton}>{t("front.registerCta")}</Link>
               <Link href="/login" className={outlineButton}>{t("front.login")}</Link>
             </div>
           </div>
-          <dl className="grid grid-cols-2 gap-3">
-            <Count icon="groom" value={T.n(site.patro)} label={t("front.patroLooking")} />
-            <Count icon="bride" value={T.n(site.patri)} label={t("front.patriLooking")} />
-          </dl>
+          {/* phone: a light card in the hero's own colours, the counts in red over the register button and a login line;
+              wide: two plain cards */}
+          <div className="flex flex-col gap-4 rounded-2xl border border-primary-soft bg-surface/80 p-4 lg:border-0 lg:bg-transparent lg:p-0">
+            <dl className="grid grid-cols-2 lg:gap-3">
+              <Count icon="groom" value={T.n(site.patro)} label={t("front.patroLooking")} />
+              <Count icon="bride" value={T.n(site.patri)} label={t("front.patriLooking")} />
+            </dl>
+            <Link href="/register" className="inline-flex min-h-12 items-center justify-center rounded-2xl bg-primary px-4 font-bold whitespace-nowrap text-on-primary lg:hidden">
+              {t("front.registerCta")}
+            </Link>
+            <p className="text-center text-sm text-muted lg:hidden">
+              {t("front.haveAccount")} <Link href="/login" className="font-bold text-primary underline-offset-2 hover:underline">{t("front.login")}</Link>
+            </p>
+          </div>
         </section>
 
         <section id="how" className="flex scroll-mt-24 flex-col gap-4">
@@ -132,9 +143,9 @@ export default async function FrontPage() {
 
 function Count({ icon, value, label }: { icon: IconName; value: string; label: string }) {
   return (
-    <div className="flex flex-col gap-2 rounded-2xl border border-line bg-surface p-4 lg:p-5">
-      <span aria-hidden className="grid size-11 place-items-center rounded-full bg-primary-soft text-primary"><Icon name={icon} size={22} /></span>
-      <dd className="font-display text-3xl font-bold tabular-nums lg:text-4xl">{value}</dd>
+    <div className="flex flex-col items-center gap-0.5 border-dashed border-primary/30 text-center even:border-l lg:items-start lg:gap-2 lg:rounded-2xl lg:border lg:border-solid lg:border-line lg:bg-surface lg:p-5 lg:text-left">
+      <span aria-hidden className="hidden size-11 place-items-center rounded-full bg-primary-soft text-primary lg:grid"><Icon name={icon} size={22} /></span>
+      <dd className="font-display text-4xl font-bold text-primary tabular-nums lg:text-ink">{value}</dd>
       <dt className="text-sm text-muted">{label}</dt>
     </div>
   );
