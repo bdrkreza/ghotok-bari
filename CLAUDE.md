@@ -42,6 +42,18 @@ Read README.md for the screens, roles, data model and setup.
 - Colour comes only from the tokens in `app/globals.css` (light, then the two dark blocks, kept identical); the mehedi
   ornaments are the `.henna-*` classes there, CSS masks over `public/henna/*.svg`, so they recolour with the theme. New
   surfaces use the tokens, never a hex value in JSX.
+- Layering rules the maroon phone header and the floating menus depend on (each has bitten once):
+  - Text colour inherits. A dropdown or panel opened from inside a coloured bar (`text-on-panel`) sets its own
+    `text-ink`, or it shows white on white (the bell's list).
+  - A block that orders its own children with z-index (the stat ring, the "আরও" wheel) is `isolate`, so those numbers
+    stay inside it and never lift it over the sticky header.
+  - The dimmed page behind a menu or sheet is `bg-shade` (`backdrop:bg-shade` on a `<dialog>`), never `bg-ink/…` or
+    black: `ink` turns light in the dark theme.
+  - `backdrop-blur`, `transform` and `filter` make an element the box its `fixed` children are placed in. Keep them off
+    anything that holds a `fixed` overlay (the phone tab bar is solid for this reason).
+  - Check UI changes with the menu or sheet open, after scrolling, and in the dark theme, not only at rest.
+  - Turbopack can miss edits to `app/globals.css` without an error; grep the served CSS for the change before trusting
+    a screenshot.
 - A component used by one route (or one layout) lives beside it in that segment's `_components/` folder; one used
   by several routes lives in `components/`. Move it to `components/` once a second route needs it.
 - Two layouts from one tree: phone (top bar, `max-w-md` column, bottom tab bar) and `lg:` web (top nav bar in
