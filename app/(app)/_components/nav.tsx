@@ -51,26 +51,40 @@ function useActive() {
   return (t: Pick<Tab, "href" | "exact">) => (t.exact ? pathname === t.href : pathname === t.href || pathname.startsWith(`${t.href}/`));
 }
 
-/** Phone: bottom tab bar, the role's screens one thumb away. Hidden on wide screens, where TopNav takes over. */
+/** Phone: bottom tab bar, the role's screens one thumb away. Hidden on wide screens, where TopNav takes over.
+ *  A family's bar has a raised round button in the middle for handing in a biodata; the ghotok's five tabs fill it. */
 export function Nav({ role }: { role: Role }) {
   const active = useActive();
   const { t } = useT();
+  const tabs = tabsFor(role).map((tab) => {
+    const on = active(tab);
+    return (
+      <li key={tab.href} className="flex-1">
+        <Link href={tab.href} aria-current={on ? "page" : undefined}
+          className={`flex min-h-14 flex-col items-center justify-center gap-0.5 text-[11px] font-bold ${on ? "text-primary" : "text-muted"}`}>
+          <Icon name={tab.icon} size={22} strokeWidth={on ? 2.3 : 1.9} />
+          {t(tab.label)}
+        </Link>
+      </li>
+    );
+  });
+  if (role !== "admin") {
+    const on = active({ href: "/me/biodata/new" });
+    tabs.splice(2, 0, (
+      <li key="add" className="flex flex-1 justify-center">
+        <Link href="/me/biodata/new" aria-current={on ? "page" : undefined} aria-label={t("me.submit")}
+          className="flex flex-col items-center gap-0.5 text-[11px] font-bold text-primary">
+          <span aria-hidden className="-mt-7 grid size-14 place-items-center rounded-full border-[5px] border-bg bg-primary text-on-primary shadow-lg">
+            <Icon name="plus" size={24} strokeWidth={2.4} />
+          </span>
+          {t("nav.addBiodata")}
+        </Link>
+      </li>
+    ));
+  }
   return (
-    <nav aria-label={t("nav.main")} className="henna-edge henna-edge-t fixed inset-x-0 bottom-0 z-20 bg-surface/95 pt-2 pb-[env(safe-area-inset-bottom)] backdrop-blur lg:hidden print:hidden">
-      <ul className="mx-auto flex max-w-md">
-        {tabsFor(role).map((tab) => {
-          const on = active(tab);
-          return (
-            <li key={tab.href} className="flex-1">
-              <Link href={tab.href} aria-current={on ? "page" : undefined}
-                className={`flex min-h-14 flex-col items-center justify-center gap-0.5 text-[11px] font-bold ${on ? "text-primary" : "text-muted"}`}>
-                <Icon name={tab.icon} size={22} strokeWidth={on ? 2.3 : 1.9} />
-                {t(tab.label)}
-              </Link>
-            </li>
-          );
-        })}
-      </ul>
+    <nav aria-label={t("nav.main")} className="fixed inset-x-0 bottom-0 z-20 border-t border-line bg-surface/95 pt-1 pb-[env(safe-area-inset-bottom)] backdrop-blur lg:hidden print:hidden">
+      <ul className="mx-auto flex max-w-md">{tabs}</ul>
     </nav>
   );
 }

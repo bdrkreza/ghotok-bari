@@ -122,6 +122,7 @@ export const bn = {
   "nav.ghotokDashboard": "ঘটকের ড্যাশবোর্ড",
   "nav.trusted": "বিশ্বস্ত ঘটকালি",
   "nav.settingsFor": "সেটিংস, {name}",
+  "nav.addBiodata": "বায়োডাটা",
 
   // sign in, sign up, setup
   "auth.phone": "মোবাইল নম্বর",
@@ -1149,6 +1150,7 @@ export const en: Record<Key, string> = {
   "nav.ghotokDashboard": "Ghotok's dashboard",
   "nav.trusted": "Trusted matchmaking",
   "nav.settingsFor": "Settings, {name}",
+  "nav.addBiodata": "Biodata",
 
   "auth.phone": "Mobile number",
   "auth.phonePlaceholder": "017XX-XXXXXX",

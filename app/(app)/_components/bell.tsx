@@ -33,7 +33,8 @@ export interface BellItem {
  * is the news on their biodata: the unseen first under "নতুন", bold with a dot, then the ones already seen, faded,
  * under "আগে দেখা". Opening one marks it seen; "সব দেখেছি" marks them all. `count` (the badge) is the unseen only.
  */
-export function Bell({ items, count, family = false, className = "" }: { items: BellItem[]; count: number; family?: boolean; className?: string }) {
+/** tone "panel": on the deep-coloured phone header, so the closed button and its badge read on maroon. */
+export function Bell({ items, count, family = false, className = "", tone = "default" }: { items: BellItem[]; count: number; family?: boolean; className?: string; tone?: "default" | "panel" }) {
   const { t, n } = useT();
   const [open, setOpen] = useState(false);
   const box = useRef<HTMLDivElement>(null);
@@ -65,10 +66,10 @@ export function Bell({ items, count, family = false, className = "" }: { items: 
   return (
     <div ref={box} className={`relative ${className}`}>
       <button type="button" onClick={() => setOpen((o) => !o)} aria-expanded={open} aria-controls="bell-list" aria-label={label} title={label}
-        className={`relative grid size-10 place-items-center rounded-full border ${open ? "border-primary bg-primary-soft text-primary" : "border-line text-muted hover:bg-sunk"}`}>
+        className={`relative grid size-10 place-items-center rounded-full border ${open ? "border-primary bg-primary-soft text-primary" : tone === "panel" ? "border-on-panel/30 text-on-panel hover:bg-on-panel/10" : "border-line text-muted hover:bg-sunk"}`}>
         <Icon name="bell" size={20} />
         {count ? (
-          <span aria-hidden className="absolute -top-1 -right-1 grid h-5 min-w-5 place-items-center rounded-full bg-primary px-1 text-[11px] leading-none font-bold text-on-primary ring-2 ring-surface">
+          <span aria-hidden className={`absolute -top-1 -right-1 grid h-5 min-w-5 place-items-center rounded-full px-1 text-[11px] leading-none font-bold ring-2 ${tone === "panel" ? "bg-gold text-panel ring-panel" : "bg-primary text-on-primary ring-surface"}`}>
             {count > BADGE_MAX ? `${n(BADGE_MAX)}+` : n(count)}
           </span>
         ) : null}

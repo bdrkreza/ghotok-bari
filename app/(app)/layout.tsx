@@ -1,9 +1,6 @@
 import Link from "next/link";
-import { Icon } from "@/components/icons";
-import { LangSwitch } from "@/components/lang-switch";
 import { Bell, type BellItem } from "./_components/bell";
 import { Nav, TopNav } from "./_components/nav";
-import { ThemeButton } from "@/components/theme";
 import { homeFor, requireSite, requireUser, type SessionUser } from "@/lib/auth/session";
 import { getDb } from "@/lib/db";
 import type { Site } from "@/lib/db/schema";
@@ -21,20 +18,18 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
   return (
     <div className="flex min-h-dvh flex-col">
       <TopNav userName={user.name} role={user.role} siteName={site.name} bell={<Bell {...bell} className="my-auto shrink-0" />} />
-      <header className="henna-edge sticky top-0 z-10 bg-bg/90 pb-2.5 backdrop-blur lg:hidden print:hidden">
+      {/* the palki's arch: maroon, its foot curved. Only the name and the bell, so the name has room; the
+          language, the theme and the rest are one tab away on the settings screen */}
+      <header className="sticky top-0 z-10 rounded-b-[50%_1.4rem] bg-panel pb-4 text-on-panel shadow-md lg:hidden print:hidden">
         <div className="mx-auto flex h-14 max-w-md items-center justify-between gap-3 px-4">
-          <Link href={homeFor(user.role)} className="flex min-w-0 items-center gap-2 font-display text-lg font-extrabold">
-            <span aria-hidden className="grid size-8 shrink-0 place-items-center rounded-xl bg-primary text-base text-on-primary outline-2 outline-offset-3 outline-primary outline-dotted">ঘ</span>
-            <span className="truncate">{site.name}</span>
+          <Link href={homeFor(user.role)} className="flex min-w-0 items-center gap-2.5">
+            <span aria-hidden className="grid size-8 shrink-0 place-items-center rounded-xl bg-on-panel font-display text-base font-extrabold text-panel outline-2 outline-offset-3 outline-gold outline-dotted">ঘ</span>
+            <span className="flex min-w-0 flex-col leading-tight">
+              <span className="truncate font-display text-base font-extrabold">{site.name}</span>
+              <span className="truncate text-[11px] font-medium text-gold">{user.role === "admin" ? t("nav.ghotokDashboard") : t("nav.trusted")}</span>
+            </span>
           </Link>
-          <div className="flex shrink-0 items-center gap-1">
-            <LangSwitch />
-            <ThemeButton />
-            <Bell {...bell} />
-            <Link href="/settings" aria-label={t("nav.settingsFor", { name: user.name })} className="grid size-10 place-items-center rounded-full border border-line text-muted">
-              <Icon name="settings" size={20} />
-            </Link>
-          </div>
+          <Bell {...bell} tone="panel" className="shrink-0" />
         </div>
       </header>
       <main className="mx-auto flex w-full max-w-md flex-col gap-5 px-4 pt-5 pb-[calc(5.5rem+env(safe-area-inset-bottom))] lg:max-w-6xl lg:gap-6 lg:px-8 lg:py-8">

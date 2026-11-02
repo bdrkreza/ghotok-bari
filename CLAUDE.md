@@ -7,7 +7,7 @@ Read README.md for the screens, roles, data model and setup.
 
 ## Rules
 
-- The UI is bilingual, Bangla (default) and English, chosen by the `lang` cookie (the switch in every bar). Every
+- The UI is bilingual, Bangla (default) and English, chosen by the `lang` cookie (the switch in the web bar and the public bars; signed-in phones set it in settings). Every
   phrase lives in `lib/i18n/dict.ts` under the same key in both languages (a test checks parity); nothing user-facing
   is hard-coded in JSX. Server components and actions get `t` from `getT()` in `lib/i18n/server.ts`, client components
   from `useT()` in `lib/i18n/client.tsx`. Numbers, money, dates, heights and the biodata number go through that same
