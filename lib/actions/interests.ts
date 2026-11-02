@@ -79,3 +79,11 @@ export async function setInterestStatusAction(_prev: FormState, form: FormData):
     return { notice: status === "closed" ? t("notice.interestClosed") : t("notice.interestReopened") };
   });
 }
+
+/** The family opened a notice from the bell: it stays in the list, now as seen. */
+export async function seeNoticeAction(id: string): Promise<void> {
+  const me = await requireCustomer();
+  if (!id) return;
+  await dismissNotice(getDb(), me.ghotokId, me.id, id);
+  revalidatePath("/", "layout");
+}

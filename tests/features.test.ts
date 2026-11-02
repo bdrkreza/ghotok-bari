@@ -13,7 +13,7 @@ import {
 } from "@/lib/services/interests";
 import { addEntry, dues, monthly } from "@/lib/services/ledger";
 import { matchesForFamily } from "@/lib/services/match";
-import { dismissNotice, unreadNotices } from "@/lib/services/notices";
+import { dismissNotice, notify, recentNotices, unreadCount, unreadNotices } from "@/lib/services/notices";
 import { createProfile, setApproval } from "@/lib/services/profiles";
 import { changeStatus, dueFollowUps, getProposal, setFollowUp } from "@/lib/services/proposals";
 import { today } from "@/lib/time";
@@ -67,6 +67,26 @@ describe("notices", () => {
     expect(await unreadNotices(app.db, ghotok.id, family.id)).toHaveLength(1);
     await dismissNotice(app.db, ghotok.id, family.id);
     expect(await unreadNotices(app.db, ghotok.id, family.id)).toHaveLength(0);
+  });
+
+  it("counts every unread one for the bell, past the fifty its list holds", async () => {
+    for (let i = 0; i < 105; i++) await notify(app.db, ghotok.id, family.id, "approved", son);
+    expect(await unreadCount(app.db, ghotok.id, family.id)).toBe(105);
+    expect(await unreadNotices(app.db, ghotok.id, family.id, 50)).toHaveLength(50);
+    expect(await unreadCount(app.db, ghotok.id, stranger.id)).toBe(1); // the returned one from above, theirs alone
+    await dismissNotice(app.db, ghotok.id, family.id);
+    expect(await unreadCount(app.db, ghotok.id, family.id)).toBe(0);
+    // seen ones stay in the bell's list, marked seen, newest first; nobody else's are there
+    const kept = await recentNotices(app.db, ghotok.id, family.id, 50);
+    expect(kept).toHaveLength(50);
+    expect(kept.every((n) => n.readAt !== null)).toBe(true);
+    await notify(app.db, ghotok.id, family.id, "proposed", bride);
+    const [newest, next] = await recentNotices(app.db, ghotok.id, family.id);
+    expect(newest).toMatchObject({ kind: "proposed", readAt: null });
+    expect(next.readAt).not.toBeNull();
+    await dismissNotice(app.db, ghotok.id, family.id, newest.id);
+    expect(await unreadCount(app.db, ghotok.id, family.id)).toBe(0);
+    expect((await recentNotices(app.db, ghotok.id, stranger.id)).every((n) => n.profileId !== bride)).toBe(true);
   });
 });
 

@@ -1027,6 +1027,8 @@ export const bn = {
   "bell.empty": "নতুন কিছু নেই।",
   "bell.seeAll": "সব দেখুন",
   "bell.followUpSub": "দুই পরিবারের নম্বর ড্যাশবোর্ডে",
+  "bell.unseen": "নতুন",
+  "bell.seen": "আগে দেখা",
 } as const;
 
 export type Key = keyof typeof bn;
@@ -2036,4 +2038,6 @@ export const en: Record<Key, string> = {
   "bell.empty": "Nothing new.",
   "bell.seeAll": "See all",
   "bell.followUpSub": "Both families' numbers are on the dashboard",
+  "bell.unseen": "New",
+  "bell.seen": "Seen",
 };

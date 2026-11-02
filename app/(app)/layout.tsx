@@ -10,7 +10,7 @@ import type { Site } from "@/lib/db/schema";
 import type { T } from "@/lib/i18n";
 import { getT } from "@/lib/i18n/server";
 import { alerts } from "@/lib/services/dashboard";
-import { unreadNotices } from "@/lib/services/notices";
+import { recentNotices, unreadCount } from "@/lib/services/notices";
 
 /** Every signed-in screen, for both roles. Phone: a slim top bar, the page, and the tab bar along the bottom.
  *  Wide screen (lg, 1024px and up): a bar across the top with the role's screens and who is signed in, and a wider page; no tab bar. */
@@ -61,7 +61,8 @@ async function bellFor(user: SessionUser, site: Site, T: T): Promise<{ items: Be
     ];
     return { items, count: a.pending + a.interests + a.followUps, family: false };
   }
-  const notices = await unreadNotices(db, site.ghotokId, user.id);
+  // the list holds the latest fifty, seen and unseen, and scrolls; the badge counts every unseen one
+  const [notices, unread] = await Promise.all([recentNotices(db, site.ghotokId, user.id, 50), unreadCount(db, site.ghotokId, user.id)]);
   const items: BellItem[] = notices.map((n) => {
     const no = n.profileKind && n.profileCode !== null ? T.biodataNo(n.profileKind, n.profileCode) : "";
     return {
@@ -72,7 +73,9 @@ async function bellFor(user: SessionUser, site: Site, T: T): Promise<{ items: Be
       href: n.profileId ? (n.ownedBy === user.id ? `/me/biodata/${n.profileId}` : `/biodata/${n.profileId}`) : "/me",
       icon: n.kind === "approved" ? "check" : n.kind === "proposed" ? "rings" : "note",
       tone: n.kind === "returned" ? "warn" : "news",
+      seen: n.readAt !== null,
+      noticeId: n.id,
     };
   });
-  return { items, count: items.length, family: true };
+  return { items, count: unread, family: true };
 }
