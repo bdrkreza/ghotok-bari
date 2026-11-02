@@ -13,7 +13,7 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
   return (
     <div className="flex min-h-dvh flex-col">
       <TopNav userName={user.name} role={user.role} siteName={site.name} />
-      <header className="henna-edge sticky top-0 z-10 bg-bg/90 pb-2.5 backdrop-blur lg:hidden">
+      <header className="henna-edge sticky top-0 z-10 bg-bg/90 pb-2.5 backdrop-blur lg:hidden print:hidden">
         <div className="mx-auto flex h-14 max-w-md items-center justify-between gap-3 px-4">
           <Link href={homeFor(user.role)} className="flex min-w-0 items-center gap-2 font-display text-lg font-extrabold">
             <span aria-hidden className="grid size-8 shrink-0 place-items-center rounded-xl bg-primary text-base text-on-primary outline-2 outline-offset-3 outline-primary outline-dotted">ঘ</span>

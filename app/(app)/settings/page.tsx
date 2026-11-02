@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { PasswordForm } from "./_components/password-form";
 import { Icon } from "@/components/icons";
 import { LangChoice } from "@/components/lang-switch";
 import { InstallCard } from "@/components/pwa";
@@ -61,6 +62,11 @@ export default async function SettingsPage() {
             </div>
           </Card>
 
+          <Card title={t("st.passwordTitle")}>
+            <p className="text-sm text-muted">{t("st.passwordText")}</p>
+            <PasswordForm />
+          </Card>
+
           <Card title={t("st.prefs")}>
             <Pref label={t("st.language")} text={t("st.languageText")}><LangChoice /></Pref>
             <hr className="border-line" />
@@ -76,6 +82,22 @@ export default async function SettingsPage() {
                 </div>
                 <Link href="/dashboard/customers" className={`${quietButton} lg:shrink-0`}>{t("st.customersLink")}<Icon name="chevronRight" size={18} /></Link>
               </div>
+              <div className="grid gap-2 border-t border-line pt-3 sm:grid-cols-2">
+                <Link href="/dashboard/site" className={quietButton}><Icon name="edit" size={18} />{t("dash.siteCard")}</Link>
+                <Link href="/dashboard/activity" className={quietButton}><Icon name="note" size={18} />{t("dash.activityCard")}</Link>
+              </div>
+            </Card>
+          ) : null}
+
+          {user.role === "admin" ? (
+            <Card title={t("st.backupTitle")}>
+              <p className="text-sm text-muted">{t("st.backupText")}</p>
+              <div className="grid gap-2 sm:grid-cols-2">
+                {/* plain links: the browser downloads the file the route sends */}
+                <a href="/api/backup?format=csv" download className={quietButton}><Icon name="note" size={18} />{t("st.backupCsv")}</a>
+                <a href="/api/backup?format=json" download className={quietButton}><Icon name="shield" size={18} />{t("st.backupJson")}</a>
+              </div>
+              <p className="text-xs text-muted">{t("st.backupHint")}</p>
             </Card>
           ) : null}
         </div>

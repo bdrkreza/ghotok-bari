@@ -16,6 +16,7 @@ export {
 import { normalizePhone } from "../auth/phone";
 import type { Place } from "../search";
 import { currentYear } from "../time";
+import { notify } from "./notices";
 
 
 /** runs of spaces become one, so "রহিম  উদ্দিন" and "রহিম উদ্দিন" are the same name */
@@ -341,11 +342,13 @@ export async function profileOwner(db: Db, ghotokId: string, p: Profile): Promis
 
 /** The ghotok's decision on a biodata: approving puts it in the lists, returning hands it back to the family with a note. */
 export async function setApproval(db: Db, ghotokId: string, id: string, decision: "approved" | "returned", note = ""): Promise<void> {
-  await getProfile(db, ghotokId, id);
+  const p = await getProfile(db, ghotokId, id);
   const change = decision === "approved"
     ? { approval: "approved" as const, returnNote: null, approvedAt: new Date() }
     : { approval: "returned" as const, returnNote: note.trim() || null, approvedAt: null };
   await db.update(profile).set(change).where(and(eq(profile.id, id), eq(profile.ghotokId, ghotokId)));
+  // the family who wrote it hears about the decision on their page
+  if (p.ownerUserId) await notify(db, ghotokId, p.ownerUserId, decision, id, change.returnNote);
 }
 
 /** Every district and upazila this ghotok has written on someone, as choices for the search bar. */

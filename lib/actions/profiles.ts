@@ -7,6 +7,7 @@ import { getDb } from "../db";
 import type { ProfileStatus } from "../db/schema";
 import { attempt, field, fieldValues, type FormState } from "../form";
 import { getT } from "../i18n/server";
+import { audit, personName } from "./audit";
 import { checkPhotos, photoChangeFrom, savePhotos, savePhotosForNew } from "../services/photos";
 import { GHOTOK_REQUIRED, createProfile, deleteProfile, setApproval, setProfileStatus, setShowParents, setShowPhotos, updateProfile } from "../services/profiles";
 
@@ -19,6 +20,7 @@ export async function createProfileAction(_prev: FormState, form: FormData): Pro
     // "আলাদা মানুষ, তবুও যোগ করুন" posts anyway=on after the same-person warning
     const id = await createProfile(getDb(), user.ghotokId, values, undefined, { warnSame: field(form, "anyway") !== "on", require: GHOTOK_REQUIRED });
     if (photos) await savePhotosForNew(getDb(), user.ghotokId, id, photos);
+    await audit(user, "profileAdded", values.name, `/profiles/${id}`);
     revalidatePath("/dashboard");
     redirect(`/profiles/${id}`);
   }, values);
@@ -33,6 +35,7 @@ export async function updateProfileAction(_prev: FormState, form: FormData): Pro
     if (photos) await checkPhotos(photos);
     await updateProfile(getDb(), user.ghotokId, id, values, { require: GHOTOK_REQUIRED });
     if (photos) await savePhotos(getDb(), user.ghotokId, id, photos);
+    await audit(user, "profileEdited", values.name, `/profiles/${id}`);
     revalidatePath("/dashboard");
     redirect(`/profiles/${id}`);
   }, values);
@@ -43,6 +46,7 @@ export async function setProfileStatusAction(_prev: FormState, form: FormData): 
   const id = field(form, "id");
   return attempt(async () => {
     await setProfileStatus(getDb(), user.ghotokId, id, field(form, "status") as ProfileStatus);
+    await audit(user, "profileStatus", await personName(user, id), `/profiles/${id}`);
     revalidatePath(`/profiles/${id}`);
     return { notice: t("notice.statusChanged") };
   });
@@ -56,6 +60,7 @@ export async function setVisibilityAction(_prev: FormState, form: FormData): Pro
   const photos = field(form, "what") === "photos";
   return attempt(async () => {
     await (photos ? setShowPhotos : setShowParents)(getDb(), user.ghotokId, id, show);
+    await audit(user, "visibility", await personName(user, id), `/profiles/${id}`);
     revalidatePath(`/profiles/${id}`);
     if (photos) return { notice: show ? t("notice.photosShown") : t("notice.photosHidden") };
     return { notice: show ? t("notice.parentsShown") : t("notice.parentsHidden") };
@@ -69,6 +74,7 @@ export async function setApprovalAction(_prev: FormState, form: FormData): Promi
   const decision = field(form, "decision") === "returned" ? "returned" : "approved";
   return attempt(async () => {
     await setApproval(getDb(), user.ghotokId, id, decision, field(form, "note"));
+    await audit(user, decision === "approved" ? "listed" : "returned", await personName(user, id), `/profiles/${id}`);
     revalidatePath(`/profiles/${id}`);
     revalidatePath("/dashboard");
     return { notice: decision === "approved" ? t("notice.listed") : t("notice.returned") };
@@ -80,7 +86,9 @@ export async function deleteProfileAction(_prev: FormState, form: FormData): Pro
   const id = field(form, "id");
   return attempt(async () => {
     const kind = field(form, "kind") === "patri" ? "patri" : "patro";
+    const name = await personName(user, id);
     await deleteProfile(getDb(), user.ghotokId, id);
+    await audit(user, "profileDeleted", name);
     revalidatePath("/dashboard");
     redirect(`/${kind}`);
   });

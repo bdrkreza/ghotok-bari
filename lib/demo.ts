@@ -6,7 +6,8 @@ import { profile, user } from "./db/schema";
 import { submitBiodata } from "./services/biodata";
 import { addEntry } from "./services/ledger";
 import { createProfile, setApproval } from "./services/profiles";
-import { addNote, changeStatus, createProposal } from "./services/proposals";
+import { expressInterest, toggleFavorite } from "./services/interests";
+import { addNote, changeStatus, createProposal, setFollowUp } from "./services/proposals";
 import { createSite, getSite } from "./services/site";
 import { today } from "./time";
 
@@ -117,6 +118,7 @@ export async function seedDemo(db: Db, auth: Auth, headers: Headers): Promise<{ 
   await addNote(db, g, p1, "পাত্রীপক্ষ আগামী সপ্তাহে হাসানদের বাড়ি যাবে।");
   await addEntry(db, g, { kind: "chukti", amount: "20000", entryDate: daysAgo(6), proposalId: p1, note: "দুই পক্ষ মিলে" });
   await addEntry(db, g, { kind: "joma", amount: "5000", entryDate: daysAgo(2), proposalId: p1, note: "পাত্রপক্ষ থেকে অগ্রিম" });
+  await setFollowUp(db, g, p1, today());
 
   // সুমন ও শিউলি: fixed
   const p2 = await createProposal(db, g, { patroId: sumon, patriId: shiuli, note: "" });
@@ -154,5 +156,9 @@ export async function seedDemo(db: Db, auth: Auth, headers: Headers): Promise<{ 
     familyDetails: "২ ভাই। বাবা অবসরপ্রাপ্ত ব্যাংকার, নিজেদের বাড়ি।", expectations: "শিক্ষিত, নম্র; ঢাকা-গাজীপুরের মধ্যে হলে ভালো।",
   });
   await setApproval(db, g, tanvir, "approved");
+  // তানভীরের বাবা ফাতেমার বায়োডাটায় আগ্রহ জানিয়েছেন, আর রুমারটা পছন্দের তালিকায় রেখেছেন
+  const jasim = await idOf(DEMO_CUSTOMER_2.phone);
+  await expressInterest(db, g, jasim, { profileId: fatema, forProfileId: tanvir, note: "শুক্রবার বিকেলে কথা বলা যায়।" });
+  await toggleFavorite(db, g, jasim, ruma);
   return { created: true };
 }

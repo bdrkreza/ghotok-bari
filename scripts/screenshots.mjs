@@ -215,6 +215,27 @@ const enPhone = await english({ ...PHONE, storageState: await customer.context()
 await go(enPhone, "/me");
 await shot(enPhone, "customer-home-en");
 
+// Added later, numbered after the rest so the earlier names stay put: the ghotok's inbox of families' interest, the
+// front page's words, the activity log; and the second demo family, who asked about one bride and keeps another on
+// their short list, with the matches and news on their home.
+await go(page, "/dashboard/interests");
+await shot(page, "interests");
+await go(page, "/dashboard/site");
+await shot(page, "site-words");
+await go(page, "/dashboard/activity");
+await shot(page, "activity");
+await webShot(web, "/dashboard/interests", "interests");
+await webShot(web, "/dashboard/activity", "activity");
+const family2 = watch(await (await browser.newContext(PHONE)).newPage());
+await signIn(family2, "01700000003", "alta1234", "/me");
+await family2.addStyleTag({ content: CAPTURE_CSS });
+await shot(family2, "customer2-home");
+const family2Web = await (await browser.newContext({ ...WIDE, storageState: await family2.context().storageState() })).newPage();
+await webShot(family2Web, "/me", "customer2-home");
+await go(family2, "/patri");
+await follow(family2, family2.getByRole("link", { name: /বায়োডাটা দেখুন/ }).first(), /\/biodata\/[0-9a-f-]+$/);
+await shot(family2, "customer2-biodata-interest");
+
 await browser.close();
 
 async function launch() {

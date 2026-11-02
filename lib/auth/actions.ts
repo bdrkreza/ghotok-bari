@@ -9,11 +9,11 @@ import { getLang, getT } from "../i18n/server";
 import { createSite, getSite } from "../services/site";
 import { getAuth } from "./index";
 import { roleOf } from "./roles";
-import { homeFor } from "./session";
-import { authMessage, login, register } from "./service";
+import { homeFor, requireUser } from "./session";
+import { authMessage, changePassword, login, register } from "./service";
 
 const text = (form: FormData, key: string) => String(form.get(key) ?? "");
-const deps = async () => ({ auth: getAuth(), headers: await headers() });
+const deps = async () => ({ auth: getAuth(), headers: await headers(), db: getDb() });
 
 /** A family opens an account: always a customer. */
 export async function registerAction(_prev: FormState, form: FormData): Promise<FormState> {
@@ -67,4 +67,13 @@ export async function setupAction(_prev: FormState, form: FormData): Promise<For
     throw e;
   }
   redirect("/dashboard");
+}
+
+/** Settings: change one's own password. Other devices are signed out; this one stays in. */
+export async function changePasswordAction(_prev: FormState, form: FormData): Promise<FormState> {
+  await requireUser();
+  const { lang, t } = await getT();
+  const result = await changePassword(await deps(), { current: text(form, "current"), next: text(form, "next") });
+  if (!result.ok) return { error: result.code === "wrong_credentials" ? t("st.wrongCurrent") : authMessage(result.code, lang) };
+  return { notice: t("notice.passwordChanged") };
 }

@@ -30,6 +30,7 @@ const GHOTOK_TABS: Tab[] = [
 /** Only on the wide bar, where there is room: the biodata requests and the accounts screen. */
 const GHOTOK_MORE: Tab[] = [
   { href: "/dashboard/approvals", label: "nav.requests", icon: "note" },
+  { href: "/dashboard/interests", label: "nav.interests", icon: "heart" },
   { href: "/dashboard/customers", label: "nav.customers", icon: "people" },
 ];
 
@@ -54,7 +55,7 @@ export function Nav({ role }: { role: Role }) {
   const active = useActive();
   const { t } = useT();
   return (
-    <nav aria-label={t("nav.main")} className="henna-edge henna-edge-t fixed inset-x-0 bottom-0 z-20 bg-surface/95 pt-2 pb-[env(safe-area-inset-bottom)] backdrop-blur lg:hidden">
+    <nav aria-label={t("nav.main")} className="henna-edge henna-edge-t fixed inset-x-0 bottom-0 z-20 bg-surface/95 pt-2 pb-[env(safe-area-inset-bottom)] backdrop-blur lg:hidden print:hidden">
       <ul className="mx-auto flex max-w-md">
         {tabsFor(role).map((tab) => {
           const on = active(tab);
@@ -80,7 +81,7 @@ export function TopNav({ userName, role, siteName }: { userName: string; role: R
   const settingsOn = active({ href: "/settings" });
   const tabs = role === "admin" ? [...GHOTOK_TABS, ...GHOTOK_MORE] : CUSTOMER_TABS.filter((tab) => tab.href !== "/settings");
   return (
-    <header className="henna-edge sticky top-0 z-20 hidden bg-surface/95 pb-2.5 backdrop-blur lg:block">
+    <header className="henna-edge sticky top-0 z-20 hidden bg-surface/95 pb-2.5 backdrop-blur lg:block print:hidden">
       <div className="mx-auto flex h-18 max-w-6xl items-stretch gap-4 px-8">
         {/* the name never shrinks away; with seven tabs and the switches, the tab row scrolls instead */}
         <Link href={role === "admin" ? "/dashboard" : "/me"} className="flex shrink-0 items-center gap-2.5">

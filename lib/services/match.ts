@@ -1,7 +1,8 @@
-import { and, eq, or } from "drizzle-orm";
+import { and, eq, inArray, or } from "drizzle-orm";
 import type { Db } from "../db";
 import { profile, proposal, type Profile } from "../db/schema";
 import { ageFromYear } from "../time";
+import { FAMILY_VIEW } from "./share";
 
 /** Why two people might suit each other; the page turns the key into words in the user's language ("reason.*"). */
 export interface Reason {
@@ -67,4 +68,31 @@ export async function suggestFor(db: Db, ghotokId: string, person: Profile, limi
     .map((candidate) => ({ candidate, ...(person.kind === "patro" ? scorePair(person, candidate) : scorePair(candidate, person)) }))
     .sort((a, b) => b.score - a.score)
     .slice(0, limit);
+}
+
+/**
+ * "আপনার জন্য মিল": for each of a family's own listed biodata still looking, the best listed people of the other
+ * kind, as a family sees them (FAMILY_VIEW, no names). Scored like the ghotok's suggestions; pairs already proposed
+ * are left out. Best first, each person once.
+ */
+export async function matchesForFamily(db: Db, ghotokId: string, ownerUserId: string, limit = 4) {
+  const own = await db.select().from(profile).where(and(
+    eq(profile.ghotokId, ghotokId), eq(profile.ownerUserId, ownerUserId), eq(profile.approval, "approved"), eq(profile.status, "active"),
+  ));
+  const best = new Map<string, { score: number; reasons: Reason[]; forId: string }>();
+  for (const person of own) {
+    for (const s of await suggestFor(db, ghotokId, person, limit)) {
+      if (s.score <= 0 || (best.get(s.candidate.id)?.score ?? -1) >= s.score) continue;
+      best.set(s.candidate.id, { score: s.score, reasons: s.reasons, forId: person.id });
+    }
+  }
+  const ranked = [...best.entries()].sort((a, b) => b[1].score - a[1].score).slice(0, limit);
+  if (!ranked.length) return [];
+  const rows = await db.select({ id: profile.id, ...FAMILY_VIEW }).from(profile)
+    .where(and(eq(profile.ghotokId, ghotokId), inArray(profile.id, ranked.map(([id]) => id))));
+  const byId = new Map(rows.map((r) => [r.id, r] as const));
+  return ranked.flatMap(([id, m]) => {
+    const b = byId.get(id);
+    return b ? [{ b, reasons: m.reasons, forId: m.forId }] : [];
+  });
 }

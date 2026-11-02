@@ -20,21 +20,24 @@ layout on a computer) and a **phone app** (installed from the browser onto the h
 | `/setup` | first run | Shown while the site has no owner: the ghotok's name, number and password, plus the site's name, address and WhatsApp. Creates the account, the site and the dashboard in one go |
 | `/` | anyone | The front page: the site's name and tagline, the ghotok's words, how many patro/patri are looking, how it works, call and WhatsApp buttons. Signed-in people are sent to their own screen |
 | `/login`, `/register` | anyone | Sign in, or open a family's account (always a customer); on a computer the brand panel sits beside the form |
-| `/me` | customer | The family's page: the biodata they handed in and where each stands (অপেক্ষমাণ / তালিকায় আছে / ফেরত দেওয়া, with the ghotok's note), how the site works, the ghotok's contact |
+| `/me` | customer | The family's page: news from the ghotok (listed, returned, a request turned into a proposal) until dismissed, the biodata they handed in and where each stands (অপেক্ষমাণ / তালিকায় আছে / ফেরত দেওয়া, with the ghotok's note), "আপনার জন্য মিল" for their listed biodata, their short list and requests, the ghotok's contact |
 | `/me/biodata/new`, `/me/biodata/[id]`, `/me/biodata/[id]/edit` | customer | Write a biodata (the ghotok's form without the private notes), see one's own in full with its approval state, change it (which sends it back for approval), take it back while unlisted |
 | `/patro`, `/patri` | both | Biodata cards with a filter column: status (ghotok only), age, place, religion, marital status, education, profession, height, income (ghotok only). A family sees approved people still looking, by biodata number, no name or photo, and may search places but not names |
-| `/biodata/[id]` | customer | One approved biodata as a family sees it: the same fields as the public link, plus the ghotok's call and WhatsApp buttons to ask about that number |
+| `/biodata/[id]` | customer | One approved biodata as a family sees it: the same fields as the public link; "আগ্রহ জানান" (optionally saying for which of their own listed biodata, with a line), the short list, print / PDF, and the ghotok's call and WhatsApp buttons (the message starts with the biodata number) |
 | `/dashboard` | admin | Greeting, a search bar into the lists, how many patro/patri are looking, a notice when biodata wait for approval, live proposals, money at a glance, recent people |
 | `/dashboard/approvals` | admin | Biodata families handed in: waiting (অপেক্ষমাণ) and sent back (ফেরত দেওয়া), with who wrote each; opens the person's page |
-| `/dashboard/customers` | admin | Every account: name, number, joined and last seen, role; make a helper an admin or take it back |
+| `/dashboard/customers` | admin | Every account: name, number, joined and last seen, role; make a helper an admin or take it back; reset a forgotten password (a new eight-digit one is shown once, to read out) |
+| `/dashboard/interests` | admin | "আগ্রহ জানান" from families: who asked about which biodata and for whom; make the proposal in one tap, call, close or open again |
+| `/dashboard/site` | admin | The front page's words: site name, tagline, the ghotok's paragraph, address, WhatsApp |
+| `/dashboard/activity` | admin | Who on the ghotok's side changed what, newest first (the last 200) |
 | `/profiles/new?kind=patro` | admin | Add a person (name, age, looks, education, work, address, guardian, family, the "after marriage" answers, expectations); listed at once |
 | `/profiles/[id]` | admin | One person: details, their proposals, suggested matches, status, public share link, delete. For a family's biodata: who handed it in, and the buttons to list it or return it with a note |
 | `/b/[token]` | anyone with the link | Public biodata a ghotok chose to share: biodata number, the ghotok's check, age, height, complexion, weight, blood group, religion, marital status, education and medium, profession and workplace, village, upazila and district, where they live now, siblings and the family's means, religious practice, the "after marriage" answers, family, expectations, the parents' names only where the family agreed (the ghotok can switch it on the person's page), and the ghotok's number; never the name, photos, guardian phone, income or notes |
 | `/proposals` | admin | Every proposal, filtered by stage |
 | `/proposals/new` | admin | Pair one patro with one patri (listed people only) |
-| `/proposals/[id]` | admin | Stage changes with a timeline, notes, and the money for this match |
-| `/hisab` | admin | Ledger: agreed fees (চুক্তি), payments received (জমা), own expenses (খরচ) |
-| `/settings` | both | Account and role, install on the phone, light or dark theme, sign out |
+| `/proposals/[id]` | admin | Stage changes with a timeline, notes, a call-back day, and the money for this match |
+| `/hisab` | admin | Ledger: agreed fees (চুক্তি), payments received (জমা), own expenses (খরচ); the last six months month by month with weddings; who still owes, with call and WhatsApp reminder buttons |
+| `/settings` | both | Account and role, change password, install on the phone, light or dark theme, sign out; for admins the front page, the activity log and the backup downloads |
 | `/offline` | anyone | What the installed app shows when there is no internet |
 
 Proposal stages: প্রস্তাব দেওয়া → দেখাশোনা → কথা চলছে → বিয়ে ঠিক → বিয়ে হয়েছে, or বাদ at any point.
@@ -99,11 +102,34 @@ paths, chosen by which keys are set:
 
 Fields that came from the file carry a "ফাইল থেকে" chip. Nothing is ever submitted automatically.
 
-### Coming next
+### Families' interest, short list and news
 
-"আগ্রহ জানান": a family marks interest in a biodata, the ghotok sees it in an inbox and turns it into a proposal;
-the ghotok resets a family's forgotten password from the accounts list; the front page's words are edited from the
-dashboard.
+On any listed biodata a family can press **আগ্রহ জানান**: it lands in the ghotok's inbox (`/dashboard/interests`, a
+banner on the dashboard) with the family's name and number, the line they wrote and, if they picked one, which of their
+own listed biodata it is for. With that, the ghotok makes the proposal in one tap; without it, they call. Either way
+the other family is told nothing. Once per family and biodata; it can be taken back until the ghotok acts. A family
+also keeps a private short list (পছন্দের তালিকা). Both only ever point at approved biodata and read back through
+`FAMILY_VIEW` (`lib/services/interests.ts`). When the ghotok lists or returns a family's biodata, or makes a proposal
+from their request, the family finds a notice on `/me` until they dismiss it (`lib/services/notices.ts`); there is no
+SMS or push. `/me` also suggests "যাঁদের সাথে মিলতে পারে" for the family's listed biodata, scored like the ghotok's
+suggestions and shown without names (`matchesForFamily` in `lib/services/match.ts`).
+
+### The ghotok's day
+
+A live proposal can carry a call-back day; from that day the dashboard lists it with both guardians' numbers. The
+ledger page shows the last six months (received as bars, everything in a table) and who still owes on each match, with
+call and WhatsApp buttons that start a polite reminder. A family forgot their password: **পাসওয়ার্ড রিসেট** on the
+accounts list makes a new one, ends their sessions and shows it once; anyone can change their own in settings.
+
+### Keeping it safe
+
+Five wrong passwords for one number, or twenty from one address, within 15 minutes stop sign-in for that number or
+address until they age out; a right password clears the number's count (`lib/auth/throttle.ts`). Every change on the
+ghotok's side is written to the activity log with who did it (`lib/services/activity.ts`, from the actions through
+`lib/actions/audit.ts`). Settings offers two downloads (`/api/backup`, admins only): everyone on file as a CSV that
+opens in Excel, and a full JSON backup of the site, people, photos' places, proposals with their timelines, the ledger
+and the requests (no accounts or passwords). Any biodata page prints cleanly, or saves as a PDF from the print dialog:
+bars, buttons and ornaments are left off, and a dark theme never reaches the paper.
 
 ## Two languages
 

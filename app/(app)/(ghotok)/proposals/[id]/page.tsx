@@ -1,5 +1,5 @@
 import { Icon } from "@/components/icons";
-import { DeleteProposalForm, LedgerForm, NoteForm, StatusForm } from "@/components/proposal-forms";
+import { DeleteProposalForm, FollowUpForm, LedgerForm, NoteForm, StatusForm } from "@/components/proposal-forms";
 import { Badge, Card, PageHeader, ProposalBadge, RowLink } from "@/components/ui";
 import { requireAdmin } from "@/lib/auth/session";
 import { PROPOSAL_STATUS } from "@/lib/bn";
@@ -9,7 +9,7 @@ import type { T } from "@/lib/i18n";
 import { getT } from "@/lib/i18n/server";
 import { orNotFound } from "@/lib/not-found";
 import { totalsOf } from "@/lib/services/ledger";
-import { getProposal, nextStatuses } from "@/lib/services/proposals";
+import { LIVE, getProposal, nextStatuses } from "@/lib/services/proposals";
 import { ageFromYear, today } from "@/lib/time";
 
 export default async function ProposalPage(props: PageProps<"/proposals/[id]">) {
@@ -44,6 +44,13 @@ export default async function ProposalPage(props: PageProps<"/proposals/[id]">) 
           {next.length ? (
             <Card title={t("pr.nextStep")}>
               <StatusForm id={p.id} next={next} />
+            </Card>
+          ) : null}
+
+          {LIVE.includes(p.status) ? (
+            <Card title={t("pr.followUp")}>
+              <p className="text-sm text-muted">{p.followUpOn ? t("pr.followUpWhen", { date: T.date(p.followUpOn) }) : t("pr.followUpHint")}</p>
+              <FollowUpForm id={p.id} current={p.followUpOn} today={today()} />
             </Card>
           ) : null}
 

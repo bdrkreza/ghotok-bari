@@ -1,8 +1,10 @@
-import { desc, eq, ilike, max, or } from "drizzle-orm";
+import { randomInt } from "node:crypto";
+import { hashPassword } from "better-auth/crypto";
+import { and, desc, eq, ilike, max, or } from "drizzle-orm";
 import { effectiveRole } from "../auth/roles";
 import type { AdminSession, SessionUser } from "../auth/session";
 import type { Db } from "../db";
-import { session, user, type Role } from "../db/schema";
+import { account, session, user, type Role } from "../db/schema";
 import { AppError } from "../errors";
 
 // Every account on the site, for the ghotok: who signed up, when they were last here, and who else is an admin.
@@ -58,4 +60,32 @@ export async function setRole(db: Db, who: AdminSession, userId: string, role: R
   const [row] = await db.select({ id: user.id }).from(user).where(eq(user.id, userId));
   if (!row) throw new AppError("not_found");
   await db.update(user).set({ role }).where(eq(user.id, userId));
+}
+
+/**
+ * A family forgot their password: the ghotok gives them a new one, read out over the phone. Returns the new password
+ * (eight digits, easy to say) to show the ghotok once; it is stored only as a hash. Every session of that account
+ * ends, so whoever had the old password is signed out. Not for one's own account (settings has "change password"),
+ * and never the owner's.
+ */
+export async function resetPassword(db: Db, who: AdminSession, userId: string): Promise<string> {
+  assertAdmin(who);
+  if (userId === who.id) throw new AppError("self_role");
+  if (userId === who.ghotokId) throw new AppError("owner_role");
+  const [row] = await db.select({ id: user.id }).from(user).where(eq(user.id, userId));
+  if (!row) throw new AppError("not_found");
+  const password = String(randomInt(10_000_000, 100_000_000));
+  const hash = await hashPassword(password);
+  const updated = await db.update(account).set({ password: hash })
+    .where(and(eq(account.userId, userId), eq(account.providerId, "credential"))).returning({ id: account.id });
+  if (!updated.length) throw new AppError("not_found");
+  await db.delete(session).where(eq(session.userId, userId));
+  return password;
+}
+
+/** One account's name, for the activity log. */
+export async function accountName(db: Db, who: AdminSession, userId: string): Promise<string | null> {
+  assertAdmin(who);
+  const [row] = await db.select({ name: user.name }).from(user).where(eq(user.id, userId));
+  return row?.name ?? null;
 }

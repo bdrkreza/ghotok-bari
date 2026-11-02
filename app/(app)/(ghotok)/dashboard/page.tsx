@@ -61,6 +61,37 @@ export default async function HomePage() {
         </Link>
       ) : null}
 
+      {d.interests ? (
+        <Link href="/dashboard/interests" className="flex items-center gap-4 rounded-2xl border border-primary-soft bg-primary-soft/50 p-4">
+          <span aria-hidden className="grid size-11 shrink-0 place-items-center rounded-full bg-surface/70 text-primary"><Icon name="heart" size={22} /></span>
+          <span className="min-w-0 flex-1">
+            <span className="block font-bold">{t("dash.interestBanner", { n: d.interests })}</span>
+            <span className="block text-sm text-muted">{t("dash.interestBannerText")}</span>
+          </span>
+          <Icon name="chevronRight" size={18} />
+        </Link>
+      ) : null}
+
+      {d.followUps.length ? (
+        <section className="flex flex-col gap-3 rounded-3xl border border-warn-line bg-warn p-4 text-warn-ink lg:p-5">
+          <p className="flex items-center gap-2 font-bold"><Icon name="calendar" size={20} />{t("dash.followUpTitle", { n: d.followUps.length })}</p>
+          <ul className="flex flex-col gap-2">
+            {d.followUps.map((f) => (
+              <li key={f.id} className="flex flex-col gap-2 rounded-2xl bg-surface p-3 text-ink sm:flex-row sm:items-center">
+                <Link href={`/proposals/${f.id}`} className="min-w-0 flex-1">
+                  <span className="block truncate font-bold">{t("common.and", { a: f.patro.name, b: f.patri.name })}</span>
+                  <span className="block text-sm text-muted">{f.followUpOn ? t("dash.followUpSince", { date: T.date(f.followUpOn) }) : null}</span>
+                </Link>
+                <span className="flex shrink-0 gap-2">
+                  {f.patro.guardianPhone ? <a href={`tel:${f.patro.guardianPhone}`} className={`${quietButton} min-h-10 px-3 text-sm`}><Icon name="phone" size={16} />{t("kind.patro")}</a> : null}
+                  {f.patri.guardianPhone ? <a href={`tel:${f.patri.guardianPhone}`} className={`${quietButton} min-h-10 px-3 text-sm`}><Icon name="phone" size={16} />{t("kind.patri")}</a> : null}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+
       <div className="flex flex-col gap-5 lg:grid lg:grid-cols-[1fr_22rem] lg:items-start lg:gap-8">
         <section className="flex flex-col gap-4">
           <SectionHead eyebrow={t("dash.liveProposals")} title={t("dash.liveTitle")} links={[{ href: "/proposals", label: t("dash.allProposals") }]} />
@@ -114,7 +145,10 @@ export default async function HomePage() {
             <Link href="/hisab" className={outlineButton}>{t("dash.fullLedger")}</Link>
           </div>
           <LinkCard icon="note" title={t("dash.requestsCard")} text={d.pending ? t("dash.requestsPending", { n: d.pending }) : t("dash.requestsNone")} href="/dashboard/approvals" t={T} />
+          <LinkCard icon="heart" title={t("dash.interestsCard")} text={d.interests ? t("dash.interestsNew", { n: d.interests }) : t("dash.interestsNone")} href="/dashboard/interests" t={T} />
           <LinkCard icon="people" title={t("dash.customersCard")} text={t("dash.customersText")} href="/dashboard/customers" t={T} />
+          <LinkCard icon="edit" title={t("dash.siteCard")} text={t("dash.siteText")} href="/dashboard/site" t={T} />
+          <LinkCard icon="note" title={t("dash.activityCard")} text={t("dash.activityText")} href="/dashboard/activity" t={T} />
         </section>
       </div>
 

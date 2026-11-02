@@ -1,14 +1,18 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { Notices } from "./_components/notices";
 import { Avatar } from "@/components/avatar";
 import { FamilyBiodataCard } from "@/components/biodata";
 import { Icon, type IconName } from "@/components/icons";
 import { ContactButtons } from "@/components/site";
-import { ApprovalBadge, Card, outlineButton, primaryButton, quietButton } from "@/components/ui";
+import { ApprovalBadge, Badge, Card, outlineButton, primaryButton, quietButton } from "@/components/ui";
 import { requireCustomer } from "@/lib/auth/session";
 import { getDb } from "@/lib/db";
 import { getT } from "@/lib/i18n/server";
 import { myBiodata, recentBiodata } from "@/lib/services/biodata";
+import { myFavorites, myInterests } from "@/lib/services/interests";
+import { matchesForFamily } from "@/lib/services/match";
+import { unreadNotices } from "@/lib/services/notices";
 import { publicSite } from "@/lib/services/site";
 import { ageFromYear } from "@/lib/time";
 
@@ -25,7 +29,16 @@ export default async function MePage() {
   const [me, T] = await Promise.all([requireCustomer(), getT()]);
   const { t } = T;
   const db = getDb();
-  const [site, mine, recent] = await Promise.all([publicSite(db), myBiodata(db, me.ghotokId, me.id), recentBiodata(db, me.ghotokId)]);
+  const [site, mine, recent, notices, matches, favorites, interests] = await Promise.all([
+    publicSite(db), myBiodata(db, me.ghotokId, me.id), recentBiodata(db, me.ghotokId), unreadNotices(db, me.ghotokId, me.id),
+    matchesForFamily(db, me.ghotokId, me.id), myFavorites(db, me.ghotokId, me.id), myInterests(db, me.ghotokId, me.id),
+  ]);
+  const noticeItems = notices.map((n) => ({
+    id: n.id, kind: n.kind, note: n.note, when: T.date(n.createdAt),
+    no: n.profileKind && n.profileCode !== null ? T.biodataNo(n.profileKind, n.profileCode) : "",
+    // their own biodata opens on their side; one they asked about, on the list side
+    href: n.profileId ? (n.ownedBy === me.id ? `/me/biodata/${n.profileId}` : `/biodata/${n.profileId}`) : null,
+  }));
   const pending = mine.filter((b) => b.approval === "pending").length;
   const returned = mine.filter((b) => b.approval === "returned").length;
   const listed = mine.filter((b) => b.approval === "approved").length;
@@ -66,6 +79,8 @@ export default async function MePage() {
           <Link href="/patri" className={outlineButton}>{t("me.seePatri")}</Link>
         </div>
       </section>
+
+      <Notices items={noticeItems} />
 
       <section aria-label={t("me.glance")} className="grid grid-cols-3 gap-1 rounded-3xl border border-line bg-surface p-2">
         <Stat icon="note" value={T.n(mine.length)} label={pending ? t("me.myBiodataPending", { n: pending }) : t("me.myBiodata")} href="#amar" />
@@ -136,6 +151,30 @@ export default async function MePage() {
             )}
           </section>
 
+          {matches.length ? (
+            <section className="flex flex-col gap-4">
+              <SectionHead eyebrow={t("me.matchEyebrow")} title={t("me.matchTitle")} />
+              <p className="-mt-2 text-sm text-muted">{t("me.matchText")}</p>
+              <ul className="grid gap-3 sm:grid-cols-2">
+                {matches.map((m) => (
+                  <li key={m.b.id} className="flex min-w-0 flex-col gap-2">
+                    <FamilyBiodataCard b={m.b} t={T} />
+                    {m.reasons.length ? <div className="flex flex-wrap gap-1.5">{m.reasons.map((r) => <Badge key={r.key} tone="mint">{t(`reason.${r.key}`, { n: r.n ?? 0 })}</Badge>)}</div> : null}
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ) : null}
+
+          {favorites.length ? (
+            <section className="flex flex-col gap-4">
+              <SectionHead eyebrow={t("me.favEyebrow")} title={t("me.favTitle", { n: favorites.length })} />
+              <ul className="grid gap-3 sm:grid-cols-2">
+                {favorites.map((b) => <li key={b.id} className="min-w-0"><FamilyBiodataCard b={b} t={T} /></li>)}
+              </ul>
+            </section>
+          ) : null}
+
           {recent.length ? (
             <section className="flex flex-col gap-4">
               <SectionHead eyebrow={t("me.listEyebrow")} title={t("me.recent")} links={[{ href: "/patro", label: t("me.allPatro") }, { href: "/patri", label: t("me.allPatri") }]} />
@@ -163,6 +202,21 @@ export default async function MePage() {
               </Card>
             ) : null}
           </section>
+          {interests.length ? (
+            <Card title={t("me.interestsTitle")}>
+              <ul className="divide-y divide-line">
+                {interests.map((i) => (
+                  <li key={i.b.id} className="flex items-center justify-between gap-3 py-2.5">
+                    <Link href={`/biodata/${i.b.id}`} className="min-w-0">
+                      <span className="block font-bold text-primary">{T.biodataNo(i.b.kind, i.b.code)}</span>
+                      <span className="block truncate text-xs text-muted">{i.b.district} · {T.date(i.createdAt)}</span>
+                    </Link>
+                    <Badge tone={i.status === "proposed" ? "mint" : i.status === "closed" ? "coral" : "mango"}>{t(`me.interest.${i.status}`)}</Badge>
+                  </li>
+                ))}
+              </ul>
+            </Card>
+          ) : null}
           <Card title={t("me.whoSees")}>
             <p className="text-sm text-muted">{t("me.whoSeesText")}</p>
           </Card>

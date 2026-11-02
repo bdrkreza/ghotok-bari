@@ -54,7 +54,7 @@
 }
 
 /* Dark follows the phone, unless a theme was picked in settings: data-theme on <html>, see lib/theme.ts. */
-@media (prefers-color-scheme: dark) {
+@media screen and (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --bg: #1f1012;
     --surface: #2a1517;
@@ -100,48 +100,51 @@
   }
 }
 
-:root[data-theme="dark"] {
-  --bg: #1f1012;
-  --surface: #2a1517;
-  --sunk: #2e1719;
-  --ink: #f6e8e1;
-  --muted: #c4a29d;
-  --line: #43262a;
-  --primary: #ff6b7a;
-  --on-primary: #200609;
-  --primary-soft: #3a1015;
-  --warn: #3a2c10;
-  --warn-line: #6b5220;
-  --warn-ink: #ffd27d;
-  --neg-soft: #3b1f1c;
-  --pos-soft: #24311a;
-  --mango: #3b2d10;
-  --mango-ink: #ffd27d;
-  --mint: #263518;
-  --mint-ink: #bfe09a;
-  --sky: #2b2620;
-  --sky-ink: #d9cdbd;
-  --lilac: #3a2a22;
-  --lilac-ink: #f0c7ad;
-  --coral: #3d1c18;
-  --coral-ink: #ffb7a7;
-  --pos: #9ccb6a;
-  --neg: #ff8d7b;
-  --panel: #5a0614;
-  --panel-soft: #3a1015;
-  --palki-roof-a: #e9667a;
-  --palki-roof-b: #e0243e;
-  --palki-roof-c: #9c1028;
-  --palki-eave: #e3b55a;
-  --palki-gold: #e3b55a;
-  --palki-gold-deep: #9a7428;
-  --palki-band-a: #9c1028;
-  --palki-band-b: #5a0614;
-  --palki-lattice: #f6dc9a;
-  --wood: #7a4420;
-  --wood-hi: #a8662f;
-  --wood-lo: #4a2410;
-  color-scheme: dark;
+/* screen only: a dark theme never reaches paper (the print block at the end) */
+@media screen {
+  :root[data-theme="dark"] {
+    --bg: #1f1012;
+    --surface: #2a1517;
+    --sunk: #2e1719;
+    --ink: #f6e8e1;
+    --muted: #c4a29d;
+    --line: #43262a;
+    --primary: #ff6b7a;
+    --on-primary: #200609;
+    --primary-soft: #3a1015;
+    --warn: #3a2c10;
+    --warn-line: #6b5220;
+    --warn-ink: #ffd27d;
+    --neg-soft: #3b1f1c;
+    --pos-soft: #24311a;
+    --mango: #3b2d10;
+    --mango-ink: #ffd27d;
+    --mint: #263518;
+    --mint-ink: #bfe09a;
+    --sky: #2b2620;
+    --sky-ink: #d9cdbd;
+    --lilac: #3a2a22;
+    --lilac-ink: #f0c7ad;
+    --coral: #3d1c18;
+    --coral-ink: #ffb7a7;
+    --pos: #9ccb6a;
+    --neg: #ff8d7b;
+    --panel: #5a0614;
+    --panel-soft: #3a1015;
+    --palki-roof-a: #e9667a;
+    --palki-roof-b: #e0243e;
+    --palki-roof-c: #9c1028;
+    --palki-eave: #e3b55a;
+    --palki-gold: #e3b55a;
+    --palki-gold-deep: #9a7428;
+    --palki-band-a: #9c1028;
+    --palki-band-b: #5a0614;
+    --palki-lattice: #f6dc9a;
+    --wood: #7a4420;
+    --wood-hi: #a8662f;
+    --wood-lo: #4a2410;
+    color-scheme: dark;
+  }
 }
 
 :root[data-theme="light"] {
@@ -468,4 +471,18 @@ input:-webkit-autofill:focus {
 /* Native date inputs and selects pick up the page colours. */
 input, select, textarea {
   color: inherit;
+}
+
+/* Printing a biodata (or saving it as a PDF from the print dialog): paper white, no ornaments, no bars. The dark
+   blocks above are screen-only, so a dark-mode phone still prints with the light tokens. */
+@media print {
+  body {
+    background: #fff;
+  }
+  body::before, body::after, .henna-edge::after, .henna-corner::before {
+    display: none;
+  }
+  .lg\:sticky, .sticky {
+    position: static;
+  }
 }

@@ -1,8 +1,9 @@
-import { and, desc, eq, inArray, or, type SQL } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, isNotNull, lte, or, type SQL } from "drizzle-orm";
 import type { Db } from "../db";
 import { profile, proposal, proposalEvent, type ProposalStatus } from "../db/schema";
 import { AppError } from "../errors";
 import { getProfile } from "./profiles";
+import { today } from "../time";
 
 /** Which status can follow which. "bad" (dropped) is reachable from every live state. */
 const NEXT: Record<ProposalStatus, ProposalStatus[]> = {
@@ -116,3 +117,22 @@ export async function proposalOptions(db: Db, ghotokId: string): Promise<(readon
   const rows = await listProposals(db, ghotokId, "live");
   return rows.map((r) => [r.id, `${r.patro.name} ও ${r.patri.name}`] as const);
 }
+
+/** Set the day to call the families again ("YYYY-MM-DD"), or clear it with "". */
+export async function setFollowUp(db: Db, ghotokId: string, id: string, on: string): Promise<void> {
+  await getProposal(db, ghotokId, id);
+  const day = on.trim();
+  if (day && !/^\d{4}-\d{2}-\d{2}$/.test(day)) throw new AppError("invalid_input");
+  await db.update(proposal).set({ followUpOn: day || null }).where(and(eq(proposal.id, id), eq(proposal.ghotokId, ghotokId)));
+}
+
+/** Live proposals whose call-back day is today or past, the oldest first, with both guardians' numbers. */
+export async function dueFollowUps(db: Db, ghotokId: string, on = today()) {
+  return db.query.proposal.findMany({
+    where: and(eq(proposal.ghotokId, ghotokId), inArray(proposal.status, LIVE), isNotNull(proposal.followUpOn), lte(proposal.followUpOn, on)),
+    with: { patro: { columns: { name: true, guardianPhone: true } }, patri: { columns: { name: true, guardianPhone: true } } },
+    orderBy: [asc(proposal.followUpOn)],
+  });
+}
+
+export type FollowUpRow = Awaited<ReturnType<typeof dueFollowUps>>[number];

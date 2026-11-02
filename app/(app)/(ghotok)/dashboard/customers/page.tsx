@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { RoleForm } from "./_components/customer-forms";
+import { ResetPasswordForm, RoleForm } from "./_components/customer-forms";
 import { Icon } from "@/components/icons";
 import { Badge, Card, Empty, PageHeader } from "@/components/ui";
 import { requireAdmin } from "@/lib/auth/session";
@@ -52,10 +52,11 @@ export default async function CustomersPage(props: PageProps<"/dashboard/custome
                       </p>
                     </div>
                   </div>
-                  {c.id === admin.id || c.owner ? null : c.envAdmin ? (
-                    <p className="text-xs text-muted lg:w-40">{t("cu.envAdmin")}</p>
-                  ) : (
-                    <RoleForm id={c.id} admin={c.role === "admin"} />
+                  {c.id === admin.id || c.owner ? null : (
+                    <div className="flex flex-col gap-2 lg:flex-row lg:items-start">
+                      <ResetPasswordForm id={c.id} />
+                      {c.envAdmin ? <p className="text-xs text-muted lg:w-40">{t("cu.envAdmin")}</p> : <RoleForm id={c.id} admin={c.role === "admin"} />}
+                    </div>
                   )}
                 </li>
               ))}
@@ -69,6 +70,7 @@ export default async function CustomersPage(props: PageProps<"/dashboard/custome
           <Card title={t("cu.howTitle")}>
             <p className="text-sm text-muted">{t("cu.how1")}</p>
             <p className="text-sm text-muted">{t("cu.how2")}</p>
+            <p className="text-sm text-muted">{t("cu.how3")}</p>
           </Card>
         </section>
       </div>

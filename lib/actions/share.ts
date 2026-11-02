@@ -5,6 +5,7 @@ import { requireAdmin } from "../auth/session";
 import { getDb } from "../db";
 import { attempt, field, type FormState } from "../form";
 import { getT } from "../i18n/server";
+import { audit, personName } from "./audit";
 import { shareBiodata, unshareBiodata } from "../services/share";
 
 export async function shareBiodataAction(_prev: FormState, form: FormData): Promise<FormState> {
@@ -12,6 +13,7 @@ export async function shareBiodataAction(_prev: FormState, form: FormData): Prom
   const id = field(form, "id");
   return attempt(async () => {
     await shareBiodata(getDb(), user.ghotokId, id);
+    await audit(user, "shareOn", await personName(user, id), `/profiles/${id}`);
     revalidatePath(`/profiles/${id}`);
     return { notice: t("notice.shareOn") };
   });
@@ -22,6 +24,7 @@ export async function unshareBiodataAction(_prev: FormState, form: FormData): Pr
   const id = field(form, "id");
   return attempt(async () => {
     await unshareBiodata(getDb(), user.ghotokId, id);
+    await audit(user, "shareOff", await personName(user, id), `/profiles/${id}`);
     revalidatePath(`/profiles/${id}`);
     return { notice: t("notice.shareOff") };
   });

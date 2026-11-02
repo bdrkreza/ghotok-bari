@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm";
-import { boolean, date, index, integer, pgTable, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
+import { boolean, date, index, integer, pgTable, primaryKey, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
 import { user } from "./auth-schema";
 
 export * from "./auth-schema";
@@ -191,6 +191,8 @@ export const proposal = pgTable("proposal", {
   patriId: uuid("patri_id").notNull().references(() => profile.id, { onDelete: "cascade" }),
   status: text("status").$type<ProposalStatus>().notNull().default("prostab"),
   note: text("note"),
+  /** the day the ghotok means to call the families again; null = no reminder */
+  followUpOn: day("follow_up_on"),
   ...timestamps,
 }, (t) => [
   uniqueIndex("proposal_pair").on(t.patroId, t.patriId),
@@ -228,11 +230,95 @@ export const ledgerEntry = pgTable("ledger_entry", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 }, (t) => [index("ledger_ghotok_date").on(t.ghotokId, t.entryDate)]).enableRLS();
 
+/* ---------- what families do ---------- */
+
+export type InterestStatus = "new" | "proposed" | "closed";
+
+/**
+ * "আগ্রহ জানান": a family tells the ghotok they would like to talk about a listed biodata. It lands in the ghotok's
+ * inbox (/dashboard/interests); the ghotok turns it into a proposal or closes it. Once per family and biodata.
+ */
+export const interest = pgTable("interest", {
+  id: id(),
+  ghotokId: text("ghotok_id").notNull().references(() => user.id, { onDelete: "cascade" }),
+  /** the family account that asked */
+  userId: text("user_id").notNull().references(() => user.id, { onDelete: "cascade" }),
+  /** the biodata they liked */
+  profileId: uuid("profile_id").notNull().references(() => profile.id, { onDelete: "cascade" }),
+  /** which of the family's own listed biodata it is for, when they said; lets the ghotok propose in one tap */
+  forProfileId: uuid("for_profile_id").references(() => profile.id, { onDelete: "set null" }),
+  note: text("note"),
+  status: text("status").$type<InterestStatus>().notNull().default("new"),
+  /** the proposal the ghotok made from it */
+  proposalId: uuid("proposal_id").references(() => proposal.id, { onDelete: "set null" }),
+  ...timestamps,
+}, (t) => [
+  uniqueIndex("interest_user_profile").on(t.userId, t.profileId),
+  index("interest_ghotok_status").on(t.ghotokId, t.status),
+]).enableRLS();
+
+/** A biodata a family keeps on their own short list ("পছন্দের তালিকা"). Private to that account. */
+export const favorite = pgTable("favorite", {
+  ghotokId: text("ghotok_id").notNull().references(() => user.id, { onDelete: "cascade" }),
+  userId: text("user_id").notNull().references(() => user.id, { onDelete: "cascade" }),
+  profileId: uuid("profile_id").notNull().references(() => profile.id, { onDelete: "cascade" }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => [primaryKey({ columns: [t.userId, t.profileId] })]).enableRLS();
+
+/**
+ * What happened to a family's biodata or request, shown on their page until they dismiss it. The words come from the
+ * dictionary ("notice.kind.*"), filled with `label` (a biodata number such as "পাত্রী-৭" is stored as kind + code).
+ */
+export type NoticeKind = "approved" | "returned" | "proposed";
+
+export const notice = pgTable("notice", {
+  id: id(),
+  ghotokId: text("ghotok_id").notNull().references(() => user.id, { onDelete: "cascade" }),
+  userId: text("user_id").notNull().references(() => user.id, { onDelete: "cascade" }),
+  kind: text("kind").$type<NoticeKind>().notNull(),
+  /** the biodata it is about */
+  profileId: uuid("profile_id").references(() => profile.id, { onDelete: "cascade" }),
+  /** the ghotok's note, for "returned" */
+  note: text("note"),
+  readAt: timestamp("read_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => [index("notice_user").on(t.userId, t.readAt)]).enableRLS();
+
+/* ---------- keeping the site safe ---------- */
+
+/**
+ * One wrong password, by phone number and by address, so a run of guesses is stopped for a while
+ * (lib/auth/throttle.ts). A successful sign-in clears the phone's rows; old rows are swept as new ones come in.
+ */
+export const loginFailure = pgTable("login_failure", {
+  id: id(),
+  /** "phone:01XXXXXXXXX" or "ip:1.2.3.4" */
+  key: text("key").notNull(),
+  at: timestamp("at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => [index("login_failure_key").on(t.key, t.at)]).enableRLS();
+
+/**
+ * Who on the ghotok's side did what (/dashboard/activity), so a helper's changes can be traced. `action` names a
+ * dictionary phrase ("act.<action>"); `label` is what it was done to, as it read then (a name, or "A ও B").
+ */
+export const activity = pgTable("activity", {
+  id: id(),
+  ghotokId: text("ghotok_id").notNull().references(() => user.id, { onDelete: "cascade" }),
+  actorId: text("actor_id").references(() => user.id, { onDelete: "set null" }),
+  action: text("action").notNull(),
+  label: text("label"),
+  /** where the row links to, e.g. /profiles/<id>; null when the thing is gone or has no page */
+  href: text("href"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => [index("activity_ghotok_at").on(t.ghotokId, t.createdAt)]).enableRLS();
+
 /* ---------- relations ---------- */
 
 export const profileRelations = relations(profile, ({ many }) => ({
   asPatro: many(proposal, { relationName: "patro" }),
   asPatri: many(proposal, { relationName: "patri" }),
+  liked: many(interest, { relationName: "liked" }),
+  likedFor: many(interest, { relationName: "likedFor" }),
 }));
 
 export const proposalRelations = relations(proposal, ({ one, many }) => ({
@@ -246,6 +332,12 @@ export const proposalEventRelations = relations(proposalEvent, ({ one }) => ({
   proposal: one(proposal, { fields: [proposalEvent.proposalId], references: [proposal.id] }),
 }));
 
+export const interestRelations = relations(interest, ({ one }) => ({
+  profile: one(profile, { fields: [interest.profileId], references: [profile.id], relationName: "liked" }),
+  forProfile: one(profile, { fields: [interest.forProfileId], references: [profile.id], relationName: "likedFor" }),
+  user: one(user, { fields: [interest.userId], references: [user.id] }),
+}));
+
 export const ledgerEntryRelations = relations(ledgerEntry, ({ one }) => ({
   proposal: one(proposal, { fields: [ledgerEntry.proposalId], references: [proposal.id] }),
 }));
@@ -257,3 +349,6 @@ export type ProposalEvent = typeof proposalEvent.$inferSelect;
 export type LedgerEntry = typeof ledgerEntry.$inferSelect;
 export type BiodataShare = typeof biodataShare.$inferSelect;
 export type ProfilePhoto = typeof profilePhoto.$inferSelect;
+export type Interest = typeof interest.$inferSelect;
+export type Notice = typeof notice.$inferSelect;
+export type Activity = typeof activity.$inferSelect;

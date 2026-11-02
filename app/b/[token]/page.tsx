@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { FamilyBiodata } from "@/components/biodata";
 import { Icon } from "@/components/icons";
 import { LangSwitch } from "@/components/lang-switch";
+import { PrintButton } from "@/components/print-button";
 import { primaryButton } from "@/components/ui";
 import { currentSite } from "@/lib/auth/session";
 import { getDb } from "@/lib/db";
@@ -27,7 +28,7 @@ export default async function PublicBiodataPage(props: PageProps<"/b/[token]">) 
   return (
     <div className="flex min-h-dvh flex-col">
       {/* stays at the top while the biodata scrolls, so the site and the language switch are always in reach */}
-      <header className="henna-edge sticky top-0 z-20 bg-surface pb-2.5">
+      <header className="henna-edge sticky top-0 z-20 bg-surface pb-2.5 print:static print:pb-0">
         <div className="mx-auto flex h-14 max-w-4xl items-center justify-between gap-4 px-4 lg:h-16">
           <span className="flex min-w-0 items-center gap-2 font-display text-lg font-extrabold">
             <span aria-hidden className="grid size-8 shrink-0 place-items-center rounded-xl bg-primary text-base text-on-primary outline-2 outline-offset-3 outline-primary outline-dotted">ঘ</span>
@@ -35,7 +36,7 @@ export default async function PublicBiodataPage(props: PageProps<"/b/[token]">) 
           </span>
           <span className="flex shrink-0 items-center gap-3">
             <span className="hidden text-sm text-muted sm:inline">{t("pub.header")}</span>
-            <LangSwitch />
+            <span className="print:hidden"><LangSwitch /></span>
           </span>
         </div>
       </header>
@@ -50,11 +51,12 @@ export default async function PublicBiodataPage(props: PageProps<"/b/[token]">) 
             </a>
             <p className="text-center text-xs text-muted">{t("bv.likeText", { no: T.biodataNo(b.kind, b.code), name: b.ghotok.name })}</p>
             <p className="text-center text-xs text-muted">{t("pub.callText")}</p>
+            <PrintButton />
           </>
         } />
       </main>
 
-      <footer className="px-4 py-6 text-center text-xs text-muted">{site?.name ?? t("common.alta")} · {t("common.madeWith")}</footer>
+      <footer className="px-4 py-6 print:py-2 text-center text-xs text-muted">{site?.name ?? t("common.alta")} · {t("common.madeWith")}</footer>
     </div>
   );
 }

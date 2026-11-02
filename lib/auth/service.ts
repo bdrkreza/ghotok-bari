@@ -1,6 +1,8 @@
 import { APIError } from "better-auth/api";
 import { z } from "zod";
+import type { Db } from "../db";
 import type { Auth } from "./index";
+import { clearFailures, clientIp, isLockedOut, recordFailure } from "./throttle";
 import { makeT, type Lang } from "../i18n";
 import { MIN_PASSWORD_LENGTH, normalizePhone, placeholderEmail } from "./phone";
 
@@ -10,6 +12,7 @@ export type AuthErrorCode =
   | "weak_password"
   | "phone_taken"
   | "wrong_credentials"
+  | "too_many"
   | "unknown";
 
 export type AuthResult = { ok: true; userId?: string } | { ok: false; code: AuthErrorCode };
@@ -23,6 +26,8 @@ export interface Deps {
   auth: Auth;
   /** request headers; lets Better Auth read and (with nextCookies) set the session cookie */
   headers: Headers;
+  /** where wrong passwords are counted (lib/auth/throttle.ts); without it sign-in is not throttled */
+  db?: Db;
 }
 
 const errorCode = (e: unknown): string =>
@@ -56,12 +61,31 @@ export async function login(deps: Deps, input: { phone: string; password: string
   // Same answer for a malformed number, an unknown number and a wrong password:
   // the response never reveals whether an account exists.
   if (!phone || !input.password) return fail("wrong_credentials");
+  const ip = clientIp(deps.headers);
+  if (deps.db && (await isLockedOut(deps.db, phone, ip))) return fail("too_many");
   try {
     const res = await deps.auth.api.signInUsername({ body: { username: phone, password: input.password, rememberMe: input.remember ?? true }, headers: deps.headers });
+    if (deps.db) await clearFailures(deps.db, phone);
     return { ok: true, userId: (res as { user?: { id: string } } | null)?.user?.id };
   } catch (e) {
-    if (e instanceof APIError) return fail("wrong_credentials");
+    if (e instanceof APIError) {
+      if (deps.db) await recordFailure(deps.db, phone, ip);
+      return fail("wrong_credentials");
+    }
     console.error("login failed", e);
+    return fail("unknown");
+  }
+}
+
+/** Change one's own password, knowing the current one. Every other session of the account is signed out. */
+export async function changePassword(deps: Deps, input: { current: string; next: string }): Promise<AuthResult> {
+  if (!password.safeParse(input.next).success) return fail("weak_password");
+  try {
+    await deps.auth.api.changePassword({ body: { currentPassword: input.current, newPassword: input.next, revokeOtherSessions: true }, headers: deps.headers });
+    return { ok: true };
+  } catch (e) {
+    if (e instanceof APIError) return fail("wrong_credentials");
+    console.error("change password failed", e);
     return fail("unknown");
   }
 }

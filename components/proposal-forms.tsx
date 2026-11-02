@@ -4,7 +4,7 @@ import { ActionForm, ConfirmCheck, Field, Hidden, Select, TextArea } from "@/com
 import { Icon } from "@/components/icons";
 import type { ProfileStatus, ProposalStatus } from "@/lib/db/schema";
 import { useT } from "@/lib/i18n/client";
-import { addNoteAction, changeStatusAction, createProposalAction, deleteProposalAction } from "@/lib/actions/proposals";
+import { addNoteAction, changeStatusAction, createProposalAction, deleteProposalAction, setFollowUpAction } from "@/lib/actions/proposals";
 import { addEntryAction, deleteEntryAction } from "@/lib/actions/ledger";
 import { deleteProfileAction, setProfileStatusAction } from "@/lib/actions/profiles";
 
@@ -128,5 +128,27 @@ export function DeleteProfileForm({ id, kind }: { id: string; kind: string }) {
         </>
       )}
     </ActionForm>
+  );
+}
+
+/** The day to call the families again; it shows on the dashboard from that day on. */
+export function FollowUpForm({ id, current, today }: { id: string; current: string | null; today: string }) {
+  const { t } = useT();
+  return (
+    <div className="flex flex-col gap-2">
+      <ActionForm action={setFollowUpAction} submitLabel={t("pr.followUpSave")} tone="quiet" inline>
+        {(v) => (
+          <>
+            <Hidden name="id" value={id} />
+            <Field name="followUpOn" label={t("pr.followUpOn")} type="date" min={today} required defaultValue={v.followUpOn ?? current ?? ""} />
+          </>
+        )}
+      </ActionForm>
+      {current ? (
+        <ActionForm action={setFollowUpAction} submitLabel={t("pr.followUpClear")} tone="quiet" compact>
+          {() => <><Hidden name="id" value={id} /><Hidden name="clear" value="on" /></>}
+        </ActionForm>
+      ) : null}
+    </div>
   );
 }
