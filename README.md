@@ -74,7 +74,7 @@ the family ticks "অন্য পরিবারকে ছবি দেখা�
 পরিবার কী দেখবে"): `/api/photos/<id>` sends one to the ghotok's side, to the family who wrote that biodata, and to
 other signed-in families only for a listed biodata whose photos are switched on; a 404 to everyone else. The shared
 link never shows photos. The files live in a private Supabase Storage bucket
-(`lib/storage.ts`, made on first use) when `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` are set; in development
+(`lib/storage.ts`, made on first use) when `SUPABASE_URL` and `SUPABASE_SECRET_KEY` are set; in development
 without them, in `./.data/photos`; in production without them the picker is not shown. Deleting a biodata deletes its
 files.
 
@@ -232,7 +232,7 @@ worker is not registered by the dev server. Installing needs HTTPS, except on `l
    connection string from Project → Connect.
 2. Copy `.env.example` to `.env.local` and fill in `DATABASE_URL` (pooler), `DIRECT_URL` (direct) and
    `BETTER_AUTH_SECRET` (`openssl rand -base64 32`). For photos, also `SUPABASE_URL` and
-   `SUPABASE_SERVICE_ROLE_KEY` (Project Settings → API); the free plan's 1 GB holds about 2,000 people's five
+   `SUPABASE_SECRET_KEY` (`sb_secret_…`, Project Settings → API Keys; an older project's `SUPABASE_SERVICE_ROLE_KEY` works too); the free plan's 1 GB holds about 2,000 people's five
    photos, at no cost.
 3. Migrate and run:
 
@@ -245,17 +245,38 @@ npm run dev
    password and the site's name; that account owns the site. Do this straight after deploying, before the address is
    shared. Should the ghotok ever lose access, put their new number in `ADMIN_PHONES` and have them register with it.
 
+### Local, test and live
+
+Three environments, one file each (all git-ignored):
+
+| File | What | Used by |
+|---|---|---|
+| `.env.local` | this computer: the embedded database, photos on disk, demo data | `npm run dev` |
+| `.env.test` | the test Supabase project | `npm run dev:test`, `npm run db:migrate:test` |
+| `.env.live` | the real site's own Supabase project; the hosting's Production variables hold the same | `npm run db:migrate:live` |
+
+`scripts/env.mjs` runs a command with `.env.test` or `.env.live` laid over `.env.local`. For live it asks you to type
+`live` first, and refuses when a database or Supabase address is the same as the test one.
+
+Deploying updates the database by itself: `npm run build` runs `scripts/migrate.mjs` before `next build`, which applies
+any new migration to `DIRECT_URL` (and skips already applied ones; without `DIRECT_URL` it does nothing). If a
+migration fails, the build stops and the site keeps running the previous version. On Vercel give Production the live
+values and Preview the test ones, so a preview never touches the real database. `npm run db:migrate:live` does the
+same by hand, from this computer.
+
 ## Scripts
 
 | Script | Purpose |
 |---|---|
 | `npm run dev` | Development server |
-| `npm run build` / `npm start` | Production build and server |
+| `npm run build` / `npm start` | Production build (applies new migrations to `DIRECT_URL` first) and server |
 | `npm run typecheck` | Generate route types and run the TypeScript compiler |
 | `npm run lint` | ESLint |
 | `npm test` | Service and manifest tests on an in-process Postgres (PGlite) with the real migrations; no database needed |
 | `npm run db:generate` | Write a new SQL migration from `lib/db/schema.ts` into `drizzle/` |
-| `npm run db:migrate` | Apply migrations to `DIRECT_URL` |
+| `npm run db:migrate` | Apply migrations to `DIRECT_URL` (drizzle-kit, from `.env.local`) |
+| `npm run db:migrate:test` / `db:migrate:live` | Apply migrations to the test or live database (`.env.test` / `.env.live`; live asks first) |
+| `npm run dev:test` | Development server on the test Supabase project instead of the embedded database |
 | `npm run screenshots` | Capture every screen (phone and web) into `docs/screens/` using the installed Edge or Chrome (dev server must be running) |
 | `npm run icons` | Redraw the home-screen icons in `public/` (only after changing the mark or brand colour) |
 | `npm run vapid` | Print a key pair for push (`VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`) to put in the production environment |

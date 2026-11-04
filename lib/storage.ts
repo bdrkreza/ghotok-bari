@@ -1,4 +1,4 @@
-// Where the photos' files live. With SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY: a private bucket in Supabase Storage
+// Where the photos' files live. With SUPABASE_URL and SUPABASE_SECRET_KEY: a private bucket in Supabase Storage
 // (free up to 1 GB), talked to over its REST API with the service key, so nothing else is installed and the bucket
 // is never public; the app hands files out through /api/photos/<id> after checking who is asking. Without them, in
 // development only: a folder on disk (./.data/photos). In production without them photos are off.
@@ -80,8 +80,10 @@ let store: PhotoStore | null | undefined;
 /** The photo store this deployment uses, or null when photos are off (production without Supabase Storage). */
 export function getStore(): PhotoStore | null {
   if (store !== undefined) return store;
-  const { SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, SUPABASE_BUCKET, ALTA_PHOTO_DIR } = process.env;
-  if (SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY) store = supabaseStore(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, SUPABASE_BUCKET || "photos");
+  const { SUPABASE_URL, SUPABASE_SECRET_KEY, SUPABASE_SERVICE_ROLE_KEY, SUPABASE_BUCKET, ALTA_PHOTO_DIR } = process.env;
+  // the secret key (sb_secret_…) as Supabase names it now, or the legacy service_role JWT; both pass as apikey and Bearer
+  const key = SUPABASE_SECRET_KEY || SUPABASE_SERVICE_ROLE_KEY;
+  if (SUPABASE_URL && key) store = supabaseStore(SUPABASE_URL, key, SUPABASE_BUCKET || "photos");
   else if (process.env.NODE_ENV !== "production") store = diskStore(ALTA_PHOTO_DIR || "./.data/photos");
   else store = null;
   return store;
