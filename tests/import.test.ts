@@ -253,8 +253,38 @@ describe("reading a biodata file", () => {
   it("takes a model's JSON field by field: nulls and blanks out, numbers as strings, a wrong enum dropped alone", () => {
     const f = fieldsFromJson({ name: " রহিম ", birthYear: 1996, heightCm: null, religion: "Muslim", bloodGroup: "O+", district: "", extra: "ignored" });
     expect(f).toEqual({ name: "রহিম", birthYear: "1996", bloodGroup: "O+" });
+    // a yes as a boolean, a no dropped; the education parts come through like any other field
+    expect(fieldsFromJson({ name: "রহিম", educationStudying: true, educationLevel: "master", sscGroup: "arts" })).toEqual({ name: "রহিম", educationStudying: "true", educationLevel: "master" });
+    expect(fieldsFromJson({ name: "রহিম", educationStudying: false })).toEqual({ name: "রহিম" });
     expect(() => fieldsFromJson({ name: null })).toThrow();
     expect(() => fieldsFromJson("not an object")).toThrow();
+  });
+
+  it("splits the education into its level, SSC and HSC years, institution, year, result and subject", () => {
+    const word = parseBiodataText([
+      "Personal/Bride Details of", "Miskatul Zannat", "Education:", "• Masters", "Dhaka University (Year-2021)", "• Honurs", "Dhaka University (Year-2015)",
+      "• Higher Secondary School Certificate (HSC)", "Lohagara Adarsha College, Narail (Year-2013)", "• Secondary School Certificate (SSC)",
+      "Lohagara Pilot High School, Narail (Year-2011)", "Family:", "Younger Sister's : Rowjatul Jannat (Unmarried)", "Masters Continuing from Home Economics College.",
+    ].join("\n"));
+    expect(word).toMatchObject({ educationLevel: "master", educationInstitution: "Dhaka University", educationYear: "2021", hscYear: "2013", sscYear: "2011" });
+    expect(word.educationStudying).toBeUndefined(); // the sister's "Masters Continuing" is in the family part, not hers
+
+    const cv = parseBiodataText([
+      "EDUCATION", "Bachelor of Science in Textile", "Engineering", "INSTITUTION", "Shyamoli textile engineering", "college constitution of University",
+      "of Dhaka (2020-2024)", "CGPA 3.71", "HSC", "College: Bogura Cantonment", "Public School and College", "Year: 2019", "GPA-5.00",
+      "SSC", "School: Bogura Cantonment", "Public School and College", "Year: 2017", "GPA-5.00", "MST. JANNATL FERDOUSHI", "ABOUT ME", "Assalamualaikum,",
+    ].join("\n"));
+    expect(cv).toMatchObject({
+      name: "Mst. Jannatl Ferdoushi", kind: "patri", // the heading in capitals, and the title before it
+      education: "অনার্স (Textile Engineering)", educationLevel: "bachelor", educationSubject: "Textile Engineering",
+      educationInstitution: "Shyamoli textile engineering college constitution of University of Dhaka", educationYear: "2024", educationResult: "CGPA 3.71",
+      hscYear: "2019", sscYear: "2017",
+    });
+
+    const madrasa = parseBiodataText("শিক্ষাগত যোগ্যতা:\nদাখিল (বিজ্ঞান) ২০১৫\nআলিম ২০১৭\nফাজিল অধ্যয়নরত, দারুন্নাজাত মাদ্রাসা");
+    expect(madrasa).toMatchObject({ educationLevel: "fazil", sscYear: "2015", sscGroup: "science", hscYear: "2017", educationStudying: "true", educationInstitution: "দারুন্নাজাত মাদ্রাসা" });
+    // a heading in capitals without a title is not taken for a name
+    expect(parseBiodataText("BASIC INFO\nReligion: Muslim").name).toBeUndefined();
   });
 
   it("leaves out what it cannot read instead of guessing", () => {

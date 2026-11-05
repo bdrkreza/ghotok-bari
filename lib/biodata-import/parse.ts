@@ -12,7 +12,9 @@ export type ImportField =
   | "education" | "profession" | "monthlyIncome" | "village" | "upazila" | "district" | "guardianName" | "guardianPhone"
   | "familyDetails" | "expectations"
   | "complexion" | "weightKg" | "bloodGroup" | "educationMedium" | "workplace" | "presentAddress" | "brothers" | "sisters"
-  | "expectAgeMin" | "expectAgeMax";
+  | "expectAgeMin" | "expectAgeMax"
+  | "educationLevel" | "sscYear" | "sscGroup" | "hscYear" | "hscGroup" | "educationSubject" | "educationInstitution" | "educationYear"
+  | "educationStudying" | "educationResult";
 
 export type Imported = Partial<Record<ImportField, string>>;
 
@@ -122,9 +124,107 @@ const DEGREES: [RegExp, string][] = [
 
 /** "Masters, Dhaka University (Year-2021)" -> "মাস্টার্স, Dhaka University (2021)"; Bangla text is kept as written. */
 function tidyEducation(lines: string[]): string {
-  const first = lines.slice(0, 2).join(", ").replace(/\s+/g, " ").replace(/\(?\s*year\s*[-:]?\s*(\d{4})\s*\)?/i, "($1)").trim();
+  // a degree name that wrapped onto a second short line ("Bachelor of Science in Textile" / "Engineering") is one line
+  const glue = lines.length > 1 && !/[,.;:)]$/.test(lines[0]) && !/\d/.test(lines[1]) && lines[1].split(/\s+/).length <= 2 && !INSTITUTION.test(lines[1]);
+  const head = glue ? [`${lines[0]} ${lines[1]}`, ...lines.slice(2)] : lines;
+  // "Bachelor of Science in Textile Engineering" -> "অনার্স (Textile Engineering)"
+  const named = head[0].match(/^(bachelor|master)'?s? of [a-z ]+? in (.+)$/i);
+  if (named) return `${named[1].toLowerCase() === "master" ? "মাস্টার্স" : "অনার্স"} (${named[2].trim()})`;
+  const first = head.slice(0, 2).join(", ").replace(/\s+/g, " ").replace(/\(?\s*year\s*[-:]?\s*(\d{4})\s*\)?/i, "($1)").trim();
   for (const [re, bn] of DEGREES) if (re.test(first)) return first.replace(re, bn).replace(/\s+,/g, ",");
   return first;
+}
+
+/* ---------- education, in parts ---------- */
+
+type Level = "phd" | "master" | "kamil" | "bachelor" | "fazil" | "diploma" | "hsc" | "alim" | "ssc" | "dakhil" | "hafez";
+
+/** Each level's words, highest first; "Higher Secondary School Certificate" is caught as HSC before SSC can claim it. */
+const LEVELS: [Level, RegExp, number][] = [
+  ["phd", /\bph\.?\s?d\b|doctorate|পিএইচডি/i, 5],
+  ["kamil", /\bkamil\b|কামিল/i, 4],
+  ["master", /\bmasters?\b|\bm\.?\s?(?:sc|a|com|ss|ba)\b|\bmba\b|\bm\.?phil\b|স্নাতকোত্তর|মাস্টার্স/i, 4],
+  ["fazil", /\bfazil\b|ফাজিল/i, 3],
+  ["bachelor", /\bbachelor|\bhon(?:ou)?u?rs\b|\bb\.?\s?(?:sc|a|com|ss|ba)\b|\bbba\b|\bmbbs\b|স্নাতক|অনার্স/i, 3],
+  ["diploma", /\bdiploma\b|ডিপ্লোমা/i, 2],
+  ["alim", /\balim\b|আলিম/i, 2],
+  ["hsc", /\bh\.?\s?s\.?\s?c\b|higher secondary|এইচএসসি|উচ্চ মাধ্যমিক/i, 2],
+  ["dakhil", /\bdakhil\b|দাখিল/i, 1],
+  ["ssc", /\bs\.?\s?s\.?\s?c\b|secondary school certificate|এসএসসি|মাধ্যমিক/i, 1],
+  ["hafez", /hafe[zj]|\bhifz\b|হাফেজ|হিফজ/i, 0],
+];
+/** A line that names a school, college, university or madrasa. */
+const INSTITUTION = /universit|college|school|madras|institute|academy|polytechnic|বিশ্ববিদ্যালয়|কলেজ|স্কুল|বিদ্যালয়|মাদ্রাসা|ইনস্টিটিউট/i;
+const GROUP: [string, RegExp][] = [
+  ["science", /science|বিজ্ঞান/i], ["humanities", /humanities|\barts?\b|মানবিক/i], ["commerce", /commerce|business|ব্যবসায়/i], ["vocational", /vocational|কারিগরি/i],
+];
+const RESULT = /\b(c?gpa)\s*[-:.]?\s*(\d(?:\.\d{1,2})?)|(first|second|third|1st|2nd|3rd)\s+(?:division|class)|(প্রথম|দ্বিতীয়|তৃতীয়) (?:বিভাগ|শ্রেণি)/i;
+const YEARS = /(?<!\d)(19[5-9]\d|20\d\d)(?!\d)/g;
+
+/** A heading in capitals that is a name: a title, then one to four words. */
+const CAPS_NAME = /^(?:MST|MOST|MD|MRS|MISS|MS)\.?\s+[A-Z][A-Z.]+(?:\s+[A-Z][A-Z.]+){0,3}$/;
+
+const levelOf = (line: string): Level | null => (line.length > 90 ? null : LEVELS.find(([, re]) => re.test(line))?.[0] ?? null);
+const rankOf = (level: Level) => LEVELS.find(([l]) => l === level)![2];
+
+/**
+ * The degrees in an education part, one entry per degree line with the lines under it, and from them: the highest
+ * level, its subject, institution, year and result, whether it is still going on, and the SSC / HSC year and stream.
+ * Only the lines of the education part are read, so a sister's "Masters continuing" in the family part never counts.
+ */
+export function educationParts(lines: string[]): Imported {
+  const entries: { level: Level; lines: string[] }[] = [];
+  for (const line of lines) {
+    const level = levelOf(line);
+    if (level) entries.push({ level, lines: [line] });
+    else entries.at(-1)?.lines.push(line);
+  }
+  if (!entries.length) return {};
+  const out: Imported = {};
+  const yearIn = (ls: string[]) => [...ls.join(" ").matchAll(YEARS)].map((m) => Number(m[1])).pop();
+  const groupIn = (ls: string[]) => GROUP.find(([, re]) => re.test(ls.join(" ")))?.[0];
+
+  for (const e of entries) {
+    if (e.level === "ssc" || e.level === "dakhil") {
+      const y = yearIn(e.lines); if (y && !out.sscYear) out.sscYear = String(y);
+      const g = groupIn(e.lines); if (g && !out.sscGroup) out.sscGroup = g;
+    }
+    if (e.level === "hsc" || e.level === "alim") {
+      const y = yearIn(e.lines); if (y && !out.hscYear) out.hscYear = String(y);
+      const g = groupIn(e.lines); if (g && !out.hscGroup) out.hscGroup = g;
+    }
+  }
+
+  // the highest degree; the first one written wins a tie
+  const top = entries.reduce((best, e) => (rankOf(e.level) > rankOf(best.level) ? e : best));
+  out.educationLevel = top.level;
+  const [degree, ...rest] = top.lines;
+  // a wrapped degree name ("Engineering") continues the first line; a header word alone ("INSTITUTION") is skipped
+  const body = [...rest];
+  let degreeName = degree;
+  while (body.length && !/\d/.test(body[0]) && body[0].split(/\s+/).length <= 2 && !INSTITUTION.test(body[0])) {
+    const word = body.shift()!;
+    if (!/^[A-Z\s]+$/.test(word) || word.length < 4) degreeName += ` ${word}`;
+  }
+  const subject = degreeName.match(/\bin\s+(.+)$/i)?.[1] ?? degreeName.match(/\(([^)]+)\)/)?.[1];
+  if (subject && !levelOf(subject) && !/\d/.test(subject) && subject.length <= 120) out.educationSubject = subject.trim();
+
+  const year = yearIn(top.lines);
+  if (year && top.level !== "ssc" && top.level !== "dakhil" && top.level !== "hsc" && top.level !== "alim") out.educationYear = String(year);
+
+  const result = top.lines.join(" ").match(RESULT);
+  if (result) out.educationResult = result[1] ? `${result[1].toUpperCase()} ${result[2]}` : result[0];
+  if (/continu|running|studying|pursuing|ongoing|চলমান|অধ্যয়নরত|পড়ছে|পড়ছেন/i.test(top.lines.join(" "))) out.educationStudying = "true";
+
+  // the institution: the lines that name one, or that follow a "College:" label, without years and results
+  const place = [degree.includes(",") ? degree.split(",").slice(1).join(",") : "", ...body]
+    .map((l) => l.replace(/^(?:college|school|institution|institute|university|madrasa)\s*[:\-]\s*/i, "")
+      .replace(/\(?\s*(?:year)?\s*[-:.]?\s*(?:19|20)\d\d(?:\s*[-–]\s*(?:(?:19|20)\d\d|till|present|running))?\s*\)?/gi, "")
+      .replace(RESULT, "").replace(/\s+/g, " ").trim().replace(/[,;.\-]+$/, ""))
+    .filter((l) => l && !/^[A-Z\s]+$/.test(l) && !/^(?:year|c?gpa|result)\b/i.test(l));
+  const institution = place.join(" ").replace(/\s+/g, " ").trim();
+  if (institution && INSTITUTION.test(institution) && institution.length <= 160) out.educationInstitution = institution;
+  return out;
 }
 
 /* ---------- labels and sections ---------- */
@@ -306,7 +406,10 @@ export function parseBiodataText(raw: string): Imported {
     const r = religionOf(line); if (r && line.length < 24) { put("religion", r); continue; }
   }
 
-  if (sections.education?.length) put("education", tidyEducation(sections.education));
+  if (sections.education?.length) {
+    put("education", tidyEducation(sections.education));
+    for (const [k, v] of Object.entries(educationParts(sections.education))) put(k as ImportField, v);
+  }
   if (sections.profession?.length && !out.profession) put("profession", sections.profession[0].replace(/\(\s*year.*?\)|\(\s*\d{4}.*?\)/i, "").trim());
   if (sections.expectations?.length) put("expectations", sections.expectations.join(" "));
   const family = [...(sections.familyDetails ?? []), ...extras];
@@ -345,9 +448,18 @@ export function parseBiodataText(raw: string): Imported {
     const phone = p && normalizePhone(p[0].replace(/[^\d+]/g, ""));
     if (phone) out.guardianPhone = phone;
   }
+  // a designed CV puts the name as a heading in capitals, with no "Name:" before it: "MST. JANNATL FERDOUSHI". Only a
+  // heading that starts with a name's title (Mst., Md., Mrs. ...) counts, so "BASIC INFO" and the like never do.
+  if (!out.name) {
+    const heading = lines.find((l) => CAPS_NAME.test(l) && !isHeader(l));
+    if (heading) put("name", heading.toLowerCase().replace(/(^|[\s.])([a-z])/g, (_, a: string, b: string) => a + b.toUpperCase()));
+  }
   if (!out.kind) {
     if (/\b(bride|daughter)\b|পাত্রী|কন্যা/i.test(text)) out.kind = "patri";
     else if (/\b(groom|son)\b|পাত্র(?!ী)/i.test(text)) out.kind = "patro";
+    // the title before the name: Mosammat / Mrs / Miss for a woman, Md. / Mohammad for a man
+    else if (/^(?:mst|most|mosammat|mrs|miss|ms)\b|^মোসাঃ|^মোছাঃ|^মোসাম্মৎ/i.test(out.name ?? "")) out.kind = "patri";
+    else if (/^(?:md|mohammad|mohammed|muhammad)\b|^মোঃ|^মো\./i.test(out.name ?? "")) out.kind = "patro";
   }
   return out;
 }

@@ -37,15 +37,26 @@ const Fields = z.object({
   heightCm: z.string().nullable().describe("whole centimetres, e.g. 5'3\" -> 160"),
   religion: z.enum(["islam", "hindu", "christian", "buddhist", "other"]).nullable(),
   maritalStatus: z.enum(["obibahito", "talakprapto", "bidhoba"]).nullable().describe("obibahito = never married, talakprapto = divorced, bidhoba = widowed"),
-  education: z.string().nullable().describe("the highest degree and institution, in Bangla, e.g. মাস্টার্স, ঢাকা বিশ্ববিদ্যালয় (২০২১)"),
+  education: z.string().nullable().describe("one short line in Bangla: the highest degree with its subject, e.g. স্নাতক (টেক্সটাইল ইঞ্জিনিয়ারিং); the institution, year and result go in their own fields"),
+  educationLevel: z.enum(["ssc", "hsc", "diploma", "bachelor", "master", "phd", "dakhil", "alim", "fazil", "kamil", "hafez", "other"]).nullable()
+    .describe("the highest level reached: honours or any bachelor's degree is bachelor, masters / MBA / M.Sc is master; madrasa levels are dakhil, alim, fazil, kamil"),
+  educationSubject: z.string().nullable().describe("the subject or department of the highest degree, as written, e.g. Textile Engineering"),
+  educationInstitution: z.string().nullable().describe("the university, college or madrasa of the highest degree, its name as written"),
+  educationYear: z.string().nullable().describe("four digits: the year the highest degree was finished, or will be when still studying (the end of a range like 2020-2024)"),
+  educationStudying: z.enum(["true"]).nullable().describe("\"true\" only when the highest degree is still going on, otherwise null"),
+  educationResult: z.string().nullable().describe("the result of the highest degree as written, e.g. CGPA 3.71, First division"),
+  sscYear: z.string().nullable().describe("four digits: the year SSC or Dakhil was passed"),
+  sscGroup: z.enum(["science", "humanities", "commerce", "vocational", "other"]).nullable().describe("the SSC / Dakhil group; arts is humanities, business is commerce"),
+  hscYear: z.string().nullable().describe("four digits: the year HSC or Alim was passed"),
+  hscGroup: z.enum(["science", "humanities", "commerce", "vocational", "other"]).nullable().describe("the HSC / Alim group; arts is humanities, business is commerce"),
   profession: z.string().nullable().describe("in Bangla, e.g. প্রাথমিক বিদ্যালয়ের শিক্ষক"),
   monthlyIncome: z.string().nullable().describe("taka per month, digits only"),
-  village: z.string().nullable().describe("village or area, Bangla spelling"),
+  village: z.string().nullable().describe("the village, para or area name alone, Bangla spelling; never a house number, ward, road or post office"),
   upazila: z.string().nullable().describe("upazila / thana, Bangla spelling"),
   district: z.string().nullable().describe("one of Bangladesh's 64 districts, Bangla spelling, e.g. নড়াইল"),
   guardianName: z.string().nullable().describe("whoever a ghotok should call, with the relation in brackets, e.g. মো. মিজানুর রহমান (বাবা)"),
   guardianPhone: z.string().nullable().describe("11 digits, 01XXXXXXXXX"),
-  familyDetails: z.string().nullable().describe("parents' occupations, siblings, home, assets; Bangla, short lines"),
+  familyDetails: z.string().nullable().describe("one short Bangla line per person: parents' occupations, then each brother and sister with what they do, then home and assets. A brother's wife or a sister's husband is an in-law, not a sibling; any count you write must agree with brothers and sisters"),
   expectations: z.string().nullable().describe("what the family wants in a match, in Bangla"),
   complexion: z.enum(["forsha", "ujjol_shyamla", "shyamla", "kalo"]).nullable().describe("forsha = fair, ujjol_shyamla = light brown / bright, shyamla = brown / wheatish, kalo = dark"),
   weightKg: z.string().nullable().describe("whole kilograms, digits only"),
@@ -53,14 +64,14 @@ const Fields = z.object({
   educationMedium: z.enum(["general", "madrasa", "english"]).nullable().describe("madrasa for dakhil / alim / fazil / kamil, english for English medium or O/A levels, general when the document says so or the degrees are SSC/HSC/university"),
   workplace: z.string().nullable().describe("where they work, or one line about the work, in Bangla"),
   presentAddress: z.string().nullable().describe("the town or country they live in now, only when it differs from the permanent address; Bangla, short"),
-  brothers: z.string().nullable().describe("number of brothers, digits only"),
-  sisters: z.string().nullable().describe("number of sisters, digits only"),
+  brothers: z.string().nullable().describe("how many brothers, elder and younger together, not counting the person or any in-law; digits only"),
+  sisters: z.string().nullable().describe("how many sisters, elder and younger together, not counting the person or any in-law (a sister-in-law is not a sister); digits only"),
   expectAgeMin: z.string().nullable().describe("the lowest age wanted in a match, digits only"),
   expectAgeMax: z.string().nullable().describe("the highest age wanted in a match, digits only"),
 });
 
 const SYSTEM = `You read a Bangladeshi marriage biodata (in Bangla, English or both; typed, or a photo of a printed or handwritten sheet) and fill a matchmaker's form.
-Rules: copy only what the document says; leave a field null when it is absent or unreadable, never guess. Write free-text fields in Bangla (translate English; keep names in the script they are written in, Bangla preferred when both appear). Dates become the birth year only. Heights in feet and inches become centimetres. Addresses: prefer the permanent address; split it into village/area, upazila (thana) and district, with the district as one of the 64 districts in Bangla spelling. Blood group, weight, complexion, the medium of education, the workplace, the number of brothers and sisters and the age range hoped for each have a field of their own; fill presentAddress only when the person lives somewhere other than the permanent address. Contact numbers belong to the guardian. Do not invent a guardian or a phone number.`;
+Rules: copy only what the document says; leave a field null when it is absent or unreadable, never guess. Write free-text fields in Bangla (translate English; keep names in the script they are written in, Bangla preferred when both appear). Dates become the birth year only. Heights in feet and inches become centimetres. Addresses: prefer the permanent address; split it into village/area, upazila (thana) and district, with the district as one of the 64 districts in Bangla spelling. Blood group, weight, complexion, the medium of education, the level and parts of the education (subject, institution, year, result, and the SSC and HSC year and group), the workplace, the number of brothers and sisters and the age range hoped for each have a field of their own; fill presentAddress only when the person lives somewhere other than the permanent address. Contact numbers belong to the guardian. Do not invent a guardian or a phone number.`;
 
 type Input =
   | { type: "image"; mediaType: "image/jpeg" | "image/png" | "image/webp" | "image/gif"; data: Buffer }
@@ -110,22 +121,28 @@ async function withGemini(input: Input): Promise<Imported> {
       : [{ inline_data: { mime_type: input.type === "pdf" ? "application/pdf" : input.mediaType, data: input.data.toString("base64") } }];
   parts.push({ text: `Fill the form fields from this biodata. Answer with one JSON object and nothing else, with exactly these keys (every key present, null where the document says nothing):\n${keyList()}` });
 
-  let res: Response;
-  try {
-    res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model()}:generateContent`, {
-      method: "POST",
-      headers: { "content-type": "application/json", "x-goog-api-key": process.env.GEMINI_API_KEY ?? "" },
-      body: JSON.stringify({
-        system_instruction: { parts: [{ text: SYSTEM }] },
-        contents: [{ role: "user", parts }],
-        generationConfig: { response_mime_type: "application/json", temperature: 0 },
-      }),
-      signal: AbortSignal.timeout(AI_TIMEOUT_MS),
-    });
-  } catch (e) {
-    // no network, or the model took too long: the browser reads the file itself
-    throw new AppError("ai_busy", `gemini: ${e instanceof Error ? e.name : "fetch failed"}`);
+  let res: Response | undefined;
+  for (let attempt = 0; attempt < 2; attempt++) {
+    if (attempt) await new Promise((r) => setTimeout(r, 2000));
+    try {
+      res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model()}:generateContent`, {
+        method: "POST",
+        headers: { "content-type": "application/json", "x-goog-api-key": process.env.GEMINI_API_KEY ?? "" },
+        body: JSON.stringify({
+          system_instruction: { parts: [{ text: SYSTEM }] },
+          contents: [{ role: "user", parts }],
+          generationConfig: { response_mime_type: "application/json", temperature: 0 },
+        }),
+        signal: AbortSignal.timeout(AI_TIMEOUT_MS),
+      });
+    } catch (e) {
+      // no network, or the model took too long: the browser reads the file itself
+      throw new AppError("ai_busy", `gemini: ${e instanceof Error ? e.name : "fetch failed"}`);
+    }
+    // busy right now: one more try after a short wait, then the browser takes over
+    if (res.status !== 503) break;
   }
+  if (!res) throw new AppError("ai_busy", "gemini: no answer");
   // the free tier's quota: a handful a minute; the browser falls back to reading the file itself
   if (res.status === 429 || res.status === 503) throw new AppError("ai_busy", `gemini ${res.status}`);
   if (!res.ok) throw new AppError("import_failed", `gemini ${res.status} ${(await res.text()).slice(0, 300)}`);
@@ -146,6 +163,7 @@ export function fieldsFromJson(raw: unknown): Imported {
   for (const [key, schema] of Object.entries(Fields.shape)) {
     let value = (raw as Record<string, unknown>)[key];
     if (typeof value === "number") value = String(value);
+    if (typeof value === "boolean") value = value ? "true" : null;
     const parsed = schema.safeParse(value);
     if (parsed.success && parsed.data !== null && String(parsed.data).trim()) out[key as keyof Imported] = String(parsed.data).trim();
   }
