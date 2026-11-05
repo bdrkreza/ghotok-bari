@@ -18,6 +18,8 @@ import { unreadNotices } from "@/lib/services/notices";
 import { publicSite } from "@/lib/services/site";
 import { ageFromYear } from "@/lib/time";
 
+const COMPARE_SELECT = "min-h-12 w-full rounded-2xl border border-line bg-surface px-3 text-base text-ink outline-none focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/40";
+
 export async function generateMetadata(): Promise<Metadata> {
   const { t } = await getT();
   return { title: t("me.title") };
@@ -194,6 +196,22 @@ export default async function MePage() {
               <ul className="grid gap-3 sm:grid-cols-2">
                 {favorites.map((b) => <li key={b.id} className="min-w-0"><FamilyBiodataCard b={b} t={T} /></li>)}
               </ul>
+              {favorites.length > 1 ? (
+                <form action="/compare" className="flex flex-col gap-3 rounded-2xl border border-line bg-surface p-4">
+                  <p className="font-bold">{t("cmp.pick")}</p>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    {(["a", "b"] as const).map((name, i) => (
+                      <label key={name} className="flex flex-col gap-1 text-sm text-muted">
+                        {t(i ? "cmp.second" : "cmp.first")}
+                        <select name={name} defaultValue={favorites[i].id} className={COMPARE_SELECT}>
+                          {favorites.map((f) => <option key={f.id} value={f.id}>{T.biodataNo(f.kind, f.code)} · {T.years(ageFromYear(f.birthYear))} · {f.district}</option>)}
+                        </select>
+                      </label>
+                    ))}
+                  </div>
+                  <button type="submit" className={primaryButton}>{t("cmp.go")}</button>
+                </form>
+              ) : null}
             </section>
           ) : null}
 
