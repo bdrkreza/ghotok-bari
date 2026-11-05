@@ -1,5 +1,5 @@
-import { describe, expect, it } from "vitest";
-import { fieldsFromJson } from "@/lib/biodata-import/ai";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { extractWithAi, fieldsFromJson } from "@/lib/biodata-import/ai";
 import { districtOf, heightToCm, parseBiodataText, yearOf } from "@/lib/biodata-import/parse";
 
 // Four real shapes of biodata families hand to a ghotok, typed out the way Word, a PDF or OCR would give them.
@@ -256,6 +256,9 @@ describe("reading a biodata file", () => {
     // a yes as a boolean, a no dropped; the education parts come through like any other field
     expect(fieldsFromJson({ name: "রহিম", educationStudying: true, educationLevel: "master", sscGroup: "arts" })).toEqual({ name: "রহিম", educationStudying: "true", educationLevel: "master" });
     expect(fieldsFromJson({ name: "রহিম", educationStudying: false })).toEqual({ name: "রহিম" });
+    // a name in capitals off a heading reads as a name; mixed case and Bangla stay as written
+    expect(fieldsFromJson({ name: "MST. JANNATL FERDOUSHI", fatherName: "Sgt. Md Humayun Kabir", motherName: "নাজমা রহমান", educationInstitution: "BUET" }))
+      .toEqual({ name: "Mst. Jannatl Ferdoushi", fatherName: "Sgt. Md Humayun Kabir", motherName: "নাজমা রহমান", educationInstitution: "BUET" });
     expect(() => fieldsFromJson({ name: null })).toThrow();
     expect(() => fieldsFromJson("not an object")).toThrow();
   });
@@ -291,5 +294,35 @@ describe("reading a biodata file", () => {
     expect(parseBiodataText("")).toEqual({});
     const p = parseBiodataText("Name: করিম\nHeight: tall\nDistrict: Mars");
     expect(p).toEqual({ name: "করিম" });
+  });
+});
+
+describe("the Gemini call", () => {
+  afterEach(() => { vi.unstubAllGlobals(); vi.unstubAllEnvs(); });
+  const answer = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status });
+  const said = (fields: Record<string, unknown>) => answer({ candidates: [{ content: { parts: [{ text: JSON.stringify(fields) }] } }] });
+
+  it("asks the default model, and the current Flash-Lite alias when Google has retired that name", async () => {
+    vi.stubEnv("ANTHROPIC_API_KEY", "");
+    vi.stubEnv("GEMINI_API_KEY", "test-key");
+    vi.stubEnv("BIODATA_AI_MODEL", "");
+    const urls: string[] = [];
+    vi.stubGlobal("fetch", vi.fn(async (url: string) => {
+      urls.push(url);
+      return urls.length === 1 ? answer({ error: "gone" }, 404) : said({ name: "Rafiq", educationLevel: "master" });
+    }));
+    expect(await extractWithAi({ type: "text", text: "Name: Rafiq" })).toEqual({ name: "Rafiq", educationLevel: "master" });
+    expect(urls.map((u) => u.match(/models\/([^:]+):/)?.[1])).toEqual(["gemini-3.5-flash-lite", "gemini-flash-lite-latest"]);
+  });
+
+  it("tries a busy model once more, then hands over to the browser", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true, advanceTimeDelta: 500 });
+    vi.stubEnv("ANTHROPIC_API_KEY", "");
+    vi.stubEnv("GEMINI_API_KEY", "test-key");
+    const calls = vi.fn(async () => answer({}, 503));
+    vi.stubGlobal("fetch", calls);
+    await expect(extractWithAi({ type: "text", text: "Name: Rafiq" })).rejects.toMatchObject({ code: "ai_busy" });
+    expect(calls).toHaveBeenCalledTimes(2);
+    vi.useRealTimers();
   });
 });

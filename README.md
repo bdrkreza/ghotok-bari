@@ -92,8 +92,9 @@ paths, chosen by which keys are set:
   column by column. Then `lib/biodata-import/parse.ts` maps labels and sections to fields by rules: "Name"/"নাম",
   "Date of Birth" to the year, 5'3" to centimetres, the permanent address split into village / upazila / district
   with the district's English spelling turned into Bangla, parents, siblings, "About me". Nothing leaves the phone.
-- **Free AI, with `GEMINI_API_KEY`**: the file goes to Google's Gemini (`gemini-flash-lite-latest` by default:
-  it answers in a couple of seconds, where the bigger Flash models think for a minute) through a server action,
+- **Free AI, with `GEMINI_API_KEY`**: the file goes to Google's Gemini (`gemini-3.5-flash-lite` by default: on
+  real biodata photos it answered in 2-8 seconds and read the education in parts, where `gemini-flash-lite-latest`
+  was often busy and the bigger Flash models ran past 45 seconds; a retired name falls back to that alias) through a server action,
   which returns the same fields as JSON; each field is checked against the schema and bad ones dropped. A key
   comes free from Google AI Studio without a card; the free tier's quota is a handful of requests a minute and a
   few hundred a day. When the quota is hit, the model takes over 45 seconds, or anything else fails, the browser
