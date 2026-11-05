@@ -550,6 +550,10 @@ input, select, textarea {
     background: #fff;
     padding: 12mm;
   }
+  /* a page is as tall as its content: a full-screen minimum plus the body's padding is what made a blank second sheet */
+  .min-h-dvh {
+    min-height: 0;
+  }
   /* a card is never cut across two pages, and carries less air than on a screen */
   section, aside {
     break-inside: avoid;
