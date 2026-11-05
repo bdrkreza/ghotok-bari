@@ -34,7 +34,7 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
           <Bell {...bell} tone="panel" className="shrink-0" />
         </div>
       </header>
-      <main className="mx-auto flex w-full max-w-md flex-col gap-5 px-4 pt-5 pb-[calc(5.5rem+env(safe-area-inset-bottom))] lg:max-w-6xl lg:gap-6 lg:px-8 lg:py-8">
+      <main className="mx-auto flex w-full max-w-md flex-col gap-5 px-4 pt-5 pb-[calc(5.5rem+env(safe-area-inset-bottom))] lg:max-w-6xl lg:gap-6 lg:px-8 lg:py-8 print:max-w-none print:gap-0 print:p-0">
         {children}
       </main>
       <Nav role={user.role} badges={badges} />

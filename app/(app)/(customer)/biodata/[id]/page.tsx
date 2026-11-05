@@ -54,9 +54,11 @@ export default async function BiodataPage(props: PageProps<"/biodata/[id]">) {
           </div>
           {site ? (
             <>
-              <p className="border-t border-line pt-4 font-display text-lg font-bold">{t("bv.likeTitle")}</p>
-              <ContactButtons phone={site.phone} whatsapp={site.whatsapp} t={T} stack text={t("bv.whatsappAbout", { no })} />
-              <p className="text-center text-xs text-muted">{t("bv.likeText", { no, name: site.ghotokName })}</p>
+              {/* on paper there is nothing to tap: one line says whom to call and what to say */}
+              <p className="hidden border-t border-line pt-3 text-sm print:block">{t("bv.printContact", { name: site.ghotokName, phone: T.n(site.phone), no })}</p>
+              <p className="border-t border-line pt-4 font-display text-lg font-bold print:hidden">{t("bv.likeTitle")}</p>
+              <div className="print:hidden"><ContactButtons phone={site.phone} whatsapp={site.whatsapp} t={T} stack text={t("bv.whatsappAbout", { no })} /></div>
+              <p className="text-center text-xs text-muted print:hidden">{t("bv.likeText", { no, name: site.ghotokName })}</p>
             </>
           ) : null}
         </>

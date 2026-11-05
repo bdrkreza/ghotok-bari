@@ -534,9 +534,37 @@ input, select, textarea {
 
 /* Printing a biodata (or saving it as a PDF from the print dialog): paper white, no ornaments, no bars. The dark
    blocks above are screen-only, so a dark-mode phone still prints with the light tokens. */
+/* margin 0 is what makes the browser leave out its own header and footer (the page title, the address, the date and page
+   number); the body's padding below gives the paper its margin back. */
+@page {
+  size: A4;
+  margin: 0;
+}
+
 @media print {
+  /* everything is in rem, so a smaller root size fits the biodata on one or two pages */
+  html {
+    font-size: 13px;
+  }
   body {
     background: #fff;
+    padding: 12mm;
+  }
+  /* a card is never cut across two pages, and carries less air than on a screen */
+  section, aside {
+    break-inside: avoid;
+  }
+  main section {
+    padding: 0.7rem 0.9rem !important;
+    gap: 0.5rem !important;
+  }
+  main section td, main section th, main section dd, main section dt {
+    padding-top: 0.25rem !important;
+    padding-bottom: 0.25rem !important;
+  }
+  /* the coloured banner is a background, which paper leaves out; without it the picture needs no pull-up */
+  .biodata-head {
+    display: none;
   }
   body::before, body::after, .henna-edge::after, .henna-corner::before {
     display: none;
@@ -545,3 +573,4 @@ input, select, textarea {
     position: static;
   }
 }
+

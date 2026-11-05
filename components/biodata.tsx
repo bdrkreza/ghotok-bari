@@ -181,12 +181,12 @@ export function FamilyBiodata({ b, t, aside, full, badges, more, photos: shownPh
   ];
 
   return (
-    <div className="flex flex-col gap-5 lg:grid lg:grid-cols-[20rem_minmax(0,1fr)] lg:items-start lg:gap-6">
+    <div className="flex flex-col gap-5 lg:grid lg:grid-cols-[20rem_minmax(0,1fr)] lg:items-start lg:gap-6 print:grid print:grid-cols-[16rem_minmax(0,1fr)] print:items-start print:gap-4">
       <aside className="overflow-hidden rounded-3xl border border-line bg-surface lg:sticky lg:top-24">
         <div aria-hidden className="biodata-head h-21" />
         {/* the picture hangs over the head's left end, the number beside it; `relative` keeps it above the head's pattern */}
         <div className="flex items-end gap-3.5 px-5">
-          <span className="relative -mt-11 shrink-0 rounded-full border-4 border-surface bg-surface ring-2 ring-gold"><Avatar kind={b.kind} photoUrl={full ? full.photoUrl : b.photoUrl} className="size-22" /></span>
+          <span className="relative -mt-11 print:mt-4 shrink-0 rounded-full border-4 border-surface bg-surface ring-2 ring-gold"><Avatar kind={b.kind} photoUrl={full ? full.photoUrl : b.photoUrl} className="size-22" /></span>
           <div className="min-w-0 pt-2">
             <p className="text-xs text-muted">{t.t("bv.number")}</p>
             {/* a long number ("Groom-50000") gets a smaller size and may break after the hyphen instead of being cut */}
@@ -243,7 +243,7 @@ export function FamilyBiodata({ b, t, aside, full, badges, more, photos: shownPh
         ) : null}
         {full?.notes ? <Section t={t} icon="note" title={t.t("facts.notes")} rows={[{ label: t.t("form.notes"), value: prose(full.notes), locked: true }]} /> : null}
         {full ? null : (
-          <section className="flex flex-col gap-3 rounded-3xl border border-dashed border-line bg-surface p-5 lg:p-6">
+          <section className="flex flex-col gap-3 rounded-3xl border border-dashed border-line bg-surface p-5 lg:p-6 print:hidden">
             <SectionHead icon="shield" title={t.t(b.showPhotos ? "bv.whyNoName" : "bv.whyHiddenTitle")} />
             <p className="text-sm text-muted">{whoSees(b, t)}</p>
           </section>
