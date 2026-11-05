@@ -1,6 +1,6 @@
 @AGENTS.md
 
-# Alta (আলতা)
+# ঘটক বাড়ি (Ghotok Bari)
 
 One village matchmaker's (ghotok's) website: families register to see biodata, the ghotok runs the dashboard.
 Read README.md for the screens, roles, data model and setup.

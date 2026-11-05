@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Bell } from "./_components/bell";
 import { Nav, TopNav } from "./_components/nav";
+import { Logo } from "@/components/logo";
 import { homeFor, requireSite, requireUser, type SessionUser } from "@/lib/auth/session";
 import { adminItems, noticeItem, type BellItem } from "@/lib/bell";
 import { getDb } from "@/lib/db";
@@ -24,7 +25,7 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
       <header className="sticky top-0 z-10 rounded-b-[50%_1.4rem] bg-panel pb-4 text-on-panel shadow-md lg:hidden print:hidden">
         <div className="mx-auto flex h-14 max-w-md items-center justify-between gap-3 px-4">
           <Link href={homeFor(user.role)} className="flex min-w-0 items-center gap-2.5">
-            <span aria-hidden className="grid size-8 shrink-0 place-items-center rounded-xl bg-on-panel font-display text-base font-extrabold text-panel outline-2 outline-offset-3 outline-gold outline-dotted">ঘ</span>
+            <Logo tone="panel" className="size-8 shrink-0 rounded-xl outline-2 outline-offset-3 outline-gold outline-dotted" />
             <span className="flex min-w-0 flex-col leading-tight">
               <span className="truncate font-display text-base font-extrabold">{site.name}</span>
               <span className="truncate text-[11px] font-medium text-gold">{user.role === "admin" ? t("nav.ghotokDashboard") : t("nav.trusted")}</span>

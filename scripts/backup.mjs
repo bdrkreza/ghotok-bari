@@ -1,6 +1,6 @@
 // Backs the real site's database up to a gzipped JSON file in ./backups, then keeps only the newest KEEP files.
 //   npm run backup:live            reads DIRECT_URL (else DATABASE_URL) from .env.live; only ever SELECTs
-//   BACKUP_DIR=D:\alta-backups npm run backup:live   write somewhere else (a synced Google Drive folder, say)
+//   BACKUP_DIR=D:\ghotok-bari-backups npm run backup:live   write somewhere else (a synced Google Drive folder, say)
 // Meant for a scheduler (Windows Task Scheduler), so it never asks anything; exit code 1 on failure.
 // The repo is public and the file holds every family's details and the password hashes: ./backups is git-ignored,
 // keep the copy private. Photos live in Supabase Storage and are not part of this file (the table rows point at them).
@@ -57,12 +57,12 @@ try {
 
   mkdirSync(dir, { recursive: true });
   const stamp = new Date().toISOString().slice(0, 16).replace(/[:T]/g, "-");
-  const path = join(dir, `alta-${stamp}.json.gz`);
+  const path = join(dir, `ghotok-bari-${stamp}.json.gz`);
   writeFileSync(path, gzipSync(file));
   console.log(`[backup] লেখা হয়েছে: ${path} (${Math.round(statSync(path).size / 1024)} KB)`);
   console.log(`[backup] ${Object.entries(counts).map(([k, n]) => `${k}=${n}`).join(", ")}`);
 
-  const old = readdirSync(dir).filter((f) => /^alta-.*\.json\.gz$/.test(f)).sort().reverse().slice(KEEP);
+  const old = readdirSync(dir).filter((f) => /^(alta|ghotok-bari)-.*\.json\.gz$/.test(f)).sort().reverse().slice(KEEP);
   for (const f of old) unlinkSync(join(dir, f));
   if (old.length) console.log(`[backup] ${old.length}টা পুরনো ফাইল মুছে ফেলা হয়েছে (সর্বশেষ ${KEEP}টা রাখা)।`);
 } catch (e) {

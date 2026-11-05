@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
+import { Logo } from "@/components/logo";
 import { initials } from "@/lib/bn";
 import type { Role } from "@/lib/db/schema";
 import type { Key } from "@/lib/i18n";
@@ -115,7 +116,7 @@ export function TopNav({ userName, role, siteName, bell, badges = {} }: { userNa
       <div className="mx-auto flex h-18 max-w-6xl items-stretch gap-4 px-8">
         {/* the name never shrinks away; should the tabs still not fit (a narrow window, English), their row scrolls */}
         <Link href={role === "admin" ? "/dashboard" : "/me"} className="flex shrink-0 items-center gap-2.5">
-          <span aria-hidden className="grid size-10 shrink-0 place-items-center rounded-xl bg-primary font-display text-lg font-extrabold text-on-primary outline-2 outline-offset-3 outline-primary outline-dotted">ঘ</span>
+          <Logo className="size-10 shrink-0 rounded-xl outline-2 outline-offset-3 outline-primary outline-dotted" />
           <span className="flex flex-col leading-tight">
             <span className="max-w-44 truncate font-display text-lg font-extrabold xl:max-w-56">{siteName}</span>
             <span className="text-xs text-muted">{role === "admin" ? t("nav.ghotokDashboard") : t("nav.trusted")}</span>

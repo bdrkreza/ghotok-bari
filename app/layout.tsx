@@ -16,10 +16,10 @@ import { LangProvider } from "@/lib/i18n/client";
 import { getLang, getT } from "@/lib/i18n/server";
 import { THEME_BOOT_SCRIPT } from "@/lib/theme";
 
-/** The browser tab carries the ghotok's site name once the site exists; "আলতা" before that and if the database is away. */
+/** The browser tab carries the ghotok's site name once the site exists; "ঘটক বাড়ি" before that and if the database is away. */
 export async function generateMetadata(): Promise<Metadata> {
   const [site, { t }] = await Promise.all([currentSite().catch(() => null), getT()]);
-  const name = site?.name ?? t("common.alta");
+  const name = site?.name ?? t("common.brand");
   return {
     title: { default: name, template: `%s · ${name}` },
     applicationName: name,

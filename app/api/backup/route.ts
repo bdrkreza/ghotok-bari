@@ -16,7 +16,7 @@ export async function GET(request: Request) {
   const db = getDb();
   const csv = new URL(request.url).searchParams.get("format") === "csv";
   await logActivity(db, site.ghotokId, user.id, "backup", csv ? "CSV" : "JSON");
-  const name = `alta-${today()}`;
+  const name = `ghotok-bari-${today()}`;
   const headers = { "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff" };
   if (csv) {
     const { t } = await getT();

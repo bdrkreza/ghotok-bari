@@ -54,7 +54,7 @@ export function vapidAuthorization(endpoint: string, keys: VapidKeys, now = Date
   });
   const part = (o: object) => Buffer.from(JSON.stringify(o)).toString("base64url");
   // Apple refuses a token without a contact; VAPID_SUBJECT is the ghotok's or developer's mailto: or https: address
-  const claims = { aud: new URL(endpoint).origin, exp: Math.floor(now / 1000) + 12 * 3600, sub: process.env.VAPID_SUBJECT || "mailto:alta@example.com" };
+  const claims = { aud: new URL(endpoint).origin, exp: Math.floor(now / 1000) + 12 * 3600, sub: process.env.VAPID_SUBJECT || "mailto:ghotok-bari@example.com" };
   const body = `${part({ typ: "JWT", alg: "ES256" })}.${part(claims)}`;
   const signature = sign("sha256", Buffer.from(body), { key, dsaEncoding: "ieee-p1363" }).toString("base64url");
   return `vapid t=${body}.${signature}, k=${keys.publicKey}`;

@@ -1,4 +1,4 @@
-# আলতা (Alta)
+# ঘটক বাড়ি (Ghotok Bari)
 
 A village ghotok's own website. One deployment is one matchmaker's site: families open an account with their
 phone number, look at biodata and hand in their own; the ghotok runs everything from a dashboard: the people they
@@ -122,7 +122,7 @@ suggestions and shown without names (`matchesForFamily` in `lib/services/match.t
 ### News on the phone
 
 Settings has a "ফোনে খবর" card: one tap and the phone shows news even with the site closed (Web Push, free; an iPhone
-needs আলতা on the home screen first). A family is woken by every notice; the ghotok by a new biodata handed in and a
+needs ঘটক বাড়ি on the home screen first). A family is woken by every notice; the ghotok by a new biodata handed in and a
 new "আগ্রহ জানান". No paid service and no library: `lib/push.ts` signs a VAPID token with node's crypto and sends the
 push empty, so nothing needs encrypting; `public/sw.js` then asks `/api/push/latest` with the reader's own cookie and
 shows the words in their language. Development makes its own keys (`./.data/vapid.json`); production takes
@@ -276,7 +276,7 @@ same by hand, from this computer.
 | `npm run db:generate` | Write a new SQL migration from `lib/db/schema.ts` into `drizzle/` |
 | `npm run db:migrate` | Apply migrations to `DIRECT_URL` (drizzle-kit, from `.env.local`) |
 | `npm run db:migrate:test` / `db:migrate:live` | Apply migrations to the test or live database (`.env.test` / `.env.live`; live asks first) |
-| `npm run backup:live` | Read-only dump of every table of the live database to `backups/alta-<time>.json.gz` (newest 30 kept; `BACKUP_DIR`, `BACKUP_KEEP` change that). Never asks, so Task Scheduler can run it. The file holds family details and password hashes: keep it private (the repo is public). Photos are not in it |
+| `npm run backup:live` | Read-only dump of every table of the live database to `backups/ghotok-bari-<time>.json.gz` (newest 30 kept; `BACKUP_DIR`, `BACKUP_KEEP` change that). Never asks, so Task Scheduler can run it. The file holds family details and password hashes: keep it private (the repo is public). Photos are not in it |
 | `npm run dev:test` | Development server on the test Supabase project instead of the embedded database |
 | `npm run screenshots` | Capture every screen (phone and web) into `docs/screens/` using the installed Edge or Chrome (dev server must be running) |
 | `npm run icons` | Redraw the home-screen icons in `public/` (only after changing the mark or brand colour) |

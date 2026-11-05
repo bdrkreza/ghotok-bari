@@ -20,7 +20,7 @@ const worker = async () => {
 
 /**
  * "ফোনে খবর": news on the phone even with the site closed (Web Push, free; lib/push.ts). Per browser: each phone or
- * computer turns it on for itself. An iPhone only offers it once আলতা is on the home screen. `publicKey` is null when
+ * computer turns it on for itself. An iPhone only offers it once ঘটক বাড়ি is on the home screen. `publicKey` is null when
  * the deployment has no VAPID keys; then the card is not shown.
  */
 export function PushCard({ publicKey }: { publicKey: string | null }) {

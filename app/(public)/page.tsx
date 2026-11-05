@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { Logo } from "@/components/logo";
 import { Icon, type IconName } from "@/components/icons";
 import { LangSwitch } from "@/components/lang-switch";
 import { ContactButtons, HowItWorks } from "@/components/site";
@@ -35,7 +36,7 @@ export default async function FrontPage() {
       <header className="henna-edge sticky top-0 z-20 bg-bg/90 pb-2.5 backdrop-blur">
         <div className="mx-auto flex h-14 max-w-md items-center justify-between gap-3 px-4 lg:h-18 lg:max-w-6xl lg:px-8">
           <Link href="/" className="flex min-w-0 items-center gap-2.5">
-            <span aria-hidden className="grid size-8 shrink-0 place-items-center rounded-xl bg-primary font-display text-base font-extrabold text-on-primary outline-2 outline-offset-3 outline-primary outline-dotted lg:size-10 lg:text-lg">ঘ</span>
+            <Logo className="size-8 shrink-0 rounded-xl outline-2 outline-offset-3 outline-primary outline-dotted lg:size-10" />
             <span className="flex min-w-0 flex-col leading-tight">
               <span className="truncate font-display text-base font-extrabold lg:text-lg">{site.name}</span>
               <span className="truncate text-[11px] font-medium text-muted lg:text-xs">{t("nav.trusted")}</span>

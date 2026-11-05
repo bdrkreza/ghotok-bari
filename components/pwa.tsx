@@ -69,7 +69,7 @@ async function install() {
   notify();
 }
 
-/** Settings card that puts আলতা on the home screen: one tap where the browser offers it (Chrome on Android,
+/** Settings card that puts ঘটক বাড়ি on the home screen: one tap where the browser offers it (Chrome on Android,
  *  Edge and Chrome on a computer), the manual steps elsewhere (Safari on iPhone). */
 export function InstallCard() {
   // null on the server and during hydration: the browser is not known yet

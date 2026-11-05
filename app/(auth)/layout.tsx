@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Logo } from "@/components/logo";
 import { Icon, type IconName } from "@/components/icons";
 import { LangSwitch } from "@/components/lang-switch";
 import { currentSite } from "@/lib/auth/session";
@@ -33,16 +34,16 @@ export default async function AuthLayout({ children }: LayoutProps<"/">) {
         {site ? (
           <Link href="/" aria-label={t("common.back")} className="grid size-9 shrink-0 place-items-center rounded-full border border-line bg-surface text-ink lg:hidden"><Icon name="back" size={18} /></Link>
         ) : null}
-        <span aria-hidden className="grid size-8 shrink-0 place-items-center rounded-xl bg-primary font-display text-base font-extrabold text-on-primary outline-2 outline-offset-3 outline-primary outline-dotted lg:hidden">ঘ</span>
+        <Logo className="size-8 shrink-0 rounded-xl outline-2 outline-offset-3 outline-primary outline-dotted lg:hidden" />
         <span className="flex min-w-0 flex-1 flex-col leading-tight lg:hidden">
-          <span className="truncate font-display text-base font-extrabold">{site?.name ?? t("common.alta")}</span>
+          <span className="truncate font-display text-base font-extrabold">{site?.name ?? t("common.brand")}</span>
           <span className="truncate text-[11px] font-medium text-muted">{site ? t("auth.forFamilies") : t("auth.ghotokSite")}</span>
         </span>
         <LangSwitch />
       </header>
       <div className="mx-auto grid w-full max-w-6xl flex-1 items-center gap-6 px-4 pt-3 pb-10 lg:grid-cols-[minmax(0,1fr)_30rem] lg:gap-20 lg:px-12 lg:pb-16">
         <div className="hidden flex-col gap-1 lg:flex">
-          <p className="font-script text-5xl/tight text-balance text-primary">{site?.name ?? t("common.alta")}</p>
+          <p className="font-script text-5xl/tight text-balance text-primary">{site?.name ?? t("common.brand")}</p>
           <p className="text-base text-muted">{site ? (site.tagline ?? t("site.defaultTagline")) : t("auth.ghotokSite")}</p>
           <p className="mt-8 max-w-xl font-serif text-5xl/tight text-balance">{site ? t("auth.familyHeadline") : t("auth.setupHeadline")}</p>
           <p className="mt-4 max-w-md text-lg leading-relaxed text-muted">{site ? t("auth.familyPitch") : t("auth.setupPitch")}</p>

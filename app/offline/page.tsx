@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Logo } from "@/components/logo";
 import { primaryButton } from "@/components/ui";
 import { getT } from "@/lib/i18n/server";
 
@@ -12,7 +13,7 @@ export default async function OfflinePage() {
   const { t } = await getT();
   return (
     <main className="mx-auto flex min-h-dvh max-w-md flex-col items-center justify-center gap-4 px-4 text-center">
-      <span aria-hidden className="grid size-14 place-items-center rounded-2xl bg-primary font-display text-2xl font-extrabold text-on-primary">ঘ</span>
+      <Logo className="size-14 rounded-2xl" />
       <h1 className="font-display text-xl font-bold">{t("offline.title")}</h1>
       <p className="text-muted">{t("offline.text")}</p>
       {/* a plain form submit, so the retry works before any script has loaded */}

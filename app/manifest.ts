@@ -1,10 +1,10 @@
 import type { MetadataRoute } from "next";
 
-/** Served at /manifest.webmanifest: what a phone needs to put আলতা on the home screen as an app. */
+/** Served at /manifest.webmanifest: what a phone needs to put ঘটক বাড়ি on the home screen as an app. */
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "আলতা: ঘটকের খাতা",
-    short_name: "আলতা",
+    name: "ঘটক বাড়ি: ঘটকের খাতা",
+    short_name: "ঘটক বাড়ি",
     description: "গ্রামের ঘটকের ডিজিটাল খাতা: পাত্র-পাত্রী, প্রস্তাব আর হিসাব এক জায়গায়।",
     lang: "bn",
     dir: "ltr",
