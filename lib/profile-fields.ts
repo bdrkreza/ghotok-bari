@@ -43,3 +43,28 @@ export function missing(name: string, kind: ProfileKind): FieldIssue {
   return { code: "required" };
 }
 
+
+/**
+ * The ten things that make a biodata easy to match and easy to trust, beyond the required few. Each is a yes/no on the
+ * row; `completeness` turns them into a percentage and the list of what is still blank (the page names each one with
+ * "cp.<key>" in the dictionary).
+ */
+export type CompletenessKey = "photo" | "village" | "upazila" | "family" | "expectations" | "workplace" | "complexion" | "bloodGroup" | "practice" | "expectAge";
+
+type Filled = {
+  photoUrl: string | null; village: string | null; upazila: string | null; familyDetails: string | null; expectations: string | null;
+  workplace: string | null; complexion: string | null; bloodGroup: string | null; religiousPractice: string | null;
+  expectAgeMin: number | null; expectAgeMax: number | null;
+};
+
+const has = (s: string | null) => Boolean(s && s.trim());
+
+export function completeness(p: Filled): { percent: number; missing: CompletenessKey[] } {
+  const checks: [CompletenessKey, boolean][] = [
+    ["photo", has(p.photoUrl)], ["village", has(p.village)], ["upazila", has(p.upazila)], ["family", has(p.familyDetails)],
+    ["expectations", has(p.expectations)], ["workplace", has(p.workplace)], ["complexion", has(p.complexion)], ["bloodGroup", has(p.bloodGroup)],
+    ["practice", has(p.religiousPractice)], ["expectAge", p.expectAgeMin !== null || p.expectAgeMax !== null],
+  ];
+  const missing = checks.filter(([, ok]) => !ok).map(([k]) => k);
+  return { percent: Math.round(((checks.length - missing.length) / checks.length) * 100), missing };
+}

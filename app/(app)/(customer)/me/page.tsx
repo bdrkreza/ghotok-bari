@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Notices } from "./_components/notices";
+import { Completeness } from "@/components/completeness";
 import { Avatar } from "@/components/avatar";
 import { FamilyBiodataCard } from "@/components/biodata";
 import { Icon, type IconName } from "@/components/icons";
@@ -149,6 +150,7 @@ export default async function MePage() {
                     {b.approval === "returned" ? (
                       <p className="rounded-xl bg-neg-soft px-3 py-2 text-sm font-semibold text-neg">{t("me.ghotokNote", { note: b.returnNote ?? t("me.noReason") })}</p>
                     ) : null}
+                    <Completeness p={b} t={T} />
                     <div className="mt-auto grid grid-cols-2 gap-2">
                       <Link href={`/me/biodata/${b.id}`} className={`${quietButton} min-h-10 text-sm`}>{t("common.view")}</Link>
                       <Link href={`/me/biodata/${b.id}/edit`} className={`${b.approval === "returned" ? primaryButton : outlineButton} min-h-10 text-sm`}><Icon name="edit" size={16} />{b.approval === "returned" ? t("me.fix") : t("common.edit")}</Link>

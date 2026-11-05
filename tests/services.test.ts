@@ -12,6 +12,7 @@ import { dashboard } from "@/lib/services/dashboard";
 import { addEntry, listEntries, totals } from "@/lib/services/ledger";
 import { suggestFor } from "@/lib/services/match";
 import { listHref, parseAge } from "@/lib/search";
+import { completeness } from "@/lib/profile-fields";
 import { GHOTOK_REQUIRED, activeCounts, createProfile, deleteProfile, parseProfile, setShowParents, setShowPhotos, getProfile, listProfiles, pendingCount, places, setApproval, submittedProfiles, updateProfile } from "@/lib/services/profiles";
 import { browseBiodata, browseOne, deleteMyBiodata, getMyBiodata, myBiodata, submitBiodata, updateMyBiodata } from "@/lib/services/biodata";
 import { addNote, changeStatus, createProposal, getProposal, listProposals, proposalsFor } from "@/lib/services/proposals";
@@ -472,5 +473,19 @@ describe("biodata handed in by families", () => {
     await deleteMyBiodata(app.db, ghotok.id, family.id, id);
     expect(await myBiodata(app.db, ghotok.id, family.id)).toEqual([]);
     expect(await code(setApproval(app.db, ghotok.id, id, "approved"))).toBe("not_found");
+  });
+});
+
+describe("biodata completeness", () => {
+  const blank = { photoUrl: null, village: null, upazila: null, familyDetails: null, expectations: null, workplace: null, complexion: null, bloodGroup: null, religiousPractice: null, expectAgeMin: null, expectAgeMax: null };
+
+  it("counts what is filled in, ignores blank text, and names what is left", () => {
+    expect(completeness(blank)).toEqual({ percent: 0, missing: ["photo", "village", "upazila", "family", "expectations", "workplace", "complexion", "bloodGroup", "practice", "expectAge"] });
+    const some = completeness({ ...blank, photoUrl: "/api/photos/x", village: "  ", expectations: "শিক্ষিত", expectAgeMax: 30 });
+    expect(some.percent).toBe(30);
+    expect(some.missing).toContain("village"); // spaces only is blank
+    expect(some.missing).not.toContain("expectAge");
+    const all = completeness({ photoUrl: "a", village: "a", upazila: "a", familyDetails: "a", expectations: "a", workplace: "a", complexion: "forsha", bloodGroup: "A+", religiousPractice: "a", expectAgeMin: 20, expectAgeMax: null });
+    expect(all).toEqual({ percent: 100, missing: [] });
   });
 });
