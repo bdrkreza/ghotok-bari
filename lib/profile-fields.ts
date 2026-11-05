@@ -2,7 +2,7 @@
 // empty. Plain data, shared by the form in the browser and the services on the server (which re-export it), so the
 // form never pulls server code (the database, the photo store) into the browser's bundle.
 import type {
-  AfterHome, BloodGroup, Choice, Complexion, Dowry, EducationMedium, ExpectEducation, ExpectMarital, FamilyStatus, MaritalStatus,
+  AfterHome, BloodGroup, Choice, Complexion, Dowry, EducationLevel, EducationMedium, ExpectEducation, ExpectMarital, FamilyStatus, MaritalStatus,
   ProfileKind, Religion,
 } from "./db/schema";
 import type { FieldIssue } from "./errors";
@@ -17,6 +17,21 @@ export const FAMILY_STATUSES: readonly [FamilyStatus, ...FamilyStatus[]] = ["nim
 export const CHOICES: readonly [Choice, ...Choice[]] = ["yes", "no", "discuss"];
 export const AFTER_HOMES: readonly [AfterHome, ...AfterHome[]] = ["family", "city", "abroad", "undecided"];
 export const DOWRIES: readonly [Dowry, ...Dowry[]] = ["none", "gift", "discuss"];
+export const EDUCATION_LEVELS: readonly [EducationLevel, ...EducationLevel[]] = [
+  "ssc", "hsc", "diploma", "bachelor", "master", "phd", "dakhil", "alim", "fazil", "kamil", "hafez", "other",
+];
+
+/**
+ * How far each level goes, on the same ladder as what a family may ask for (ssc 1, hsc 2, bachelor 3, master 4); a
+ * madrasa level stands where its general-school equivalent does (dakhil = SSC, alim = HSC, fazil = bachelor's, kamil =
+ * master's), a PhD above all. "hafez" and "other" have no place on the ladder: null, so they never count for or against.
+ */
+const RANK: Record<EducationLevel, number | null> = {
+  ssc: 1, dakhil: 1, hsc: 2, alim: 2, diploma: 2, bachelor: 3, fazil: 3, master: 4, kamil: 4, phd: 5, hafez: null, other: null,
+};
+export const educationRank = (level: EducationLevel | null): number | null => (level ? RANK[level] : null);
+export const expectRank = (e: ExpectEducation): number => ({ ssc: 1, hsc: 2, bachelor: 3, master: 4 })[e];
+
 export const EXPECT_EDUCATIONS: readonly [ExpectEducation, ...ExpectEducation[]] = ["ssc", "hsc", "bachelor", "master"];
 export const EXPECT_MARITALS: readonly [ExpectMarital, ...ExpectMarital[]] = ["obibahito", "talak_ok", "bidhoba_ok"];
 export const RELIGIONS: Religion[] = ["islam", "hindu", "christian", "buddhist", "other"];
@@ -45,14 +60,14 @@ export function missing(name: string, kind: ProfileKind): FieldIssue {
 
 
 /**
- * The ten things that make a biodata easy to match and easy to trust, beyond the required few. Each is a yes/no on the
+ * The eleven things that make a biodata easy to match and easy to trust, beyond the required few. Each is a yes/no on the
  * row; `completeness` turns them into a percentage and the list of what is still blank (the page names each one with
  * "cp.<key>" in the dictionary).
  */
-export type CompletenessKey = "photo" | "village" | "upazila" | "family" | "expectations" | "workplace" | "complexion" | "bloodGroup" | "practice" | "expectAge";
+export type CompletenessKey = "eduLevel" | "photo" | "village" | "upazila" | "family" | "expectations" | "workplace" | "complexion" | "bloodGroup" | "practice" | "expectAge";
 
 type Filled = {
-  photoUrl: string | null; village: string | null; upazila: string | null; familyDetails: string | null; expectations: string | null;
+  educationLevel: string | null; photoUrl: string | null; village: string | null; upazila: string | null; familyDetails: string | null; expectations: string | null;
   workplace: string | null; complexion: string | null; bloodGroup: string | null; religiousPractice: string | null;
   expectAgeMin: number | null; expectAgeMax: number | null;
 };
@@ -61,7 +76,7 @@ const has = (s: string | null) => Boolean(s && s.trim());
 
 export function completeness(p: Filled): { percent: number; missing: CompletenessKey[] } {
   const checks: [CompletenessKey, boolean][] = [
-    ["photo", has(p.photoUrl)], ["village", has(p.village)], ["upazila", has(p.upazila)], ["family", has(p.familyDetails)],
+    ["eduLevel", has(p.educationLevel)], ["photo", has(p.photoUrl)], ["village", has(p.village)], ["upazila", has(p.upazila)], ["family", has(p.familyDetails)],
     ["expectations", has(p.expectations)], ["workplace", has(p.workplace)], ["complexion", has(p.complexion)], ["bloodGroup", has(p.bloodGroup)],
     ["practice", has(p.religiousPractice)], ["expectAge", p.expectAgeMin !== null || p.expectAgeMax !== null],
   ];

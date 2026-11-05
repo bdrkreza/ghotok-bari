@@ -55,7 +55,7 @@ export async function seedDemo(db: Db, auth: Auth, headers: Headers): Promise<{ 
 
   const hasan = await person("patro", {
     name: "হাসান মাহমুদ", fatherName: "মো. আলমগীর হোসেন", motherName: "হাসিনা বেগম", birthYear: "1995", heightCm: "170",
-    education: "অনার্স (ব্যবস্থাপনা)", profession: "ব্যাংক কর্মকর্তা", monthlyIncome: "45000",
+    educationLevel: "bachelor", education: "অনার্স (ব্যবস্থাপনা)", profession: "ব্যাংক কর্মকর্তা", monthlyIncome: "45000",
     village: "বাঁশবাড়িয়া", upazila: "সাভার", district: "ঢাকা", guardianName: "মো. আলমগীর হোসেন (বাবা)", guardianPhone: "01711111111",
     familyDetails: "৩ ভাই ১ বোন। নিজেদের পাকা বাড়ি, ৫ বিঘা জমি। বাবা অবসরপ্রাপ্ত স্কুলশিক্ষক।",
     expectations: "শিক্ষিত, নম্র, সাভার বা আশেপাশের পরিবার হলে ভালো।",
@@ -66,31 +66,31 @@ export async function seedDemo(db: Db, auth: Auth, headers: Headers): Promise<{ 
   });
   const rafiq = await person("patro", {
     name: "রফিকুল ইসলাম", fatherName: "আব্দুল মজিদ", birthYear: "1992", heightCm: "165", maritalStatus: "talakprapto",
-    education: "এইচএসসি", profession: "প্রবাসী (সৌদি আরব)", monthlyIncome: "60000",
+    educationLevel: "hsc", education: "এইচএসসি", profession: "প্রবাসী (সৌদি আরব)", monthlyIncome: "60000",
     village: "চরপাড়া", upazila: "কুমিল্লা সদর", district: "কুমিল্লা", guardianName: "আব্দুল মজিদ (বাবা)", guardianPhone: "01733333333",
     familyDetails: "২ ভাই। বিদেশে ৮ বছর। আগের সংসারে সন্তান নেই।", expectations: "ধার্মিক পরিবার; বয়স ২২-৩০।",
   });
   const sumon = await person("patro", {
     name: "সুমন চন্দ্র দাস", fatherName: "নারায়ণ চন্দ্র দাস", birthYear: "1994", heightCm: "168", religion: "hindu",
-    education: "ডিপ্লোমা ইঞ্জিনিয়ারিং", profession: "ইলেকট্রিশিয়ান", monthlyIncome: "25000",
+    educationLevel: "diploma", education: "ডিপ্লোমা ইঞ্জিনিয়ারিং", profession: "ইলেকট্রিশিয়ান", monthlyIncome: "25000",
     village: "শিবপুর", upazila: "নরসিংদী সদর", district: "নরসিংদী", guardianName: "নারায়ণ চন্দ্র দাস (বাবা)", guardianPhone: "01744444444",
   });
   const juel = await person("patro", {
     name: "জুয়েল রানা", fatherName: "মো. সোলায়মান", birthYear: "1998", heightCm: "172",
-    education: "এসএসসি", profession: "কৃষি ও মাছের ঘের", monthlyIncome: "30000",
+    educationLevel: "ssc", education: "এসএসসি", profession: "কৃষি ও মাছের ঘের", monthlyIncome: "30000",
     village: "কুশুরা", upazila: "ধামরাই", district: "ঢাকা", guardianName: "মো. সোলায়মান (বাবা)", guardianPhone: "01755555555",
     notes: "পরিবার চায় তাড়াতাড়ি বিয়ে দিতে।",
   });
 
   const fatema = await person("patri", {
     name: "ফাতেমা আক্তার", fatherName: "মো. ইউসুফ আলী", motherName: "রাবেয়া খাতুন", birthYear: "2000", heightCm: "155",
-    education: "এইচএসসি (পড়ছে)", profession: "শিক্ষার্থী",
+    educationLevel: "hsc", education: "এইচএসসি (পড়ছে)", profession: "শিক্ষার্থী",
     village: "কাউন্দিয়া", upazila: "সাভার", district: "ঢাকা", guardianName: "মো. ইউসুফ আলী (বাবা)", guardianPhone: "01722222222",
     familyDetails: "২ বোন ১ ভাই। বাবার মুদি দোকান।", expectations: "চাকরিজীবী, নিজের বাড়ি আছে এমন।",
   });
   const nazma = await person("patri", {
     name: "নাজমা বেগম", fatherName: "আব্দুর রহমান", birthYear: "1997", heightCm: "158",
-    education: "অনার্স (বাংলা)", profession: "প্রাথমিক বিদ্যালয়ের শিক্ষক", monthlyIncome: "22000",
+    educationLevel: "bachelor", education: "অনার্স (বাংলা)", profession: "প্রাথমিক বিদ্যালয়ের শিক্ষক", monthlyIncome: "22000",
     village: "বোয়ালী", upazila: "কালিয়াকৈর", district: "গাজীপুর", guardianName: "আব্দুর রহমান (বাবা)", guardianPhone: "01766666666",
     expectations: "শিক্ষিত ও চাকরিজীবী পাত্র; চাকরি চালিয়ে যেতে দেবে এমন পরিবার।",
     complexion: "ujjol_shyamla", weightKg: "52", bloodGroup: "B+", educationMedium: "general", workplace: "কালিয়াকৈরে সরকারি প্রাথমিক বিদ্যালয়",
@@ -100,12 +100,12 @@ export async function seedDemo(db: Db, auth: Auth, headers: Headers): Promise<{ 
   });
   const shiuli = await person("patri", {
     name: "শিউলি রানী দাস", fatherName: "গোপাল চন্দ্র দাস", birthYear: "1999", heightCm: "152", religion: "hindu",
-    education: "এইচএসসি", profession: "গৃহিণী",
+    educationLevel: "hsc", education: "এইচএসসি", profession: "গৃহিণী",
     village: "ঘোড়াশাল", upazila: "পলাশ", district: "নরসিংদী", guardianName: "গোপাল চন্দ্র দাস (বাবা)", guardianPhone: "01777777777",
   });
   const ruma = await person("patri", {
     name: "রুমা খাতুন", fatherName: "মৃত আবুল কাশেম", birthYear: "1996", heightCm: "160", maritalStatus: "bidhoba",
-    education: "এসএসসি", profession: "দর্জি", monthlyIncome: "8000",
+    educationLevel: "ssc", education: "এসএসসি", profession: "দর্জি", monthlyIncome: "8000",
     village: "রামচন্দ্রপুর", upazila: "মুরাদনগর", district: "কুমিল্লা", guardianName: "মো. জাহাঙ্গীর (মামা)", guardianPhone: "01788888888",
     familyDetails: "একটি মেয়ে আছে (৪ বছর)।", expectations: "সন্তান মেনে নেবে এমন সৎ মানুষ।",
     complexion: "shyamla", bloodGroup: "B+", brothers: "2", sisters: "0", familyStatus: "nimno", religiousPractice: "নামাজ পড়েন",
@@ -145,7 +145,7 @@ export async function seedDemo(db: Db, auth: Auth, headers: Headers): Promise<{ 
     kind: "patri", pledge: "on", religion: "islam", maritalStatus: "obibahito", name: "সুমাইয়া আক্তার", fatherName: "মৃত আব্দুল হাই", motherName: "রহিমা বেগম",
     complexion: "forsha", bloodGroup: "A+", brothers: "1", sisters: "1", familyStatus: "moddho", afterStudy: "yes", afterJob: "discuss", jointFamily: "discuss",
     expectAgeMin: "25", expectAgeMax: "32", expectEducation: "bachelor",
-    birthYear: "2003", heightCm: "157", education: "অনার্স (পড়ছে)", profession: "শিক্ষার্থী",
+    birthYear: "2003", heightCm: "157", educationLevel: "bachelor", education: "অনার্স (পড়ছে)", profession: "শিক্ষার্থী",
     village: "কাটাখালী", upazila: "সাভার", district: "ঢাকা", guardianName: "রহিমা বেগম (মা)", guardianPhone: DEMO_CUSTOMER.phone,
     familyDetails: "১ ভাই ১ বোন। মা গৃহিণী, ভাই ব্যবসা করে।", expectations: "চাকরিজীবী, ধার্মিক; পড়া চালিয়ে যেতে দেবে এমন পরিবার।",
   });
@@ -154,7 +154,7 @@ export async function seedDemo(db: Db, auth: Auth, headers: Headers): Promise<{ 
     complexion: "shyamla", weightKg: "70", bloodGroup: "O+", educationMedium: "general", workplace: "ঢাকায় সফটওয়্যার কোম্পানিতে", presentAddress: "ঢাকা",
     brothers: "1", sisters: "0", familyStatus: "uccho_moddho", afterStudy: "yes", afterJob: "yes", afterHome: "city", dowry: "none",
     expectAgeMin: "22", expectAgeMax: "27", expectEducation: "hsc", expectDistricts: "ঢাকা, গাজীপুর",
-    birthYear: "1996", heightCm: "173", education: "বিএসসি ইঞ্জিনিয়ারিং", profession: "সফটওয়্যার ইঞ্জিনিয়ার", monthlyIncome: "55000",
+    birthYear: "1996", heightCm: "173", educationLevel: "bachelor", education: "বিএসসি ইঞ্জিনিয়ারিং", profession: "সফটওয়্যার ইঞ্জিনিয়ার", monthlyIncome: "55000",
     village: "বোর্ডবাজার", upazila: "গাজীপুর সদর", district: "গাজীপুর", guardianName: "মো. জসিম উদ্দিন (বাবা)", guardianPhone: DEMO_CUSTOMER_2.phone,
     familyDetails: "২ ভাই। বাবা অবসরপ্রাপ্ত ব্যাংকার, নিজেদের বাড়ি।", expectations: "শিক্ষিত, নম্র; ঢাকা-গাজীপুরের মধ্যে হলে ভালো।",
   });

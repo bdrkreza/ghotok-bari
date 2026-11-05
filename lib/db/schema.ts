@@ -68,6 +68,10 @@ export type AfterHome = "family" | "city" | "abroad" | "undecided";
 /** whether a groom's side expects anything from the bride's */
 export type Dowry = "none" | "gift" | "discuss";
 export type ExpectEducation = "ssc" | "hsc" | "bachelor" | "master";
+/** The highest level reached, picked from a list so that "at least a bachelor's" can really be matched. Madrasa levels sit beside their general-school equivalents (lib/profile-fields.ts, educationRank). */
+export type EducationLevel =
+  | "ssc" | "hsc" | "diploma" | "bachelor" | "master" | "phd"
+  | "dakhil" | "alim" | "fazil" | "kamil" | "hafez" | "other";
 export type ExpectMarital = "obibahito" | "talak_ok" | "bidhoba_ok";
 
 /** A groom (patro) or bride (patri) the ghotok is looking for a match for. */
@@ -103,6 +107,19 @@ export const profile = pgTable("profile", {
   weightKg: integer("weight_kg"),
   bloodGroup: text("blood_group").$type<BloodGroup>(),
   educationMedium: text("education_medium").$type<EducationMedium>(),
+  /* the education in parts; `education` above stays the one line everyone reads and searches */
+  educationLevel: text("education_level").$type<EducationLevel>(),
+  /** the subject or department: "কম্পিউটার সায়েন্স" */
+  educationSubject: text("education_subject"),
+  /** the school, college, university or madrasa; private (the ghotok and the family who wrote it), like the name */
+  educationInstitution: text("education_institution"),
+  /** the year it was finished, or is due when still studying */
+  educationYear: integer("education_year"),
+  educationStudying: boolean("education_studying").notNull().default(false),
+  /** a CGPA or a division, as written ("৩.৮০", "প্রথম বিভাগ") */
+  educationResult: text("education_result"),
+  /** computer skills, languages, training, certificates */
+  extraQualifications: text("extra_qualifications"),
   /** where they work, or a line about the work */
   workplace: text("workplace"),
   /** town or country they live in now, when not the village (jobs, abroad); null = at home */

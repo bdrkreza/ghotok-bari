@@ -16,7 +16,7 @@ export type { FamilyView };
  * What only the ghotok and the family who wrote it see. Given to FamilyBiodata, these join the same layout with a
  * lock beside each; `notes` is the ghotok's own, passed on their page only.
  */
-export type PrivateFields = Pick<Profile, "name" | "fatherName" | "motherName" | "guardianName" | "guardianPhone" | "monthlyIncome" | "photoUrl">
+export type PrivateFields = Pick<Profile, "name" | "fatherName" | "motherName" | "guardianName" | "guardianPhone" | "monthlyIncome" | "photoUrl" | "educationInstitution">
   & { notes?: string | null; /** uploaded photos in order, the first being the cover */ photos?: { id: string }[] };
 
 /** The family in numbers, as chips: "২ ভাই", "১ বোন", "মধ্যবিত্ত". */
@@ -150,7 +150,14 @@ export function FamilyBiodata({ b, t, aside, full, badges, more, photos: shownPh
   ];
   const work: Row[] = [
     { label: t.t("facts.medium"), value: b.educationMedium ? t.t(`medium.${b.educationMedium}`) : null },
+    { label: t.t("facts.eduLevel"), value: b.educationLevel ? `${t.t(`eduLevel.${b.educationLevel}`)}${b.educationStudying ? ` (${t.t("facts.studying")})` : ""}` : null },
     { label: t.t("form.education"), value: b.education },
+    { label: t.t("facts.subject"), value: b.educationSubject },
+    // the school or college can name the person, so only the ghotok and the family who wrote it see it
+    ...(full ? [{ label: t.t("facts.institution"), value: full.educationInstitution, locked: true }] : []),
+    { label: b.educationStudying ? t.t("facts.studying") : t.t("facts.eduYear"), value: b.educationYear ? (b.educationStudying ? t.t("facts.eduDue", { year: t.n(b.educationYear) }) : t.n(b.educationYear)) : null },
+    { label: t.t("facts.result"), value: b.educationResult },
+    { label: t.t("facts.extra"), value: b.extraQualifications ? prose(b.extraQualifications) : null },
     { label: t.t("facts.profession"), value: b.profession },
     { label: t.t("facts.workplace"), value: b.workplace },
   ];

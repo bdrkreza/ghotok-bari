@@ -1,13 +1,14 @@
 import { and, eq, inArray, isNotNull, ne, or } from "drizzle-orm";
 import type { Db } from "../db";
 import { profile, proposal, type Profile } from "../db/schema";
+import { educationRank, expectRank } from "../profile-fields";
 import { ageFromYear } from "../time";
 import { notify } from "./notices";
 import { FAMILY_VIEW } from "./share";
 
 /** Why two people might suit each other; the page turns the key into words in the user's language ("reason.*"). */
 export interface Reason {
-  key: "sameDistrict" | "sameUpazila" | "ageGap" | "sameEducation" | "maritalMatch" | "fitsAge" | "fitsDistrict" | "fitsMarital";
+  key: "sameDistrict" | "sameUpazila" | "ageGap" | "sameEducation" | "maritalMatch" | "fitsAge" | "fitsDistrict" | "fitsMarital" | "fitsEducation";
   /** the age gap in years, for "ageGap" */
   n?: number;
 }
@@ -32,13 +33,20 @@ export function scorePair(patro: Profile, patri: Profile): { score: number; reas
   const gap = ageFromYear(patro.birthYear) - ageFromYear(patri.birthYear);
   if (gap >= 0 && gap <= 10) { score += 3; reasons.push({ key: "ageGap", n: gap }); }
   else if (gap > -3 && gap <= 15) { score += 1; reasons.push({ key: "ageGap", n: Math.abs(gap) }); }
-  if (patro.education && norm(patro.education) === norm(patri.education)) { score += 1; reasons.push({ key: "sameEducation" }); }
+  // the same level when both picked one from the list, else the same words
+  const ra = educationRank(patro.educationLevel), rb = educationRank(patri.educationLevel);
+  const sameEdu = ra !== null && rb !== null ? ra === rb : Boolean(patro.education && norm(patro.education) === norm(patri.education));
+  if (sameEdu) { score += 1; reasons.push({ key: "sameEducation" }); }
   if ((patro.maritalStatus === "obibahito") === (patri.maritalStatus === "obibahito")) { score += 1; reasons.push({ key: "maritalMatch" }); }
   // what each side asked for on the form, where they filled it in
   const fits = (who: Profile, other: Profile) => ({
     age: who.expectAgeMin !== null || who.expectAgeMax !== null
       ? (who.expectAgeMin ?? 0) <= ageFromYear(other.birthYear) && ageFromYear(other.birthYear) <= (who.expectAgeMax ?? 200) : null,
     district: who.expectDistricts ? who.expectDistricts.split(/[,،]/).map(norm).filter(Boolean).includes(norm(other.district)) : null,
+    // "at least a bachelor's": the other's level reaches it; unknown (no level, or one off the ladder) is not a no
+    education: who.expectEducation
+      ? (() => { const r = educationRank(other.educationLevel); return r === null ? null : r >= expectRank(who.expectEducation!); })()
+      : null,
     marital: who.expectMarital
       ? who.expectMarital === "obibahito" ? other.maritalStatus === "obibahito"
         : who.expectMarital === "talak_ok" ? other.maritalStatus !== "bidhoba" : true
@@ -48,6 +56,7 @@ export function scorePair(patro: Profile, patri: Profile): { score: number; reas
   if (a.age || b.age) { score += 2; reasons.push({ key: "fitsAge" }); }
   if (a.district || b.district) { score += 2; reasons.push({ key: "fitsDistrict" }); }
   if (a.marital || b.marital) { score += 1; reasons.push({ key: "fitsMarital" }); }
+  if (a.education || b.education) { score += 2; reasons.push({ key: "fitsEducation" }); }
   return { score, reasons };
 }
 

@@ -5,12 +5,12 @@ import { profile, user, type Approval, type MaritalStatus, type Profile, type Pr
 import { AppError, type Existing, type FieldIssue, type FieldIssues } from "../errors";
 import { deletePhotosOf } from "./photos";
 import {
-  AFTER_HOMES, BLOOD_GROUPS, CHOICES, COMPLEXIONS, DOWRIES, EDUCATION_MEDIUMS, EXPECT_EDUCATIONS, EXPECT_MARITALS, FAMILY_STATUSES,
+  AFTER_HOMES, BLOOD_GROUPS, CHOICES, COMPLEXIONS, DOWRIES, EDUCATION_LEVELS, EDUCATION_MEDIUMS, EXPECT_EDUCATIONS, EXPECT_MARITALS, FAMILY_STATUSES,
   MARITAL_STATUSES, MIN_AGE, RELIGIONS, missing, FAMILY_REQUIRED, GHOTOK_REQUIRED,
 } from "../profile-fields";
 
 export {
-  AFTER_HOMES, BLOOD_GROUPS, CHOICES, COMPLEXIONS, DOWRIES, EDUCATION_MEDIUMS, EXPECT_EDUCATIONS, EXPECT_MARITALS, FAMILY_STATUSES,
+  AFTER_HOMES, BLOOD_GROUPS, CHOICES, COMPLEXIONS, DOWRIES, EDUCATION_LEVELS, EDUCATION_MEDIUMS, EXPECT_EDUCATIONS, EXPECT_MARITALS, FAMILY_STATUSES,
   MARITAL_STATUSES, MIN_AGE, RELIGIONS, missing, FAMILY_REQUIRED, GHOTOK_REQUIRED,
 };
 import { normalizePhone } from "../auth/phone";
@@ -67,6 +67,14 @@ const profileInput = z.object({
   weightKg: optionalInt(20, 300),
   bloodGroup: pick(BLOOD_GROUPS),
   educationMedium: pick(EDUCATION_MEDIUMS),
+  educationLevel: pick(EDUCATION_LEVELS),
+  educationSubject: optional(120),
+  educationInstitution: optional(160),
+  educationYear: optionalInt(1950, 2100),
+  /** the "এখন পড়ছেন" tick: "on" when ticked */
+  educationStudying: z.string().transform((s) => s === "on"),
+  educationResult: optional(60),
+  extraQualifications: optional(1000),
   workplace: optional(160),
   presentAddress: optional(160),
   brothers: optionalInt(0, 30),

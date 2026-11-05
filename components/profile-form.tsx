@@ -15,7 +15,7 @@ import { submitBiodataAction, updateBiodataAction } from "@/lib/actions/biodata"
 import { normalizePhone } from "@/lib/auth/phone";
 import { createProfileAction, updateProfileAction } from "@/lib/actions/profiles";
 import {
-  AFTER_HOMES, BLOOD_GROUPS, CHOICES, COMPLEXIONS, DOWRIES, EDUCATION_MEDIUMS, EXPECT_EDUCATIONS, EXPECT_MARITALS, FAMILY_STATUSES,
+  AFTER_HOMES, BLOOD_GROUPS, CHOICES, COMPLEXIONS, DOWRIES, EDUCATION_LEVELS, EDUCATION_MEDIUMS, EXPECT_EDUCATIONS, EXPECT_MARITALS, FAMILY_STATUSES,
   MARITAL_STATUSES, MIN_AGE, RELIGIONS, missing, FAMILY_REQUIRED, GHOTOK_REQUIRED,
 } from "@/lib/profile-fields";
 
@@ -386,7 +386,20 @@ export function ProfileForm({ kind, profile, minYear, maxYear, viewer = "admin",
               </Section>
 
               <Section ref={at(1)} active={step === 1} title={titles[1][0]}>
+                <Wide>
+                  <Choice name="educationLevel" label={t("form.eduLevel")} options={options("eduLevel", EDUCATION_LEVELS)} skip={notSay} defaultValue={v.educationLevel} tag={tags("educationLevel", "all")} />
+                </Wide>
                 <Field name="education" required={req("education")} maxLength={120} label={t("form.education")} placeholder={t("form.educationPlaceholder")} defaultValue={v.education} tag={tags("education", "all")} />
+                <Field name="educationSubject" maxLength={120} label={t("form.eduSubject")} placeholder={t("form.eduSubjectPlaceholder")} defaultValue={v.educationSubject} tag={tags("educationSubject", "all")} />
+                <Field name="educationInstitution" maxLength={160} label={t("form.eduInstitution")} placeholder={t("form.eduInstitutionPlaceholder")} defaultValue={v.educationInstitution} tag={tags("educationInstitution", "ghotok")} />
+                <Field name="educationYear" label={t("form.eduYear")} type="number" inputMode="numeric" min="1950" max="2100" placeholder="2020" defaultValue={v.educationYear} hint={t("form.eduYearHint")} tag={tags("educationYear", "all")} />
+                <Wide>
+                  <Checkbox name="educationStudying" label={t("form.eduStudying")} defaultChecked={v.educationStudying === "true" || v.educationStudying === "on"} />
+                </Wide>
+                <Field name="educationResult" maxLength={60} label={t("form.eduResult")} placeholder={t("form.eduResultPlaceholder")} defaultValue={v.educationResult} tag={tags("educationResult", "all")} />
+                <Wide>
+                  <TextArea name="extraQualifications" maxLength={1000} rows={2} label={t("form.extraQuals")} placeholder={t("form.extraQualsPlaceholder")} defaultValue={v.extraQualifications} tag={tags("extraQualifications", "all")} />
+                </Wide>
                 <Field name="profession" required={req("profession")} maxLength={120} label={t("form.profession")} placeholder={t("form.professionPlaceholder")} defaultValue={v.profession} tag={tags("profession", "all")} />
                 <Field name="workplace" maxLength={160} label={t("form.workplace")} placeholder={t("form.workplacePlaceholder")} defaultValue={v.workplace} tag={tags("workplace", "all")} />
                 <Field name="monthlyIncome" label={t("form.income")} type="number" inputMode="numeric" min="0" placeholder={t("form.incomePlaceholder")} defaultValue={v.monthlyIncome} tag={tags("monthlyIncome", "ghotok")} />

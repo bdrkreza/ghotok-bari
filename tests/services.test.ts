@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm";
 import { beforeAll, describe, expect, it } from "vitest";
-import { profile } from "@/lib/db/schema";
+import { profile, type Profile } from "@/lib/db/schema";
 import { login } from "@/lib/auth/service";
 import { roleOf } from "@/lib/auth/roles";
 import { AppError, fieldMessages, type FieldIssues } from "@/lib/errors";
@@ -10,9 +10,9 @@ import { listCustomers, setRole } from "@/lib/services/customers";
 import { createSite, getSite, publicSite, updateSite } from "@/lib/services/site";
 import { dashboard } from "@/lib/services/dashboard";
 import { addEntry, listEntries, totals } from "@/lib/services/ledger";
-import { suggestFor } from "@/lib/services/match";
+import { scorePair, suggestFor } from "@/lib/services/match";
 import { listHref, parseAge } from "@/lib/search";
-import { completeness } from "@/lib/profile-fields";
+import { completeness, educationRank, expectRank } from "@/lib/profile-fields";
 import { GHOTOK_REQUIRED, activeCounts, createProfile, deleteProfile, parseProfile, setShowParents, setShowPhotos, getProfile, listProfiles, pendingCount, places, setApproval, submittedProfiles, updateProfile } from "@/lib/services/profiles";
 import { browseBiodata, browseOne, deleteMyBiodata, getMyBiodata, myBiodata, submitBiodata, updateMyBiodata } from "@/lib/services/biodata";
 import { addNote, changeStatus, createProposal, getProposal, listProposals, proposalsFor } from "@/lib/services/proposals";
@@ -477,15 +477,64 @@ describe("biodata handed in by families", () => {
 });
 
 describe("biodata completeness", () => {
-  const blank = { photoUrl: null, village: null, upazila: null, familyDetails: null, expectations: null, workplace: null, complexion: null, bloodGroup: null, religiousPractice: null, expectAgeMin: null, expectAgeMax: null };
+  const blank = { educationLevel: null, photoUrl: null, village: null, upazila: null, familyDetails: null, expectations: null, workplace: null, complexion: null, bloodGroup: null, religiousPractice: null, expectAgeMin: null, expectAgeMax: null };
 
   it("counts what is filled in, ignores blank text, and names what is left", () => {
-    expect(completeness(blank)).toEqual({ percent: 0, missing: ["photo", "village", "upazila", "family", "expectations", "workplace", "complexion", "bloodGroup", "practice", "expectAge"] });
+    expect(completeness(blank)).toEqual({ percent: 0, missing: ["eduLevel", "photo", "village", "upazila", "family", "expectations", "workplace", "complexion", "bloodGroup", "practice", "expectAge"] });
     const some = completeness({ ...blank, photoUrl: "/api/photos/x", village: "  ", expectations: "শিক্ষিত", expectAgeMax: 30 });
-    expect(some.percent).toBe(30);
+    expect(some.percent).toBe(27);
     expect(some.missing).toContain("village"); // spaces only is blank
     expect(some.missing).not.toContain("expectAge");
-    const all = completeness({ photoUrl: "a", village: "a", upazila: "a", familyDetails: "a", expectations: "a", workplace: "a", complexion: "forsha", bloodGroup: "A+", religiousPractice: "a", expectAgeMin: 20, expectAgeMax: null });
+    const all = completeness({ educationLevel: "bachelor", photoUrl: "a", village: "a", upazila: "a", familyDetails: "a", expectations: "a", workplace: "a", complexion: "forsha", bloodGroup: "A+", religiousPractice: "a", expectAgeMin: 20, expectAgeMax: null });
     expect(all).toEqual({ percent: 100, missing: [] });
+  });
+});
+
+describe("education in parts", () => {
+  /** just what scorePair reads */
+  const person = (over: Record<string, unknown>) => ({
+    district: "ঢাকা", upazila: null, birthYear: currentYear() - 28, education: null, educationLevel: null, maritalStatus: "obibahito",
+    expectAgeMin: null, expectAgeMax: null, expectDistricts: null, expectMarital: null, expectEducation: null, ...over,
+  }) as unknown as Profile;
+
+  it("reads the level, subject, year, result and extras, and refuses what is off the list or out of range", () => {
+    const ok = parseProfile(personForm({ educationLevel: "master", educationSubject: "ইংরেজি", educationInstitution: "ঢাকা বিশ্ববিদ্যালয়", educationYear: "2022", educationStudying: "on", educationResult: "সিজিপিএ ৩.৮০", extraQualifications: "কম্পিউটার, ইংরেজিতে দক্ষ" }));
+    expect(ok).toMatchObject({ educationLevel: "master", educationSubject: "ইংরেজি", educationInstitution: "ঢাকা বিশ্ববিদ্যালয়", educationYear: 2022, educationStudying: true, educationResult: "সিজিপিএ ৩.৮০" });
+    expect(parseProfile(personForm())).toMatchObject({ educationLevel: null, educationYear: null, educationStudying: false });
+    expect(fieldsOf(() => parseProfile(personForm({ educationLevel: "wizard" })))).toHaveProperty("educationLevel");
+    expect(fieldsOf(() => parseProfile(personForm({ educationYear: "1800" })))).toHaveProperty("educationYear");
+  });
+
+  it("puts a madrasa level where its general-school equivalent stands, and leaves hafez and other off the ladder", () => {
+    expect([educationRank("ssc"), educationRank("dakhil"), educationRank("hsc"), educationRank("alim"), educationRank("bachelor"), educationRank("fazil"), educationRank("master"), educationRank("kamil"), educationRank("phd")]).toEqual([1, 1, 2, 2, 3, 3, 4, 4, 5]);
+    expect(educationRank("hafez")).toBeNull();
+    expect(educationRank("other")).toBeNull();
+    expect(educationRank(null)).toBeNull();
+    expect(expectRank("bachelor")).toBe(3);
+  });
+
+  it("matches \"at least a bachelor's\" on the level, so a fazil fits, an alim does not and a hafez neither counts for nor against", () => {
+    const groom = person({ expectEducation: "bachelor", educationLevel: "bachelor" });
+    const reasons = (bride: Record<string, unknown>) => scorePair(groom, person(bride)).reasons.map((r) => r.key);
+    expect(reasons({ educationLevel: "fazil" })).toEqual(expect.arrayContaining(["fitsEducation", "sameEducation"]));
+    expect(reasons({ educationLevel: "master" })).toContain("fitsEducation");
+    expect(reasons({ educationLevel: "alim" })).not.toContain("fitsEducation");
+    expect(reasons({ educationLevel: "hafez" })).not.toContain("fitsEducation");
+    expect(reasons({ educationLevel: "hafez" })).not.toContain("sameEducation");
+    // no level picked: the same words still count as the same education
+    expect(scorePair(person({ education: "অনার্স" }), person({ education: "অনার্স" })).reasons.map((r) => r.key)).toContain("sameEducation");
+    // asking for nothing is not a match either way
+    expect(scorePair(person({}), person({ educationLevel: "phd" })).reasons.map((r) => r.key)).not.toContain("fitsEducation");
+    const lower = scorePair(groom, person({ educationLevel: "hsc" })).score;
+    const higher = scorePair(groom, person({ educationLevel: "master" })).score;
+    expect(higher - lower).toBe(2);
+  });
+
+  it("shows other families the level and the rest, but keeps the institution to the ghotok and the writer", async () => {
+    const id = await createProfile(app.db, ghotok.id, personForm({ kind: "patri", name: "শিক্ষিতা", birthYear: String(currentYear() - 24), educationLevel: "bachelor", educationInstitution: "গোপন কলেজ", educationSubject: "পদার্থবিজ্ঞান" }));
+    const seen = await browseOne(app.db, ghotok.id, id);
+    expect(seen).toMatchObject({ educationLevel: "bachelor", educationSubject: "পদার্থবিজ্ঞান" });
+    expect(JSON.stringify(seen)).not.toContain("গোপন কলেজ");
+    expect((await getProfile(app.db, ghotok.id, id)).educationInstitution).toBe("গোপন কলেজ");
   });
 });
