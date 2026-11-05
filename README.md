@@ -30,6 +30,7 @@ layout on a computer) and a **phone app** (installed from the browser onto the h
 | `/dashboard/interests` | admin | "আগ্রহ জানান" from families: who asked about which biodata and for whom; make the proposal in one tap, call, close or open again |
 | `/dashboard/site` | admin | The front page's words: site name, tagline, the ghotok's paragraph, address, WhatsApp |
 | `/dashboard/activity` | admin | Who on the ghotok's side changed what, newest first (the last 200) |
+| `/dashboard/visits` | admin | Which family opened, short-listed or asked about which biodata, with names and times (the last 300), and the last seven days in numbers. A family sees only counts for its own biodata on `/me/biodata/[id]`, never who (`lib/services/views.ts`, table `profile_event`; the same family reopening the same biodata within 30 minutes is one view) |
 | `/dashboard/meetings` | admin | দেখা-দেখি: today's, tomorrow's and later meetings with the pair, time and place, then the last 30 days'; each opens its proposal |
 | `/profiles/new?kind=patro` | admin | Add a person (name, age, looks, education, work, address, guardian, family, the "after marriage" answers, expectations); listed at once |
 | `/profiles/[id]` | admin | One person: details, their proposals, suggested matches, status, public share link, delete. For a family's biodata: who handed it in, and the buttons to list it or return it with a note |
@@ -109,7 +110,7 @@ On any listed biodata a family can press **আগ্রহ জানান**: it
 banner on the dashboard) with the family's name and number, the line they wrote and, if they picked one, which of their
 own listed biodata it is for. With that, the ghotok makes the proposal in one tap; without it, they call. Either way
 the other family is told nothing. Once per family and biodata; it can be taken back until the ghotok acts. A family
-also keeps a private short list (পছন্দের তালিকা). Both only ever point at approved biodata and read back through
+also keeps a short list (পছন্দের তালিকা), hidden from other families but read by the ghotok in `/dashboard/visits`. Both only ever point at approved biodata and read back through
 `FAMILY_VIEW` (`lib/services/interests.ts`). When the ghotok lists or returns a family's biodata, or makes a proposal
 from their request, the family finds a notice on `/me` until they dismiss it (`lib/services/notices.ts`). When a
 biodata is newly listed, each family whose own listed biodata it suits well (`MATCH_NOTICE_MIN`, same religion, not

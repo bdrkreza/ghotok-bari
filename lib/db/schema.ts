@@ -257,7 +257,7 @@ export const interest = pgTable("interest", {
   index("interest_ghotok_status").on(t.ghotokId, t.status),
 ]).enableRLS();
 
-/** A biodata a family keeps on their own short list ("পছন্দের তালিকা"). Private to that account. */
+/** A biodata a family keeps on their own short list ("পছন্দের তালিকা"). Other families never see it; the ghotok reads the picks in /dashboard/visits. */
 export const favorite = pgTable("favorite", {
   ghotokId: text("ghotok_id").notNull().references(() => user.id, { onDelete: "cascade" }),
   userId: text("user_id").notNull().references(() => user.id, { onDelete: "cascade" }),
@@ -339,6 +339,26 @@ export const activity = pgTable("activity", {
   href: text("href"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 }, (t) => [index("activity_ghotok_at").on(t.ghotokId, t.createdAt)]).enableRLS();
+
+/**
+ * A signed-in family looking at someone else's biodata, putting it on the short list, or asking about it
+ * (/dashboard/visits for the ghotok; the biodata's own family sees only counts). Views of the same biodata by the same
+ * account within half an hour are one row (lib/services/views.ts). No address or device is kept.
+ */
+export type ProfileEventKind = "view" | "favorite" | "interest";
+
+export const profileEvent = pgTable("profile_event", {
+  id: id(),
+  ghotokId: text("ghotok_id").notNull().references(() => user.id, { onDelete: "cascade" }),
+  /** the family account that looked */
+  userId: text("user_id").notNull().references(() => user.id, { onDelete: "cascade" }),
+  profileId: uuid("profile_id").notNull().references(() => profile.id, { onDelete: "cascade" }),
+  kind: text("kind").$type<ProfileEventKind>().notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => [
+  index("profile_event_ghotok_at").on(t.ghotokId, t.createdAt),
+  index("profile_event_profile").on(t.profileId, t.kind, t.createdAt),
+]).enableRLS();
 
 /* ---------- relations ---------- */
 

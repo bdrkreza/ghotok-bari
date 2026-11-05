@@ -153,6 +153,7 @@ export default async function HomePage() {
           <LinkCard icon="people" title={t("dash.customersCard")} text={t("dash.customersText")} href="/dashboard/customers" t={T} />
           <LinkCard icon="edit" title={t("dash.siteCard")} text={t("dash.siteText")} href="/dashboard/site" t={T} />
           <LinkCard icon="note" title={t("dash.activityCard")} text={t("dash.activityText")} href="/dashboard/activity" t={T} />
+          <LinkCard icon="people" title={t("vl.title")} text={t("dash.visitsText")} href="/dashboard/visits" t={T} />
         </section>
       </div>
 

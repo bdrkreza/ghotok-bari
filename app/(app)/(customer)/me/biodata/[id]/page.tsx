@@ -10,6 +10,7 @@ import { getT } from "@/lib/i18n/server";
 import { orNotFound } from "@/lib/not-found";
 import { getMyBiodata } from "@/lib/services/biodata";
 import { listPhotos } from "@/lib/services/photos";
+import { myBiodataStats } from "@/lib/services/views";
 import { ageFromYear } from "@/lib/time";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -27,6 +28,8 @@ export default async function MyBiodataPage(props: PageProps<"/me/biodata/[id]">
   const { id } = await props.params;
   const p = await orNotFound(getMyBiodata(getDb(), me.ghotokId, me.id, id));
   const photos = await listPhotos(getDb(), me.ghotokId, p.id);
+  // numbers only: how often other families opened it, how many keep it on their short list or asked about it
+  const stats = p.approval === "approved" ? await myBiodataStats(getDb(), me.ghotokId, me.id, p.id) : null;
 
   return (
     <>
@@ -61,6 +64,19 @@ export default async function MyBiodataPage(props: PageProps<"/me/biodata/[id]">
         }
         more={
           <>
+            {stats ? (
+              <Card title={t("mb.statsTitle")}>
+                <dl className="grid grid-cols-3 gap-2 text-center">
+                  {([["views", stats.views, "mb.statViews"], ["favorites", stats.favorites, "mb.statFavorites"], ["interests", stats.interests, "mb.statInterests"]] as const).map(([k, n, label]) => (
+                    <div key={k} className="rounded-2xl bg-primary-soft px-2 py-3">
+                      <dd className="font-display text-2xl font-extrabold text-primary">{T.n(n)}</dd>
+                      <dt className="text-xs text-muted">{t(label)}</dt>
+                    </div>
+                  ))}
+                </dl>
+                <p className="mt-3 text-xs text-muted">{t("mb.statsNote", { n: stats.viewsWeek, f: stats.families })}</p>
+              </Card>
+            ) : null}
             <Card title={t("mb.whoSees")}>
               <p className="text-sm text-muted">{t("mb.whoSeesText")}</p>
             </Card>

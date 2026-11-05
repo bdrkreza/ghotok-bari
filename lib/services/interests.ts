@@ -6,9 +6,10 @@ import { notify } from "./notices";
 import { pushToAdmins } from "./push";
 import { createProposal } from "./proposals";
 import { FAMILY_VIEW } from "./share";
+import { recordProfileEvent } from "./views";
 
 // What a family does with someone else's biodata: "আগ্রহ জানান" (a request that lands in the ghotok's inbox) and the
-// short list ("পছন্দের তালিকা", private to the family). Both only ever point at approved, listed biodata, and what the
+// short list ("পছন্দের তালিকা", hidden from other families; the ghotok sees the picks in /dashboard/visits). Both only ever point at approved, listed biodata, and what the
 // family reads back goes through FAMILY_VIEW. The ghotok's inbox joins the user table for the asking family's name and
 // number: only accounts that asked on this ghotok's site, scoped by interest.ghotok_id.
 
@@ -39,7 +40,10 @@ export async function expressInterest(db: Db, ghotokId: string, userId: string, 
   await db.insert(interest).values({ id: crypto.randomUUID(), ghotokId, userId, profileId: liked.id, forProfileId, note })
     .onConflictDoUpdate({ target: [interest.userId, interest.profileId], set: { forProfileId, note, status: "new" }, where: sql`${interest.status} <> 'proposed'` });
   // a new request (or a closed one woken) reaches the ghotok's phone; changing the note of one already waiting does not
-  if (!before || before.status === "closed") await pushToAdmins(db, ghotokId);
+  if (!before || before.status === "closed") {
+    await recordProfileEvent(db, ghotokId, userId, liked.id, "interest");
+    await pushToAdmins(db, ghotokId);
+  }
 }
 
 /** The family takes a request back, while the ghotok has not acted on it. */
@@ -124,6 +128,7 @@ export async function toggleFavorite(db: Db, ghotokId: string, userId: string, p
   if (gone.length) return false;
   await listed(db, ghotokId, profileId);
   await db.insert(favorite).values({ ghotokId, userId, profileId }).onConflictDoNothing();
+  await recordProfileEvent(db, ghotokId, userId, profileId, "favorite");
   return true;
 }
 

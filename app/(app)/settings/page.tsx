@@ -83,6 +83,7 @@ export default async function SettingsPage() {
               <div className="grid gap-2 border-t border-line pt-3 sm:grid-cols-2">
                 <Link href="/dashboard/site" className={quietButton}><Icon name="edit" size={18} />{t("dash.siteCard")}</Link>
                 <Link href="/dashboard/activity" className={quietButton}><Icon name="note" size={18} />{t("dash.activityCard")}</Link>
+                <Link href="/dashboard/visits" className={quietButton}><Icon name="people" size={18} />{t("vl.title")}</Link>
               </div>
             </Card>
           ) : null}

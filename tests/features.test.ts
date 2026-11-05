@@ -16,11 +16,12 @@ import { matchesForFamily } from "@/lib/services/match";
 import { dismissNotice, notify, recentNotices, unreadCount, unreadNotices } from "@/lib/services/notices";
 import { createProfile, setApproval } from "@/lib/services/profiles";
 import { changeStatus, dueFollowUps, getProposal, setFollowUp } from "@/lib/services/proposals";
+import { listProfileEvents, myBiodataStats, recordProfileEvent, weekEventCounts } from "@/lib/services/views";
 import { today } from "@/lib/time";
 import { createTestApp, personForm } from "./testdb";
 
 // The features around the core: families' interest and short list, notices, follow-ups, dues and the monthly
-// summary, password reset and change, sign-in throttling, the activity log, and the backup.
+// summary, password reset and change, sign-in throttling, the activity log, who looked at which biodata, and the backup.
 
 type App = Awaited<ReturnType<typeof createTestApp>>;
 
@@ -256,5 +257,50 @@ describe("the activity log and the backup", () => {
     expect(csv.startsWith("﻿KIND,CODE,NAME,")).toBe(true);
     expect(csv).toContain("নুসরাত জাহান");
     expect(csv).not.toContain("অন্য সাইটের");
+  });
+});
+
+describe("who looked at which biodata", () => {
+  // fresh, still-listed biodata of its own: earlier tests have used up `son` and `bride` (proposals made)
+  let mine: string; // the family's, listed
+  let theirs: string; // the ghotok's, listed
+  const eventsOn = async (profileId: string) => (await listProfileEvents(app.db, ghotok.id)).filter((e) => e.profileId === profileId);
+
+  beforeAll(async () => {
+    mine = await submitBiodata(app.db, ghotok.id, family.id, personForm({ kind: "patro", name: "সাকিব", birthYear: "1995", district: "কুমিল্লা" }));
+    await setApproval(app.db, ghotok.id, mine, "approved");
+    theirs = await createProfile(app.db, ghotok.id, personForm({ kind: "patri", name: "তাসনিম", birthYear: "2000", district: "কুমিল্লা" }));
+    await setApproval(app.db, ghotok.id, theirs, "approved");
+  });
+
+  it("logs a family's views once per half hour, and skips its own, unlisted and other sites' biodata", async () => {
+    await recordProfileEvent(app.db, ghotok.id, stranger.id, mine, "view");
+    await recordProfileEvent(app.db, ghotok.id, stranger.id, mine, "view"); // the same look again: one row
+    expect((await eventsOn(mine)).filter((e) => e.kind === "view" && e.userId === stranger.id)).toHaveLength(1);
+
+    await recordProfileEvent(app.db, ghotok.id, family.id, mine, "view"); // the family's own biodata
+    expect((await eventsOn(mine)).filter((e) => e.userId === family.id)).toHaveLength(0);
+    await recordProfileEvent(app.db, ghotok.id, family.id, pending, "view"); // not approved
+    expect(await eventsOn(pending)).toHaveLength(0);
+    await recordProfileEvent(app.db, stranger.id, family.id, theirs, "view"); // another site's ghotok
+    expect(await eventsOn(theirs)).toHaveLength(0);
+  });
+
+  it("logs short-list picks and requests, and the ghotok reads them with names", async () => {
+    const before = await weekEventCounts(app.db, ghotok.id); // earlier tests wrote some too
+    expect(await toggleFavorite(app.db, ghotok.id, stranger.id, mine)).toBe(true);
+    await expressInterest(app.db, ghotok.id, stranger.id, { profileId: theirs });
+    expect((await eventsOn(mine)).find((e) => e.kind === "favorite")).toMatchObject({ userId: stranger.id, who: "অন্য পরিবার", name: "সাকিব" });
+    expect((await eventsOn(theirs)).find((e) => e.kind === "interest")).toMatchObject({ userId: stranger.id, name: "তাসনিম" });
+    const after = await weekEventCounts(app.db, ghotok.id);
+    expect(after).toEqual({ view: before.view, favorite: before.favorite + 1, interest: before.interest + 1 });
+  });
+
+  it("shows a family only numbers about its own biodata", async () => {
+    const stats = await myBiodataStats(app.db, ghotok.id, family.id, mine);
+    expect(stats).toEqual({ views: 1, viewsWeek: 1, families: 1, favorites: 1, interests: 0 });
+    // someone else's biodata, or one of another site: zeros
+    expect(await myBiodataStats(app.db, ghotok.id, stranger.id, mine)).toEqual({ views: 0, viewsWeek: 0, families: 0, favorites: 0, interests: 0 });
+    expect(await myBiodataStats(app.db, stranger.id, family.id, mine)).toEqual({ views: 0, viewsWeek: 0, families: 0, favorites: 0, interests: 0 });
   });
 });

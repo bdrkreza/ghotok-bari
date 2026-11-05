@@ -11,6 +11,7 @@ import { getT } from "@/lib/i18n/server";
 import { browseOne, myBiodata } from "@/lib/services/biodata";
 import { isFavorite, myInterestIn } from "@/lib/services/interests";
 import { publicSite } from "@/lib/services/site";
+import { recordProfileEvent } from "@/lib/services/views";
 
 export async function generateMetadata(): Promise<Metadata> {
   const { t } = await getT();
@@ -30,6 +31,8 @@ export default async function BiodataPage(props: PageProps<"/biodata/[id]">) {
     browseOne(db, me.ghotokId, id), publicSite(db), myInterestIn(db, me.ghotokId, me.id, id), isFavorite(db, me.ghotokId, me.id, id), myBiodata(db, me.ghotokId, me.id),
   ]);
   if (!b) notFound();
+  // the ghotok's log of who looked (never fails the page; own biodata and unlisted ones are skipped inside)
+  await recordProfileEvent(db, me.ghotokId, me.id, id, "view");
   const photos = b.showPhotos ? await listPhotos(db, me.ghotokId, id) : [];
   const no = T.biodataNo(b.kind, b.code);
   // the family's own listed biodata of the other kind: who this one might be for
