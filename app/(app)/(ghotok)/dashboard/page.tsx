@@ -93,6 +93,26 @@ export default async function HomePage() {
         </section>
       ) : null}
 
+      {d.stale.length ? (
+        <section className="flex flex-col gap-3 rounded-3xl border border-line bg-surface p-4 lg:p-5">
+          <p className="flex items-center gap-2 font-bold"><Icon name="bell" size={20} />{t("dash.staleTitle", { n: d.stale.length })}</p>
+          <ul className="flex flex-col gap-2">
+            {d.stale.map((s) => (
+              <li key={s.id} className="flex flex-col gap-2 rounded-2xl bg-bg p-3 sm:flex-row sm:items-center">
+                <Link href={`/proposals/${s.id}`} className="min-w-0 flex-1">
+                  <span className="block truncate font-bold">{t("common.and", { a: s.patro.name, b: s.patri.name })}</span>
+                  <span className="block text-sm text-muted">{t("dash.staleIdle", { n: s.idleDays })}</span>
+                </Link>
+                <span className="flex shrink-0 gap-2">
+                  {s.patro.guardianPhone ? <a href={`tel:${s.patro.guardianPhone}`} className={`${quietButton} min-h-10 px-3 text-sm`}><Icon name="phone" size={16} />{t("kind.patro")}</a> : null}
+                  {s.patri.guardianPhone ? <a href={`tel:${s.patri.guardianPhone}`} className={`${quietButton} min-h-10 px-3 text-sm`}><Icon name="phone" size={16} />{t("kind.patri")}</a> : null}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+
       <div className="flex flex-col gap-5 lg:grid lg:grid-cols-[1fr_22rem] lg:items-start lg:gap-8">
         <section className="flex flex-col gap-4">
           <SectionHead eyebrow={t("dash.liveProposals")} title={t("dash.liveTitle")} links={[{ href: "/proposals", label: t("dash.allProposals") }]} />

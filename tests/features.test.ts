@@ -15,9 +15,11 @@ import { addEntry, dues, monthly } from "@/lib/services/ledger";
 import { matchesForFamily } from "@/lib/services/match";
 import { dismissNotice, notify, recentNotices, unreadCount, unreadNotices } from "@/lib/services/notices";
 import { createProfile, setApproval } from "@/lib/services/profiles";
-import { changeStatus, dueFollowUps, getProposal, setFollowUp } from "@/lib/services/proposals";
+import { changeStatus, dueFollowUps, getProposal, setFollowUp, staleProposals } from "@/lib/services/proposals";
 import { listProfileEvents, myBiodataStats, recordProfileEvent, weekEventCounts } from "@/lib/services/views";
 import { today } from "@/lib/time";
+import { proposal } from "@/lib/db/schema";
+import { eq } from "drizzle-orm";
 import { createTestApp, personForm } from "./testdb";
 
 // The features around the core: families' interest and short list, notices, follow-ups, dues and the monthly
@@ -321,5 +323,27 @@ describe("who looked at which biodata", () => {
     // someone else's biodata, or one of another site: zeros
     expect(await myBiodataStats(app.db, ghotok.id, stranger.id, mine)).toEqual({ views: 0, viewsWeek: 0, families: 0, favorites: 0, interests: 0 });
     expect(await myBiodataStats(app.db, stranger.id, family.id, mine)).toEqual({ views: 0, viewsWeek: 0, families: 0, favorites: 0, interests: 0 });
+  });
+});
+
+describe("stuck proposals", () => {
+  it("lists live ones idle two weeks with no call-back day, longest first, and leaves out the rest", async () => {
+    const [{ id }] = await app.db.select({ id: proposal.id }).from(proposal).where(eq(proposal.ghotokId, ghotok.id)).limit(1);
+    const age = (days: number) => new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+    const set = (v: Partial<typeof proposal.$inferInsert>) => app.db.update(proposal).set(v).where(eq(proposal.id, id));
+
+    await set({ status: "prostab", followUpOn: null, updatedAt: age(3) });
+    expect(await staleProposals(app.db, ghotok.id)).toHaveLength(0); // recent
+
+    await set({ updatedAt: age(20) });
+    const [row] = await staleProposals(app.db, ghotok.id);
+    expect(row).toMatchObject({ id, idleDays: 20 });
+    expect(row.patro.name).toBeTruthy();
+    expect(await staleProposals(app.db, stranger.id)).toHaveLength(0); // another site
+
+    await set({ followUpOn: today() }); // the ghotok already said when to call
+    expect(await staleProposals(app.db, ghotok.id)).toHaveLength(0);
+    await set({ followUpOn: null, status: "bad" }); // dropped ones are not stuck
+    expect(await staleProposals(app.db, ghotok.id)).toHaveLength(0);
   });
 });

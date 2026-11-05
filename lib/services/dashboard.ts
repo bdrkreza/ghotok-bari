@@ -6,7 +6,7 @@ import { totals, type Totals } from "./ledger";
 import { activeCounts, pendingCount, places, recentProfiles, type RecentProfile } from "./profiles";
 import { newInterestCount } from "./interests";
 import { soonMeetingCount, upcomingMeetings, type MeetingRow } from "./meetings";
-import { LIVE, dueFollowUps, followUpCount, listProposals, type FollowUpRow, type ProposalRow } from "./proposals";
+import { LIVE, dueFollowUps, followUpCount, listProposals, staleProposals, type FollowUpRow, type ProposalRow, type StaleRow } from "./proposals";
 
 export interface Dashboard {
   patro: number;
@@ -19,6 +19,8 @@ export interface Dashboard {
   interests: number;
   /** live proposals whose call-back day has come */
   followUps: FollowUpRow[];
+  /** live proposals that have not moved for two weeks and have no call-back day */
+  stale: StaleRow[];
   /** the next few দেখা-দেখি, from today on */
   meetings: MeetingRow[];
   money: Totals;
@@ -30,7 +32,7 @@ export interface Dashboard {
 }
 
 export async function dashboard(db: Db, ghotokId: string): Promise<Dashboard> {
-  const [counts, live, fixed, pending, money, recent, people, seen, interests, followUps, meetings] = await Promise.all([
+  const [counts, live, fixed, pending, money, recent, people, seen, interests, followUps, meetings, stale] = await Promise.all([
     activeCounts(db, ghotokId),
     db.select({ n: count() }).from(proposal).where(and(eq(proposal.ghotokId, ghotokId), inArray(proposal.status, LIVE))),
     db.select({ n: count() }).from(proposal).where(and(eq(proposal.ghotokId, ghotokId), inArray(proposal.status, ["thik_hoyeche", "biye_hoyeche"]))),
@@ -42,6 +44,7 @@ export async function dashboard(db: Db, ghotokId: string): Promise<Dashboard> {
     newInterestCount(db, ghotokId),
     dueFollowUps(db, ghotokId),
     upcomingMeetings(db, ghotokId, new Date(), 4),
+    staleProposals(db, ghotokId),
   ]);
   return {
     ...counts,
@@ -50,6 +53,7 @@ export async function dashboard(db: Db, ghotokId: string): Promise<Dashboard> {
     pending,
     interests,
     followUps,
+    stale,
     meetings,
     money,
     recent: recent.slice(0, 5),

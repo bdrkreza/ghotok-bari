@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, inArray, isNotNull, lte, or, sql, type SQL } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, isNotNull, isNull, lt, lte, or, sql, type SQL } from "drizzle-orm";
 import type { Db } from "../db";
 import { meeting, profile, proposal, proposalEvent, type ProposalStatus } from "../db/schema";
 import { AppError } from "../errors";
@@ -158,3 +158,23 @@ export async function followUpCount(db: Db, ghotokId: string, on = today()): Pro
     .where(and(eq(proposal.ghotokId, ghotokId), inArray(proposal.status, LIVE), isNotNull(proposal.followUpOn), lte(proposal.followUpOn, on)));
   return row?.n ?? 0;
 }
+
+/** A live proposal untouched this many days (no status change, no note) is "stuck" and shown on the dashboard. */
+export const STALE_DAYS = 14;
+
+/**
+ * Live proposals that have not moved for STALE_DAYS, longest idle first, with both guardians' numbers. Ones with a
+ * call-back day set are left out: due ones are in the follow-up list, and for the rest the ghotok said when to look again.
+ */
+export async function staleProposals(db: Db, ghotokId: string, days = STALE_DAYS, limit = 5) {
+  const cutoff = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+  const rows = await db.query.proposal.findMany({
+    where: and(eq(proposal.ghotokId, ghotokId), inArray(proposal.status, LIVE), lt(proposal.updatedAt, cutoff), isNull(proposal.followUpOn)),
+    with: { patro: { columns: { name: true, guardianPhone: true } }, patri: { columns: { name: true, guardianPhone: true } } },
+    orderBy: [asc(proposal.updatedAt)],
+    limit,
+  });
+  return rows.map((r) => ({ ...r, idleDays: Math.floor((Date.now() - r.updatedAt.getTime()) / (24 * 60 * 60 * 1000)) }));
+}
+
+export type StaleRow = Awaited<ReturnType<typeof staleProposals>>[number];
