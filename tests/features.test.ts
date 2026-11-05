@@ -1,7 +1,7 @@
 import { beforeAll, describe, expect, it } from "vitest";
 import type { AdminSession } from "@/lib/auth/session";
 import { changePassword, login } from "@/lib/auth/service";
-import { IP_LIMIT, PHONE_LIMIT, isLockedOut, recordFailure } from "@/lib/auth/throttle";
+import { IP_LIMIT, PHONE_LIMIT, SIGNUP_LIMIT, isLockedOut, recordFailure, recordSignup, signupLimited } from "@/lib/auth/throttle";
 import { AppError } from "@/lib/errors";
 import { listActivity, logActivity } from "@/lib/services/activity";
 import { exportAll, peopleCsv } from "@/lib/services/backup";
@@ -232,6 +232,25 @@ describe("passwords and sign-in", () => {
     for (let i = 0; i < IP_LIMIT; i++) await recordFailure(app.db, `0190000${String(i).padStart(4, "0")}`, "198.51.100.7");
     expect(await isLockedOut(app.db, ghotok.phone, "198.51.100.7")).toBe(true);
     expect(await isLockedOut(app.db, ghotok.phone, "198.51.100.8")).toBe(false);
+  });
+});
+
+describe("sign-up flooding", () => {
+  it("allows an address a few accounts an hour, lets the hour pass, and does not eat login failures", async () => {
+    const ip = "203.0.113.9";
+    for (let i = 0; i < SIGNUP_LIMIT; i++) {
+      expect(await signupLimited(app.db, ip)).toBe(false);
+      await recordSignup(app.db, ip);
+    }
+    expect(await signupLimited(app.db, ip)).toBe(true);
+    expect(await signupLimited(app.db, "203.0.113.10")).toBe(false);
+    expect(await signupLimited(app.db, null)).toBe(false);
+    expect(await signupLimited(app.db, ip, new Date(Date.now() + 61 * 60_000))).toBe(false);
+    // a login failure written now survives a sign-up sweep, and sign-up rows survive a login sweep
+    await recordFailure(app.db, "01900009999", "203.0.113.11");
+    await recordSignup(app.db, "203.0.113.12");
+    await recordFailure(app.db, "01900009998", "203.0.113.11", new Date(Date.now() + 20 * 60_000));
+    expect(await signupLimited(app.db, ip)).toBe(true);
   });
 });
 

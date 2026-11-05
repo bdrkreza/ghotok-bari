@@ -2,7 +2,7 @@ import { APIError } from "better-auth/api";
 import { z } from "zod";
 import type { Db } from "../db";
 import type { Auth } from "./index";
-import { clearFailures, clientIp, isLockedOut, recordFailure } from "./throttle";
+import { clearFailures, clientIp, isLockedOut, recordFailure, recordSignup, signupLimited } from "./throttle";
 import { makeT, type Lang } from "../i18n";
 import { MIN_PASSWORD_LENGTH, normalizePhone, placeholderEmail } from "./phone";
 
@@ -13,6 +13,7 @@ export type AuthErrorCode =
   | "phone_taken"
   | "wrong_credentials"
   | "too_many"
+  | "too_many_signups"
   | "unknown";
 
 export type AuthResult = { ok: true; userId?: string } | { ok: false; code: AuthErrorCode };
@@ -39,6 +40,11 @@ export async function register(deps: Deps, input: { name: string; phone: string;
   const phone = normalizePhone(input.phone);
   if (!phone) return fail("invalid_phone");
   if (!password.safeParse(input.password).success) return fail("weak_password");
+
+  // a bot opening accounts by the hundred: a few per address per hour (lib/auth/throttle.ts)
+  const ip = clientIp(deps.headers);
+  if (deps.db && (await signupLimited(deps.db, ip))) return fail("too_many_signups");
+  if (deps.db) await recordSignup(deps.db, ip);
 
   try {
     const res = await deps.auth.api.signUpEmail({
