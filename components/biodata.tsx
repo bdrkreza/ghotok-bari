@@ -5,7 +5,7 @@ import { Icon, type IconName } from "./icons";
 import { ContactButtons } from "./site";
 import { Card, ProfileBadge } from "./ui";
 import type { Profile } from "@/lib/db/schema";
-import type { T } from "@/lib/i18n";
+import type { Key, T } from "@/lib/i18n";
 import type { FamilyView } from "@/lib/services/share";
 import type { PublicSite } from "@/lib/services/site";
 import { ageFromYear } from "@/lib/time";
@@ -18,6 +18,12 @@ export type { FamilyView };
  */
 export type PrivateFields = Pick<Profile, "name" | "fatherName" | "motherName" | "guardianName" | "guardianPhone" | "monthlyIncome" | "photoUrl" | "educationInstitution">
   & { notes?: string | null; /** uploaded photos in order, the first being the cover */ photos?: { id: string }[] };
+
+/** "২০০৯ · বিজ্ঞান", "২০১১", "বিজ্ঞান", or null when neither was given. */
+function schoolLine(year: number | null, group: string | null, t: T): string | null {
+  const parts = [year ? t.n(year) : "", group ? t.t(`eduGroup.${group}` as Key) : ""].filter(Boolean);
+  return parts.length ? parts.join(" · ") : null;
+}
 
 /** The family in numbers, as chips: "২ ভাই", "১ বোন", "মধ্যবিত্ত". */
 export function familyTags(b: Pick<FamilyView, "brothers" | "sisters" | "familyStatus">, t: T): string[] {
@@ -151,6 +157,8 @@ export function FamilyBiodata({ b, t, aside, full, badges, more, photos: shownPh
   const work: Row[] = [
     { label: t.t("facts.medium"), value: b.educationMedium ? t.t(`medium.${b.educationMedium}`) : null },
     { label: t.t("facts.eduLevel"), value: b.educationLevel ? `${t.t(`eduLevel.${b.educationLevel}`)}${b.educationStudying ? ` (${t.t("facts.studying")})` : ""}` : null },
+    { label: t.t("facts.ssc"), value: schoolLine(b.sscYear, b.sscGroup, t) },
+    { label: t.t("facts.hsc"), value: schoolLine(b.hscYear, b.hscGroup, t) },
     { label: t.t("form.education"), value: b.education },
     { label: t.t("facts.subject"), value: b.educationSubject },
     // the school or college can name the person, so only the ghotok and the family who wrote it see it

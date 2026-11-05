@@ -43,7 +43,7 @@ export const FAMILY_VIEW = {
   code: profile.code, kind: profile.kind, birthYear: profile.birthYear, heightCm: profile.heightCm, religion: profile.religion,
   maritalStatus: profile.maritalStatus, education: profile.education, profession: profile.profession, village: profile.village, upazila: profile.upazila,
   district: profile.district, familyDetails: profile.familyDetails, expectations: profile.expectations, status: profile.status,
-  complexion: profile.complexion, weightKg: profile.weightKg, bloodGroup: profile.bloodGroup, educationMedium: profile.educationMedium, educationLevel: profile.educationLevel, educationSubject: profile.educationSubject,
+  complexion: profile.complexion, weightKg: profile.weightKg, bloodGroup: profile.bloodGroup, educationMedium: profile.educationMedium, educationLevel: profile.educationLevel, sscYear: profile.sscYear, sscGroup: profile.sscGroup, hscYear: profile.hscYear, hscGroup: profile.hscGroup, educationSubject: profile.educationSubject,
   educationYear: profile.educationYear, educationStudying: profile.educationStudying, educationResult: profile.educationResult, extraQualifications: profile.extraQualifications,
   workplace: profile.workplace, presentAddress: profile.presentAddress, brothers: profile.brothers, sisters: profile.sisters,
   familyStatus: profile.familyStatus, religiousPractice: profile.religiousPractice, afterStudy: profile.afterStudy, afterJob: profile.afterJob,

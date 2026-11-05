@@ -15,8 +15,8 @@ import { submitBiodataAction, updateBiodataAction } from "@/lib/actions/biodata"
 import { normalizePhone } from "@/lib/auth/phone";
 import { createProfileAction, updateProfileAction } from "@/lib/actions/profiles";
 import {
-  AFTER_HOMES, BLOOD_GROUPS, CHOICES, COMPLEXIONS, DOWRIES, EDUCATION_LEVELS, EDUCATION_MEDIUMS, EXPECT_EDUCATIONS, EXPECT_MARITALS, FAMILY_STATUSES,
-  MARITAL_STATUSES, MIN_AGE, RELIGIONS, missing, FAMILY_REQUIRED, GHOTOK_REQUIRED,
+  AFTER_HOMES, BLOOD_GROUPS, CHOICES, COMPLEXIONS, DOWRIES, EDUCATION_GROUPS, EDUCATION_LEVELS, EDUCATION_MEDIUMS, EXPECT_EDUCATIONS, EXPECT_MARITALS, FAMILY_STATUSES,
+  MARITAL_STATUSES, MIN_AGE, RELIGIONS, educationAsks, missing, FAMILY_REQUIRED, GHOTOK_REQUIRED,
 } from "@/lib/profile-fields";
 
 /** Who is filling the form: the ghotok (full form, their private notes) or a family (their own biodata, no notes). */
@@ -71,6 +71,8 @@ export function ProfileForm({ kind, profile, minYear, maxYear, viewer = "admin",
   // what an uploaded file filled in; bumping `version` remounts the form so the new defaults show
   const [imported, setImported] = useState<Imported>({});
   const [version, setVersion] = useState(0);
+  // the level the writer just picked (and for which fill of the form), which decides the education questions shown
+  const [picked, setPicked] = useState<{ version: number; level: string } | null>(null);
   const fromProfile: Record<string, string> = profile
     ? Object.fromEntries(Object.entries(profile).map(([k, v]) => [k, v === null || v === undefined ? "" : String(v)]))
     : {};
@@ -350,6 +352,7 @@ export function ProfileForm({ kind, profile, minYear, maxYear, viewer = "admin",
       >
         {(echo) => {
           const v = { ...base, ...echo };
+          const asks = educationAsks(picked && picked.version === version ? picked.level : (v.educationLevel ?? ""));
           const at = (i: number) => (el: HTMLDivElement | null) => { steps.current[i] = el; };
           return (
             <div
@@ -386,26 +389,39 @@ export function ProfileForm({ kind, profile, minYear, maxYear, viewer = "admin",
               </Section>
 
               <Section ref={at(1)} active={step === 1} title={titles[1][0]}>
-                <Wide>
-                  <Choice name="educationLevel" label={t("form.eduLevel")} options={options("eduLevel", EDUCATION_LEVELS)} skip={notSay} defaultValue={v.educationLevel} tag={tags("educationLevel", "all")} />
-                </Wide>
-                <Field name="education" required={req("education")} maxLength={120} label={t("form.education")} placeholder={t("form.educationPlaceholder")} defaultValue={v.education} tag={tags("education", "all")} />
-                <Field name="educationSubject" maxLength={120} label={t("form.eduSubject")} placeholder={t("form.eduSubjectPlaceholder")} defaultValue={v.educationSubject} tag={tags("educationSubject", "all")} />
-                <Field name="educationInstitution" maxLength={160} label={t("form.eduInstitution")} placeholder={t("form.eduInstitutionPlaceholder")} defaultValue={v.educationInstitution} tag={tags("educationInstitution", "ghotok")} />
-                <Field name="educationYear" label={t("form.eduYear")} type="number" inputMode="numeric" min="1950" max="2100" placeholder="2020" defaultValue={v.educationYear} hint={t("form.eduYearHint")} tag={tags("educationYear", "all")} />
-                <Wide>
-                  <Checkbox name="educationStudying" label={t("form.eduStudying")} defaultChecked={v.educationStudying === "true" || v.educationStudying === "on"} />
-                </Wide>
-                <Field name="educationResult" maxLength={60} label={t("form.eduResult")} placeholder={t("form.eduResultPlaceholder")} defaultValue={v.educationResult} tag={tags("educationResult", "all")} />
-                <Wide>
-                  <TextArea name="extraQualifications" maxLength={1000} rows={2} label={t("form.extraQuals")} placeholder={t("form.extraQualsPlaceholder")} defaultValue={v.extraQualifications} tag={tags("extraQualifications", "all")} />
-                </Wide>
+                {/* a change anywhere in this step bubbles up here, so picking a level decides which questions follow */}
+                <div className="contents" onChange={(e) => { const el = e.target as HTMLInputElement; if (el.name === "educationLevel") setPicked({ version, level: el.value }); }}>
+                  <Wide>
+                    <Choice name="educationMedium" label={t("form.medium")} options={options("medium", EDUCATION_MEDIUMS)} skip={notSay} defaultValue={v.educationMedium} tag={tags("educationMedium", "all")} />
+                  </Wide>
+                  <Wide>
+                    <Choice name="educationLevel" label={t("form.eduLevel")} options={options("eduLevel", EDUCATION_LEVELS)} skip={notSay} defaultValue={v.educationLevel} tag={tags("educationLevel", "all")} />
+                  </Wide>
+                  <Field name="education" required={req("education")} maxLength={120} label={t("form.education")} placeholder={t("form.educationPlaceholder")} defaultValue={v.education} tag={tags("education", "all")} />
+                  <div className={asks.ssc ? "grid gap-4 sm:col-span-2 sm:grid-cols-[13rem_minmax(0,1fr)] sm:items-start" : "hidden"}>
+                    <Field name="sscYear" label={t("form.sscYear")} type="number" inputMode="numeric" min="1950" max="2100" placeholder="2009" defaultValue={v.sscYear} tag={tags("sscYear", "all")} />
+                    <Choice name="sscGroup" label={t("form.sscGroup")} options={options("eduGroup", EDUCATION_GROUPS)} skip={notSay} defaultValue={v.sscGroup} tag={tags("sscGroup", "all")} />
+                  </div>
+                  <div className={asks.hsc ? "grid gap-4 sm:col-span-2 sm:grid-cols-[13rem_minmax(0,1fr)] sm:items-start" : "hidden"}>
+                    <Field name="hscYear" label={t("form.hscYear")} type="number" inputMode="numeric" min="1950" max="2100" placeholder="2011" defaultValue={v.hscYear} tag={tags("hscYear", "all")} />
+                    <Choice name="hscGroup" label={t("form.hscGroup")} options={options("eduGroup", EDUCATION_GROUPS)} skip={notSay} defaultValue={v.hscGroup} tag={tags("hscGroup", "all")} />
+                  </div>
+                  <div className={asks.higher ? "contents" : "hidden"}>
+                    <Field name="educationSubject" maxLength={120} label={t("form.eduSubject")} placeholder={t("form.eduSubjectPlaceholder")} defaultValue={v.educationSubject} tag={tags("educationSubject", "all")} />
+                    <Field name="educationYear" label={t("form.eduYear")} type="number" inputMode="numeric" min="1950" max="2100" placeholder="2020" defaultValue={v.educationYear} hint={t("form.eduYearHint")} tag={tags("educationYear", "all")} />
+                  </div>
+                  <Field name="educationInstitution" maxLength={160} label={t("form.eduInstitution")} placeholder={t("form.eduInstitutionPlaceholder")} defaultValue={v.educationInstitution} tag={tags("educationInstitution", "ghotok")} />
+                  <Field name="educationResult" maxLength={60} label={t("form.eduResult")} placeholder={t("form.eduResultPlaceholder")} defaultValue={v.educationResult} tag={tags("educationResult", "all")} />
+                  <Wide>
+                    <Checkbox name="educationStudying" label={t("form.eduStudying")} defaultChecked={v.educationStudying === "true" || v.educationStudying === "on"} />
+                  </Wide>
+                  <Wide>
+                    <TextArea name="extraQualifications" maxLength={1000} rows={2} label={t("form.extraQuals")} placeholder={t("form.extraQualsPlaceholder")} defaultValue={v.extraQualifications} tag={tags("extraQualifications", "all")} />
+                  </Wide>
+                </div>
                 <Field name="profession" required={req("profession")} maxLength={120} label={t("form.profession")} placeholder={t("form.professionPlaceholder")} defaultValue={v.profession} tag={tags("profession", "all")} />
                 <Field name="workplace" maxLength={160} label={t("form.workplace")} placeholder={t("form.workplacePlaceholder")} defaultValue={v.workplace} tag={tags("workplace", "all")} />
                 <Field name="monthlyIncome" label={t("form.income")} type="number" inputMode="numeric" min="0" placeholder={t("form.incomePlaceholder")} defaultValue={v.monthlyIncome} tag={tags("monthlyIncome", "ghotok")} />
-                <Wide>
-                  <Choice name="educationMedium" label={t("form.medium")} options={options("medium", EDUCATION_MEDIUMS)} skip={notSay} defaultValue={v.educationMedium} tag={tags("educationMedium", "all")} />
-                </Wide>
               </Section>
 
               <Section ref={at(2)} active={step === 2} title={titles[2][0]}>

@@ -12,7 +12,7 @@ import { dashboard } from "@/lib/services/dashboard";
 import { addEntry, listEntries, totals } from "@/lib/services/ledger";
 import { scorePair, suggestFor } from "@/lib/services/match";
 import { listHref, parseAge } from "@/lib/search";
-import { completeness, educationRank, expectRank } from "@/lib/profile-fields";
+import { completeness, educationAsks, educationRank, expectRank } from "@/lib/profile-fields";
 import { GHOTOK_REQUIRED, activeCounts, createProfile, deleteProfile, parseProfile, setShowParents, setShowPhotos, getProfile, listProfiles, pendingCount, places, setApproval, submittedProfiles, updateProfile } from "@/lib/services/profiles";
 import { browseBiodata, browseOne, deleteMyBiodata, getMyBiodata, myBiodata, submitBiodata, updateMyBiodata } from "@/lib/services/biodata";
 import { addNote, changeStatus, createProposal, getProposal, listProposals, proposalsFor } from "@/lib/services/proposals";
@@ -501,8 +501,22 @@ describe("education in parts", () => {
     const ok = parseProfile(personForm({ educationLevel: "master", educationSubject: "ইংরেজি", educationInstitution: "ঢাকা বিশ্ববিদ্যালয়", educationYear: "2022", educationStudying: "on", educationResult: "সিজিপিএ ৩.৮০", extraQualifications: "কম্পিউটার, ইংরেজিতে দক্ষ" }));
     expect(ok).toMatchObject({ educationLevel: "master", educationSubject: "ইংরেজি", educationInstitution: "ঢাকা বিশ্ববিদ্যালয়", educationYear: 2022, educationStudying: true, educationResult: "সিজিপিএ ৩.৮০" });
     expect(parseProfile(personForm())).toMatchObject({ educationLevel: null, educationYear: null, educationStudying: false });
+    expect(parseProfile(personForm({ sscYear: "2009", sscGroup: "science", hscYear: "2011", hscGroup: "commerce" }))).toMatchObject({ sscYear: 2009, sscGroup: "science", hscYear: 2011, hscGroup: "commerce" });
+    expect(parseProfile(personForm())).toMatchObject({ sscYear: null, sscGroup: null, hscYear: null, hscGroup: null });
+    expect(fieldsOf(() => parseProfile(personForm({ sscGroup: "arts" })))).toHaveProperty("sscGroup");
+    expect(fieldsOf(() => parseProfile(personForm({ hscYear: "3000" })))).toHaveProperty("hscYear");
     expect(fieldsOf(() => parseProfile(personForm({ educationLevel: "wizard" })))).toHaveProperty("educationLevel");
     expect(fieldsOf(() => parseProfile(personForm({ educationYear: "1800" })))).toHaveProperty("educationYear");
+  });
+
+  it("asks about SSC, HSC and the degree only as far as the level reaches", () => {
+    expect(educationAsks("")).toEqual({ ssc: false, hsc: false, higher: false });
+    expect(educationAsks("ssc")).toEqual({ ssc: true, hsc: false, higher: false });
+    expect(educationAsks("dakhil")).toEqual({ ssc: true, hsc: false, higher: false });
+    expect(educationAsks("alim")).toEqual({ ssc: true, hsc: true, higher: false });
+    expect(educationAsks("diploma")).toEqual({ ssc: true, hsc: false, higher: true }); // a diploma follows the SSC
+    expect(educationAsks("bachelor")).toEqual({ ssc: true, hsc: true, higher: true });
+    expect(educationAsks("hafez")).toEqual({ ssc: false, hsc: false, higher: false });
   });
 
   it("puts a madrasa level where its general-school equivalent stands, and leaves hafez and other off the ladder", () => {

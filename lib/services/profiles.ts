@@ -5,12 +5,12 @@ import { profile, user, type Approval, type MaritalStatus, type Profile, type Pr
 import { AppError, type Existing, type FieldIssue, type FieldIssues } from "../errors";
 import { deletePhotosOf } from "./photos";
 import {
-  AFTER_HOMES, BLOOD_GROUPS, CHOICES, COMPLEXIONS, DOWRIES, EDUCATION_LEVELS, EDUCATION_MEDIUMS, EXPECT_EDUCATIONS, EXPECT_MARITALS, FAMILY_STATUSES,
+  AFTER_HOMES, BLOOD_GROUPS, CHOICES, COMPLEXIONS, DOWRIES, EDUCATION_GROUPS, EDUCATION_LEVELS, EDUCATION_MEDIUMS, EXPECT_EDUCATIONS, EXPECT_MARITALS, FAMILY_STATUSES,
   MARITAL_STATUSES, MIN_AGE, RELIGIONS, missing, FAMILY_REQUIRED, GHOTOK_REQUIRED,
 } from "../profile-fields";
 
 export {
-  AFTER_HOMES, BLOOD_GROUPS, CHOICES, COMPLEXIONS, DOWRIES, EDUCATION_LEVELS, EDUCATION_MEDIUMS, EXPECT_EDUCATIONS, EXPECT_MARITALS, FAMILY_STATUSES,
+  AFTER_HOMES, BLOOD_GROUPS, CHOICES, COMPLEXIONS, DOWRIES, EDUCATION_GROUPS, EDUCATION_LEVELS, EDUCATION_MEDIUMS, EXPECT_EDUCATIONS, EXPECT_MARITALS, FAMILY_STATUSES,
   MARITAL_STATUSES, MIN_AGE, RELIGIONS, missing, FAMILY_REQUIRED, GHOTOK_REQUIRED,
 };
 import { normalizePhone } from "../auth/phone";
@@ -68,6 +68,10 @@ const profileInput = z.object({
   bloodGroup: pick(BLOOD_GROUPS),
   educationMedium: pick(EDUCATION_MEDIUMS),
   educationLevel: pick(EDUCATION_LEVELS),
+  sscYear: optionalInt(1950, 2100),
+  sscGroup: pick(EDUCATION_GROUPS),
+  hscYear: optionalInt(1950, 2100),
+  hscGroup: pick(EDUCATION_GROUPS),
   educationSubject: optional(120),
   educationInstitution: optional(160),
   educationYear: optionalInt(1950, 2100),

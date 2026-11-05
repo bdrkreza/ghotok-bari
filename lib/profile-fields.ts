@@ -2,7 +2,7 @@
 // empty. Plain data, shared by the form in the browser and the services on the server (which re-export it), so the
 // form never pulls server code (the database, the photo store) into the browser's bundle.
 import type {
-  AfterHome, BloodGroup, Choice, Complexion, Dowry, EducationLevel, EducationMedium, ExpectEducation, ExpectMarital, FamilyStatus, MaritalStatus,
+  AfterHome, BloodGroup, Choice, Complexion, Dowry, EducationGroup, EducationLevel, EducationMedium, ExpectEducation, ExpectMarital, FamilyStatus, MaritalStatus,
   ProfileKind, Religion,
 } from "./db/schema";
 import type { FieldIssue } from "./errors";
@@ -29,6 +29,20 @@ export const EDUCATION_LEVELS: readonly [EducationLevel, ...EducationLevel[]] = 
 const RANK: Record<EducationLevel, number | null> = {
   ssc: 1, dakhil: 1, hsc: 2, alim: 2, diploma: 2, bachelor: 3, fazil: 3, master: 4, kamil: 4, phd: 5, hafez: null, other: null,
 };
+export const EDUCATION_GROUPS: readonly [EducationGroup, ...EducationGroup[]] = ["science", "humanities", "commerce", "vocational", "other"];
+
+/**
+ * Which education questions the form asks once a level is picked: the SSC / dakhil year and stream for everyone who got
+ * that far, the HSC / alim ones from there up, and the subject and year of the degree itself for diploma and above.
+ * With no level yet, only the questions every level shares (the line, the institution, the result, the extras) show.
+ */
+export function educationAsks(level: string): { ssc: boolean; hsc: boolean; higher: boolean } {
+  const ssc = ["ssc", "dakhil", "hsc", "alim", "diploma", "bachelor", "fazil", "master", "kamil", "phd"];
+  const hsc = ["hsc", "alim", "bachelor", "fazil", "master", "kamil", "phd"];
+  const higher = ["diploma", "bachelor", "fazil", "master", "kamil", "phd"];
+  return { ssc: ssc.includes(level), hsc: hsc.includes(level), higher: higher.includes(level) };
+}
+
 export const educationRank = (level: EducationLevel | null): number | null => (level ? RANK[level] : null);
 export const expectRank = (e: ExpectEducation): number => ({ ssc: 1, hsc: 2, bachelor: 3, master: 4 })[e];
 

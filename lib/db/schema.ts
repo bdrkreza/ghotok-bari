@@ -68,6 +68,8 @@ export type AfterHome = "family" | "city" | "abroad" | "undecided";
 /** whether a groom's side expects anything from the bride's */
 export type Dowry = "none" | "gift" | "discuss";
 export type ExpectEducation = "ssc" | "hsc" | "bachelor" | "master";
+/** The stream at school or madrasa: science, humanities, commerce, vocational. */
+export type EducationGroup = "science" | "humanities" | "commerce" | "vocational" | "other";
 /** The highest level reached, picked from a list so that "at least a bachelor's" can really be matched. Madrasa levels sit beside their general-school equivalents (lib/profile-fields.ts, educationRank). */
 export type EducationLevel =
   | "ssc" | "hsc" | "diploma" | "bachelor" | "master" | "phd"
@@ -109,6 +111,11 @@ export const profile = pgTable("profile", {
   educationMedium: text("education_medium").$type<EducationMedium>(),
   /* the education in parts; `education` above stays the one line everyone reads and searches */
   educationLevel: text("education_level").$type<EducationLevel>(),
+  /** SSC / dakhil and HSC / alim: the year passed and the stream; asked when the level reaches them */
+  sscYear: integer("ssc_year"),
+  sscGroup: text("ssc_group").$type<EducationGroup>(),
+  hscYear: integer("hsc_year"),
+  hscGroup: text("hsc_group").$type<EducationGroup>(),
   /** the subject or department: "কম্পিউটার সায়েন্স" */
   educationSubject: text("education_subject"),
   /** the school, college, university or madrasa; private (the ghotok and the family who wrote it), like the name */
