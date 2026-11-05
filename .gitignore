@@ -43,3 +43,6 @@ next-env.d.ts
 
 # embedded development database (PGlite) and screenshots output
 /.data/
+
+# database backups (family details and password hashes; the repo is public)
+/backups/

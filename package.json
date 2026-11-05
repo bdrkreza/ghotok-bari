@@ -12,6 +12,7 @@
     "db:migrate": "drizzle-kit migrate",
     "db:migrate:test": "node scripts/env.mjs test node scripts/migrate.mjs",
     "db:migrate:live": "node scripts/env.mjs live node scripts/migrate.mjs",
+    "backup:live": "node scripts/backup.mjs",
     "dev:test": "node scripts/env.mjs test next dev",
     "db:studio": "drizzle-kit studio",
     "test": "vitest run",

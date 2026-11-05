@@ -276,6 +276,7 @@ same by hand, from this computer.
 | `npm run db:generate` | Write a new SQL migration from `lib/db/schema.ts` into `drizzle/` |
 | `npm run db:migrate` | Apply migrations to `DIRECT_URL` (drizzle-kit, from `.env.local`) |
 | `npm run db:migrate:test` / `db:migrate:live` | Apply migrations to the test or live database (`.env.test` / `.env.live`; live asks first) |
+| `npm run backup:live` | Read-only dump of every table of the live database to `backups/alta-<time>.json.gz` (newest 30 kept; `BACKUP_DIR`, `BACKUP_KEEP` change that). Never asks, so Task Scheduler can run it. The file holds family details and password hashes: keep it private (the repo is public). Photos are not in it |
 | `npm run dev:test` | Development server on the test Supabase project instead of the embedded database |
 | `npm run screenshots` | Capture every screen (phone and web) into `docs/screens/` using the installed Edge or Chrome (dev server must be running) |
 | `npm run icons` | Redraw the home-screen icons in `public/` (only after changing the mark or brand colour) |
